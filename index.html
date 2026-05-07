@@ -1589,23 +1589,141 @@ function clearSearch() {
 // 화장실 15개만 지도에 표시하고, 좌표 추출 모드로 직접 위치를 보정한다.
 // 편의점 좌표는 제외했다.
 const facilityCoords = [
-  // 화장실 15개: 지도에서 직접 좌표를 찍어 저장할 대상입니다.
-  // 초기 좌표는 임시값이며, 좌표 추출 모드로 클릭하면 localStorage에 정확 좌표가 저장됩니다.
-  { id:'toilet_academic_culture', cat:'toilet', name:'학술문화관 화장실', building:'학술문화관', floor:'1층', lat:37.55762, lng:127.00213 },
-  { id:'toilet_business', cat:'toilet', name:'경영관 화장실', building:'경영관', floor:'1층', lat:37.55772, lng:127.00042 },
-  { id:'toilet_law_manhae', cat:'toilet', name:'법학만해관 화장실', building:'법학만해관', floor:'1층', lat:37.55730, lng:127.00160 },
-  { id:'toilet_library', cat:'toilet', name:'중앙도서관 화장실', building:'중앙도서관', floor:'1층', lat:37.55780, lng:126.99842 },
-  { id:'toilet_info_p', cat:'toilet', name:'정보문화관 P동 화장실', building:'정보문화관 P동', floor:'1층', lat:37.55916, lng:126.99805 },
-  { id:'toilet_info_q', cat:'toilet', name:'정보문화관 Q동 화장실', building:'정보문화관 Q동', floor:'1층', lat:37.55695, lng:126.99885 },
-  { id:'toilet_engineering', cat:'toilet', name:'신공학관 화장실', building:'신공학관', floor:'1층', lat:37.55812, lng:126.99755 },
-  { id:'toilet_science', cat:'toilet', name:'과학관 화장실', building:'과학관', floor:'1층', lat:37.55727, lng:126.99902 },
-  { id:'toilet_dahyang', cat:'toilet', name:'다향관 화장실', building:'다향관', floor:'1층', lat:37.55856, lng:127.00022 },
-  { id:'toilet_main', cat:'toilet', name:'본관 화장실', building:'본관', floor:'1층', lat:37.55834, lng:126.99915 },
-  { id:'toilet_social_science', cat:'toilet', name:'사회과학관 화장실', building:'사회과학관', floor:'1층', lat:37.55800, lng:126.99850 },
-  { id:'toilet_hyehwa', cat:'toilet', name:'혜화관 화장실', building:'혜화관', floor:'1층', lat:37.55725, lng:127.00133 },
-  { id:'toilet_myeongjin', cat:'toilet', name:'명진관 화장실', building:'명진관', floor:'1층', lat:37.55758, lng:126.99914 },
-  { id:'toilet_hakrim', cat:'toilet', name:'학림관 화장실', building:'학림관', floor:'1층', lat:37.55954, lng:126.99945 },
-  { id:'toilet_wonheung', cat:'toilet', name:'원흥관 화장실', building:'원흥관', floor:'1층', lat:37.55839, lng:126.99790 }
+  {
+    "id": "toilet_academic_culture",
+    "cat": "toilet",
+    "name": "학술문화관 화장실",
+    "building": "학술문화관",
+    "floor": "1층",
+    "lat": 37.5578247,
+    "lng": 127.0031418
+  },
+  {
+    "id": "toilet_business",
+    "cat": "toilet",
+    "name": "경영관 화장실",
+    "building": "경영관",
+    "floor": "1층",
+    "lat": 37.5570102,
+    "lng": 127.0029165
+  },
+  {
+    "id": "toilet_law_manhae",
+    "cat": "toilet",
+    "name": "법학만해관 화장실",
+    "building": "법학만해관",
+    "floor": "1층",
+    "lat": 37.5580468,
+    "lng": 127.0009122
+  },
+  {
+    "id": "toilet_library",
+    "cat": "toilet",
+    "name": "중앙도서관 화장실",
+    "building": "중앙도서관",
+    "floor": "1층",
+    "lat": 37.5567551,
+    "lng": 127.0003416
+  },
+  {
+    "id": "toilet_info_p",
+    "cat": "toilet",
+    "name": "정보문화관 P동 화장실",
+    "building": "정보문화관 P동",
+    "floor": "1층",
+    "lat": 37.5596107,
+    "lng": 126.9986149
+  },
+  {
+    "id": "toilet_info_q",
+    "cat": "toilet",
+    "name": "정보문화관 Q동 화장실",
+    "building": "정보문화관 Q동",
+    "floor": "1층",
+    "lat": 37.5599233,
+    "lng": 126.9983132
+  },
+  {
+    "id": "toilet_engineering",
+    "cat": "toilet",
+    "name": "신공학관 화장실",
+    "building": "신공학관",
+    "floor": "1층",
+    "lat": 37.5581734,
+    "lng": 126.9980282
+  },
+  {
+    "id": "toilet_science",
+    "cat": "toilet",
+    "name": "과학관 화장실",
+    "building": "과학관",
+    "floor": "1층",
+    "lat": 37.5573079,
+    "lng": 126.9998588
+  },
+  {
+    "id": "toilet_dahyang",
+    "cat": "toilet",
+    "name": "다향관 화장실",
+    "building": "다향관",
+    "floor": "1층",
+    "lat": 37.5586794,
+    "lng": 127.000347
+  },
+  {
+    "id": "toilet_main",
+    "cat": "toilet",
+    "name": "본관 화장실",
+    "building": "본관",
+    "floor": "1층",
+    "lat": 37.5585157,
+    "lng": 126.9994887
+  },
+  {
+    "id": "toilet_social_science",
+    "cat": "toilet",
+    "name": "사회과학관 화장실",
+    "building": "사회과학관",
+    "floor": "1층",
+    "lat": 37.5576375,
+    "lng": 127.0026443
+  },
+  {
+    "id": "toilet_hyehwa",
+    "cat": "toilet",
+    "name": "혜화관 화장실",
+    "building": "혜화관",
+    "floor": "1층",
+    "lat": 37.5575142,
+    "lng": 127.0017953
+  },
+  {
+    "id": "toilet_myeongjin",
+    "cat": "toilet",
+    "name": "명진관 화장실",
+    "building": "명진관",
+    "floor": "1층",
+    "lat": 37.5576885,
+    "lng": 126.9999607
+  },
+  {
+    "id": "toilet_hakrim",
+    "cat": "toilet",
+    "name": "학림관 화장실",
+    "building": "학림관",
+    "floor": "1층",
+    "lat": 37.5602879,
+    "lng": 126.9997079
+  },
+  {
+    "id": "toilet_wonheung",
+    "cat": "toilet",
+    "name": "원흥관 화장실",
+    "building": "원흥관",
+    "floor": "1층",
+    "lat": 37.5588644,
+    "lng": 126.9989817
+  }
 ];
 
 let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
