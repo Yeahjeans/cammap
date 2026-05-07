@@ -978,21 +978,21 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
       </div>
       <div class="form-group">
         <label class="form-label">층 선택</label>
-        <select class="form-select">
+        <select class="form-select" id="report-floor">
           <option value="">층을 선택하세요</option>
           <option>1층</option><option>2층</option><option>3층</option><option>4층</option><option>5층</option><option>외부</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">편의시설 종류</label>
-        <select class="form-select">
+        <select class="form-select" id="report-cat">
           <option value="">종류를 선택하세요</option>
-          <option>화장실</option><option>편의점</option><option>흡연구역</option>
+          <option value="toilet">화장실</option><option value="store">편의점</option><option value="smoke">흡연구역</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">제보 내용</label>
-        <textarea class="form-textarea" placeholder="변경되거나 추가된 정보를 입력해주세요..."></textarea>
+        <textarea class="form-textarea" id="report-text" placeholder="변경되거나 추가된 정보를 입력해주세요..."></textarea>
       </div>
       <div class="form-group">
         <label class="form-label">사진 첨부</label>
@@ -1025,8 +1025,8 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
   <div class="scroll-content" style="padding-bottom:80px">
     <div class="stat-row">
       <div class="stat-cell"><div class="stat-num" id="my-comment-count">0</div><div class="stat-label">작성한 댓글</div></div>
-      <div class="stat-cell"><div class="stat-num" id="my-report-count">1</div><div class="stat-label">제보 내역</div></div>
-      <div class="stat-cell"><div class="stat-num" id="my-fav-count">2</div><div class="stat-label">즐겨찾기</div></div>
+      <div class="stat-cell"><div class="stat-num" id="my-report-count">0</div><div class="stat-label">제보 내역</div></div>
+      <div class="stat-cell"><div class="stat-num" id="my-fav-count">0</div><div class="stat-label">즐겨찾기</div></div>
     </div>
     <div class="my-section">
       <div class="my-section-title">프로필 설정</div>
@@ -1048,37 +1048,28 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
     <div class="my-section">
       <div class="my-section-title">즐겨찾기</div>
       <div id="fav-list-my">
-        <div class="my-item" onclick="goToDetail(&#39;사회과학관&#39;,&#39;2층&#39;,&#39;toilet&#39;)">
+        <div class="my-item">
           <div class="my-item-icon o">⭐</div>
-          <div class="my-item-text"><strong>사회과학관 화장실</strong><span>1층, 2층, 4층 · 평균 ⭐ 4.3</span></div>
-          <span class="my-item-arrow">›</span>
-        </div>
-        <div class="my-item" onclick="goToDetail(&#39;원흥관&#39;,&#39;1층&#39;,&#39;store&#39;)">
-          <div class="my-item-icon g">⭐</div>
-          <div class="my-item-text"><strong>원흥관 편의점</strong><span>1층 · 평균 ⭐ 4.4</span></div>
-          <span class="my-item-arrow">›</span>
+          <div class="my-item-text"><strong>아직 즐겨찾기한 시설이 없습니다</strong><span>상세 페이지의 하트 버튼을 누르면 여기에 표시됩니다.</span></div>
         </div>
       </div>
     </div>
     <div class="my-section">
       <div class="my-section-title">내가 남긴 제보</div>
-      <div class="my-item">
-        <div class="my-item-icon o">✏️</div>
-        <div class="my-item-text"><strong>사회과학관 2층 화장실 비데 정보</strong><span>검토 중 · 2026.05.07</span></div>
-        <span style="font-size:11px;color:var(--orange);font-weight:600">검토중</span>
+      <div id="my-reports-list">
+        <div class="my-item">
+          <div class="my-item-icon o">✏️</div>
+          <div class="my-item-text"><strong>아직 남긴 제보가 없습니다</strong><span>제보 탭에서 정보를 제출하면 여기에 표시됩니다.</span></div>
+        </div>
       </div>
     </div>
     <div class="my-section">
       <div class="my-section-title">최근 본 시설</div>
-      <div class="my-item" onclick="goToDetail(&#39;사회과학관&#39;,&#39;2층&#39;,&#39;toilet&#39;)">
-        <div class="my-item-icon o">🕐</div>
-        <div class="my-item-text"><strong>사회과학관 2층 화장실</strong><span>방금 전</span></div>
-        <span class="my-item-arrow">›</span>
-      </div>
-      <div class="my-item" onclick="goToDetail(&#39;원흥관&#39;,&#39;1층&#39;,&#39;store&#39;)">
-        <div class="my-item-icon g">🕐</div>
-        <div class="my-item-text"><strong>원흥관 1층 편의점</strong><span>오늘</span></div>
-        <span class="my-item-arrow">›</span>
+      <div id="recent-list-my">
+        <div class="my-item">
+          <div class="my-item-icon o">🕐</div>
+          <div class="my-item-text"><strong>최근 본 시설이 없습니다</strong><span>시설 상세 페이지에 들어가면 여기에 표시됩니다.</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1177,9 +1168,11 @@ let currentFloor = '';
 let currentTabScreen = 'home';
 let screenStack = [];
 let userRating = 0;
-let favorites = new Set();
+let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
 let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
 let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
+let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
+let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
@@ -1303,6 +1296,7 @@ function goToDetail(building, floor, cat) {
   currentBuilding = building;
   currentFloor = floor;
   renderDetail(cat, building, floor);
+  addRecentView(building, floor, cat);
   // from any tab screen, push screen
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
@@ -1423,28 +1417,49 @@ function submitReview(key, cat, building, floor) {
 }
 
 // ============ FAVORITES ============
+function saveFavorites() {
+  localStorage.setItem('cammapFavorites', JSON.stringify([...favorites]));
+}
+
+function getFavoriteItems() {
+  return [...favorites].map(key => {
+    const parts = key.split('_');
+    const cat = parts[0];
+    const building = parts[1];
+    const floor = parts.length >= 3 ? parts.slice(2).join('_') : (floorData[cat]?.[building]?.[0]?.floor || '');
+    return { key, cat, building, floor };
+  }).filter(item => item.cat && item.building && item.floor);
+}
+
 function toggleBuildingFav() {
   const key = currentCat + '_' + currentBuilding;
   if(favorites.has(key)) favorites.delete(key); else favorites.add(key);
+  saveFavorites();
+
   const btn = document.getElementById('fav-building-btn');
   btn.textContent = favorites.has(key) ? '❤️' : '🤍';
   btn.classList.toggle('fav-active', favorites.has(key));
   updateFavCount();
+  renderMyPage();
   showToast(favorites.has(key) ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.');
 }
 
 function toggleDetailFav() {
   const key = currentCat + '_' + currentBuilding + '_' + currentFloor;
   if(favorites.has(key)) favorites.delete(key); else favorites.add(key);
+  saveFavorites();
+
   const btn = document.getElementById('fav-detail-btn');
   btn.textContent = favorites.has(key) ? '❤️' : '🤍';
   btn.classList.toggle('fav-active', favorites.has(key));
   updateFavCount();
+  renderMyPage();
   showToast(favorites.has(key) ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.');
 }
 
 function updateFavCount() {
-  document.getElementById('my-fav-count').textContent = favorites.size + 2;
+  const el = document.getElementById('my-fav-count');
+  if (el) el.textContent = getFavoriteItems().length;
 }
 
 // ============ SEARCH ============
@@ -1888,6 +1903,38 @@ function setUserName() {
   showToast(`${currentUser}님으로 설정되었습니다.`);
 }
 
+function getCatIconClass(cat) {
+  return cat === 'store' ? 'g' : cat === 'smoke' ? 'p' : 'o';
+}
+
+function getFacilityTitle(cat, building, floor) {
+  return `${building} ${floor} ${catInfo[cat]?.label || ''}`;
+}
+
+function escapeHTML(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function addRecentView(building, floor, cat) {
+  if (!building || !floor || !cat) return;
+  const item = {
+    building,
+    floor,
+    cat,
+    viewedAt: Date.now(),
+    date: new Date().toISOString().slice(0, 10).replaceAll('-', '.')
+  };
+  recentViews = recentViews.filter(v => !(v.building === building && v.floor === floor && v.cat === cat));
+  recentViews.unshift(item);
+  recentViews = recentViews.slice(0, 8);
+  localStorage.setItem('cammapRecentViews', JSON.stringify(recentViews));
+}
+
 function getMyCommentsArray() {
   const arr = [];
   Object.entries(userComments).forEach(([key, comments]) => {
@@ -1897,7 +1944,7 @@ function getMyCommentsArray() {
         key,
         cat: comment.cat || parts[0],
         building: comment.building || parts[1],
-        floor: comment.floor || parts[2],
+        floor: comment.floor || parts.slice(2).join('_'),
         ...comment
       });
     });
@@ -1905,15 +1952,7 @@ function getMyCommentsArray() {
   return arr;
 }
 
-function renderMyPage() {
-  const profileName = document.getElementById('profile-name');
-  const profileAvatar = document.getElementById('profile-avatar');
-  const profileDesc = document.getElementById('profile-setting-desc');
-
-  if (profileName) profileName.textContent = currentUser;
-  if (profileAvatar) profileAvatar.textContent = currentUser.trim().charAt(0) || '동';
-  if (profileDesc) profileDesc.textContent = `현재 댓글 표시 이름: ${currentUser}`;
-
+function renderMyComments() {
   const myComments = getMyCommentsArray();
   const countEl = document.getElementById('my-comment-count');
   const listEl = document.getElementById('my-comments-list');
@@ -1931,28 +1970,153 @@ function renderMyPage() {
 
   listEl.innerHTML = myComments.slice().reverse().map(c => {
     const icon = catInfo[c.cat]?.icon || '💬';
-    const iconClass = c.cat === 'store' ? 'g' : c.cat === 'smoke' ? 'p' : 'o';
-    const title = `${c.building} ${c.floor} ${catInfo[c.cat]?.label || ''}`;
-    const safeText = String(c.text || '').replaceAll('"', '&quot;');
+    const iconClass = getCatIconClass(c.cat);
+    const title = escapeHTML(getFacilityTitle(c.cat, c.building, c.floor));
+    const text = escapeHTML(c.text);
     return `
       <div class="my-item" onclick="goToDetail('${c.building}','${c.floor}','${c.cat}')">
         <div class="my-item-icon ${iconClass}">${icon}</div>
-        <div class="my-item-text"><strong>${title}</strong><span>"${safeText}" · ⭐ ${c.rating} · ${c.date}</span></div>
+        <div class="my-item-text"><strong>${title}</strong><span>"${text}" · ⭐ ${c.rating} · ${c.date}</span></div>
         <span class="my-item-arrow">›</span>
       </div>`;
   }).join('');
 }
 
-// 최초 로딩 시 프로필 이름과 내가 쓴 댓글 목록을 반영한다.
+function renderMyFavorites() {
+  const favItems = getFavoriteItems();
+  const listEl = document.getElementById('fav-list-my');
+  const countEl = document.getElementById('my-fav-count');
+  if (countEl) countEl.textContent = favItems.length;
+  if (!listEl) return;
+
+  if (!favItems.length) {
+    listEl.innerHTML = `
+      <div class="my-item">
+        <div class="my-item-icon o">⭐</div>
+        <div class="my-item-text"><strong>아직 즐겨찾기한 시설이 없습니다</strong><span>상세 페이지의 하트 버튼을 누르면 여기에 표시됩니다.</span></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = favItems.map(item => {
+    const iconClass = getCatIconClass(item.cat);
+    const title = escapeHTML(getFacilityTitle(item.cat, item.building, item.floor));
+    const desc = floorData[item.cat]?.[item.building]?.find(f => f.floor === item.floor)?.tags || '상세 정보와 리뷰 확인';
+    return `
+      <div class="my-item" onclick="goToDetail('${item.building}','${item.floor}','${item.cat}')">
+        <div class="my-item-icon ${iconClass}">⭐</div>
+        <div class="my-item-text"><strong>${title}</strong><span>${escapeHTML(desc)} · 댓글 보기 가능</span></div>
+        <span class="my-item-arrow">›</span>
+      </div>`;
+  }).join('');
+}
+
+function renderMyReports() {
+  const listEl = document.getElementById('my-reports-list');
+  const countEl = document.getElementById('my-report-count');
+  if (countEl) countEl.textContent = userReports.length;
+  if (!listEl) return;
+
+  if (!userReports.length) {
+    listEl.innerHTML = `
+      <div class="my-item">
+        <div class="my-item-icon o">✏️</div>
+        <div class="my-item-text"><strong>아직 남긴 제보가 없습니다</strong><span>제보 탭에서 정보를 제출하면 여기에 표시됩니다.</span></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = userReports.slice().reverse().map(r => {
+    const iconClass = getCatIconClass(r.cat);
+    const title = escapeHTML(`${r.building} ${r.floor || ''} ${catInfo[r.cat]?.label || '시설'} 제보`);
+    const text = escapeHTML(r.text || '제보 내용 없음');
+    const floor = r.floor || (floorData[r.cat]?.[r.building]?.[0]?.floor || '1층');
+    return `
+      <div class="my-item" onclick="goToDetail('${r.building}','${floor}','${r.cat}')">
+        <div class="my-item-icon ${iconClass}">✏️</div>
+        <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date}</span></div>
+        <span style="font-size:11px;color:var(--orange);font-weight:600">검토중</span>
+      </div>`;
+  }).join('');
+}
+
+function renderRecentViews() {
+  const listEl = document.getElementById('recent-list-my');
+  if (!listEl) return;
+
+  if (!recentViews.length) {
+    listEl.innerHTML = `
+      <div class="my-item">
+        <div class="my-item-icon o">🕐</div>
+        <div class="my-item-text"><strong>최근 본 시설이 없습니다</strong><span>시설 상세 페이지에 들어가면 여기에 표시됩니다.</span></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = recentViews.map(v => {
+    const iconClass = getCatIconClass(v.cat);
+    const title = escapeHTML(getFacilityTitle(v.cat, v.building, v.floor));
+    const desc = v.date ? `${v.date} 방문` : '최근 방문';
+    return `
+      <div class="my-item" onclick="goToDetail('${v.building}','${v.floor}','${v.cat}')">
+        <div class="my-item-icon ${iconClass}">🕐</div>
+        <div class="my-item-text"><strong>${title}</strong><span>${desc} · 다시 열기</span></div>
+        <span class="my-item-arrow">›</span>
+      </div>`;
+  }).join('');
+}
+
+function renderMyPage() {
+  const profileName = document.getElementById('profile-name');
+  const profileAvatar = document.getElementById('profile-avatar');
+  const profileDesc = document.getElementById('profile-setting-desc');
+
+  if (profileName) profileName.textContent = currentUser;
+  if (profileAvatar) profileAvatar.textContent = currentUser.trim().charAt(0) || '동';
+  if (profileDesc) profileDesc.textContent = `현재 댓글 표시 이름: ${currentUser}`;
+
+  renderMyComments();
+  renderMyFavorites();
+  renderMyReports();
+  renderRecentViews();
+}
+
+// 최초 로딩 시 프로필 이름과 개인화 목록을 반영한다.
 setTimeout(renderMyPage, 0);
 
 // ============ REPORT ============
 function submitReport() {
   const building = document.getElementById('report-building').value;
+  const floor = document.getElementById('report-floor').value;
+  const cat = document.getElementById('report-cat').value;
+  const textInput = document.getElementById('report-text');
+  const text = textInput ? textInput.value.trim() : '';
+
   if(!building) { showToast('건물을 선택해주세요.'); return; }
+  if(!floor) { showToast('층을 선택해주세요.'); return; }
+  if(!cat) { showToast('편의시설 종류를 선택해주세요.'); return; }
+  if(!text) { showToast('제보 내용을 입력해주세요.'); return; }
+
+  const report = {
+    id: Date.now(),
+    building,
+    floor,
+    cat,
+    text,
+    status: '검토중',
+    date: new Date().toISOString().slice(0, 10).replaceAll('-', '.')
+  };
+
+  userReports.push(report);
+  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+
+  textInput.value = '';
+  document.getElementById('report-building').value = '';
+  document.getElementById('report-floor').value = '';
+  document.getElementById('report-cat').value = '';
+
+  renderMyPage();
   showToast('제보가 접수되었습니다. 검토 후 반영됩니다. 🙏');
-  document.getElementById('my-report-count').textContent =
-    parseInt(document.getElementById('my-report-count').textContent) + 1;
 }
 
 // ============ TOAST ============
