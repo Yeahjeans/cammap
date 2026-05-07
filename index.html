@@ -832,9 +832,12 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
-<script type="text/javascript"
-src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte"
-onerror="window.__naverMapScriptFailed = true;">
+<script>
+// 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
+// 정적 로딩 실패 때문에 전체 스크립트가 멈추는 문제를 막기 위한 방식입니다.
+window.__naverMapScriptFailed = false;
+window.__naverMapScriptLoading = false;
+window.__naverMapScriptLoaded = false;
 </script>
 </head>
 <body>
@@ -1279,25 +1282,9 @@ function switchTab(tab) {
   screenStack = [];
 
   if (tab === 'map') {
-    let retryCount = 0;
-    const tryInitMap = () => {
-      retryCount += 1;
-      initMap();
-      if (naverMap && window.naver && window.naver.maps) {
-        naver.maps.Event.trigger(naverMap, 'resize');
-
-        // 내 위치 추적 중이면 지도 중심을 내 위치로 유지한다.
-        // 추적 중이 아닐 때만 동국대 캠퍼스 기본 중심으로 이동한다.
-        if (myLocation && myLocationWatchId !== null) {
-          naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
-        } else if (!myLocation) {
-          naverMap.setCenter(new naver.maps.LatLng(37.5579, 126.9990));
-        }
-      } else if (retryCount < 5) {
-        setTimeout(tryInitMap, 400);
-      }
-    };
-    setTimeout(tryInitMap, 300);
+    setTimeout(() => {
+      ensureNaverMapReady();
+    }, 150);
   }
 }
 
@@ -1682,25 +1669,66 @@ let coordinateModeOn = false;
 let selectedCoordinateFacilityId = '';
 let coordinateClickListener = null;
 
+function setMapMessage(html) {
+  const mapDiv = document.getElementById('map');
+  if (!mapDiv) return;
+  mapDiv.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;line-height:1.7;color:#555;background:#fff;">${html}</div>`;
+}
+
+function ensureNaverMapReady() {
+  const mapDiv = document.getElementById('map');
+  if (!mapDiv) return;
+
+  if (window.naver && window.naver.maps) {
+    initMap();
+    return;
+  }
+
+  if (window.__naverMapScriptLoading) {
+    setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
+    return;
+  }
+
+  window.__naverMapScriptLoading = true;
+  window.__naverMapCallback = function() {
+    window.__naverMapScriptLoaded = true;
+    window.__naverMapScriptLoading = false;
+    initMap();
+  };
+
+  setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>지도가 계속 비어 있으면 네이버 클라우드 Web 서비스 URL을 확인하세요.</div>');
+
+  const script = document.createElement('script');
+  script.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte&callback=__naverMapCallback';
+  script.async = true;
+  script.defer = true;
+  script.onerror = function() {
+    window.__naverMapScriptFailed = true;
+    window.__naverMapScriptLoading = false;
+    setMapMessage(`<div>
+      <b>네이버 지도 API가 불러와지지 않았습니다.</b><br>
+      네이버 클라우드 <b>Web 서비스 URL</b>에 아래 주소를 모두 등록했는지 확인하세요.<br><br>
+      <b>https://cammap-alpha.vercel.app</b><br>
+      <b>https://cammap-alpha.vercel.app/</b><br>
+      <b>http://127.0.0.1:5500</b><br>
+      <b>http://localhost:5500</b><br><br>
+      그리고 새 배포 후 브라우저에서 강력 새로고침을 해주세요.
+    </div>`);
+  };
+  document.head.appendChild(script);
+}
+
 function initMap() {
   const mapDiv = document.getElementById('map');
   if (!mapDiv) return;
 
-  if (window.__naverMapScriptFailed || !window.naver || !window.naver.maps) {
-    mapDiv.innerHTML = `
-      <div style="height:100%;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;line-height:1.7;color:#555;background:#fff;">
-        <div>
-          <b>네이버 지도 API가 불러와지지 않았습니다.</b><br>
-          네이버 클라우드 <b>Web 서비스 URL</b>에 아래 주소를 모두 등록했는지 확인하세요.<br><br>
-          <b>https://cammap-alpha.vercel.app</b><br>
-          <b>https://cammap-alpha.vercel.app/</b><br>
-          <b>http://127.0.0.1:5500</b><br>
-          <b>http://localhost:5500</b><br><br>
-          등록 후 Vercel을 다시 배포하고 새로고침하세요.
-        </div>
-      </div>`;
+  if (!window.naver || !window.naver.maps) {
+    ensureNaverMapReady();
     return;
   }
+
+  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
+  mapDiv.innerHTML = '';
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
