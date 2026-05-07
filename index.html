@@ -800,20 +800,10 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
       </div>
 
       <div class="section-head">최근 본 시설</div>
-      <div class="quick-list">
-        <div class="quick-item" onclick="goToDetail(&#39;사회과학관&#39;,&#39;2층&#39;,&#39;toilet&#39;)">
-          <div class="quick-dot" style="background:var(--orange)"></div>
-          <div class="quick-text"><strong>사회과학관 2층 화장실</strong><span>비데 있음 · ⭐ 4.3</span></div>
-          <span class="quick-arrow">›</span>
-        </div>
-        <div class="quick-item" onclick="goToDetail(&#39;원흥관&#39;,&#39;1층&#39;,&#39;store&#39;)">
-          <div class="quick-dot" style="background:var(--green)"></div>
-          <div class="quick-text"><strong>원흥관 1층 편의점</strong><span>평일 08:00~20:00 · ⭐ 4.4</span></div>
-          <span class="quick-arrow">›</span>
-        </div>
-        <div class="quick-item" onclick="goToDetail(&#39;사회과학관&#39;,&#39;외부&#39;,&#39;smoke&#39;)">
-          <div class="quick-dot" style="background:var(--pink)"></div>
-          <div class="quick-text"><strong>사회과학관 흡연구역</strong><span>외부 출입구 근처 · ⭐ 3.7</span></div>
+      <div class="quick-list" id="home-recent-list">
+        <div class="quick-item">
+          <div class="quick-dot" style="background:var(--text-muted)"></div>
+          <div class="quick-text"><strong>최근 본 시설이 없습니다</strong><span>시설 상세 페이지에 들어가면 여기에 표시됩니다.</span></div>
           <span class="quick-arrow">›</span>
         </div>
       </div>
@@ -1180,6 +1170,10 @@ function switchTab(tab) {
   document.getElementById('screen-' + tab).classList.add('active');
   currentTabScreen = tab;
 
+  if (tab === 'home') {
+    renderHomeRecentViews();
+  }
+
   if (tab === 'mypage') {
     renderMyPage();
   }
@@ -1287,6 +1281,7 @@ function renderFloorList() {
 
 function selectFloor(floor) {
   currentFloor = floor;
+  addRecentView(currentBuilding, floor, currentCat);
   renderDetail(currentCat, currentBuilding, floor);
   pushScreen('detail');
 }
@@ -1933,6 +1928,8 @@ function addRecentView(building, floor, cat) {
   recentViews.unshift(item);
   recentViews = recentViews.slice(0, 8);
   localStorage.setItem('cammapRecentViews', JSON.stringify(recentViews));
+  renderHomeRecentViews();
+  if (currentTabScreen === 'mypage') renderRecentViews();
 }
 
 function getMyCommentsArray() {
@@ -2040,6 +2037,39 @@ function renderMyReports() {
   }).join('');
 }
 
+function getRecentViewDescription(v) {
+  const fd = floorData[v.cat]?.[v.building]?.find(f => f.floor === v.floor);
+  const base = fd?.tags || catInfo[v.cat]?.label || '시설 정보';
+  return v.date ? `${base} · ${v.date} 방문` : base;
+}
+
+function renderHomeRecentViews() {
+  const listEl = document.getElementById('home-recent-list');
+  if (!listEl) return;
+
+  if (!recentViews.length) {
+    listEl.innerHTML = `
+      <div class="quick-item">
+        <div class="quick-dot" style="background:var(--text-muted)"></div>
+        <div class="quick-text"><strong>최근 본 시설이 없습니다</strong><span>시설 상세 페이지에 들어가면 여기에 표시됩니다.</span></div>
+        <span class="quick-arrow">›</span>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = recentViews.slice(0, 5).map(v => {
+    const color = v.cat === 'store' ? 'var(--green)' : v.cat === 'smoke' ? 'var(--pink)' : 'var(--orange)';
+    const title = escapeHTML(getFacilityTitle(v.cat, v.building, v.floor));
+    const desc = escapeHTML(getRecentViewDescription(v));
+    return `
+      <div class="quick-item" onclick="goToDetail('${v.building}','${v.floor}','${v.cat}')">
+        <div class="quick-dot" style="background:${color}"></div>
+        <div class="quick-text"><strong>${title}</strong><span>${desc}</span></div>
+        <span class="quick-arrow">›</span>
+      </div>`;
+  }).join('');
+}
+
 function renderRecentViews() {
   const listEl = document.getElementById('recent-list-my');
   if (!listEl) return;
@@ -2056,7 +2086,7 @@ function renderRecentViews() {
   listEl.innerHTML = recentViews.map(v => {
     const iconClass = getCatIconClass(v.cat);
     const title = escapeHTML(getFacilityTitle(v.cat, v.building, v.floor));
-    const desc = v.date ? `${v.date} 방문` : '최근 방문';
+    const desc = escapeHTML(getRecentViewDescription(v));
     return `
       <div class="my-item" onclick="goToDetail('${v.building}','${v.floor}','${v.cat}')">
         <div class="my-item-icon ${iconClass}">🕐</div>
