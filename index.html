@@ -1016,29 +1016,33 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
 <!-- ===== MYPAGE TAB ===== -->
 <div class="screen tab-screen" id="screen-mypage">
   <div class="mypage-profile">
-    <div class="profile-avatar">동</div>
+    <div class="profile-avatar" id="profile-avatar">동</div>
     <div>
-      <div class="profile-name">동국대학교 학생</div>
+      <div class="profile-name" id="profile-name">동국대학교 학생</div>
       <div class="profile-sub">캠퍼스 생활 정보 기여자</div>
     </div>
   </div>
   <div class="scroll-content" style="padding-bottom:80px">
     <div class="stat-row">
-      <div class="stat-cell"><div class="stat-num" id="my-comment-count">3</div><div class="stat-label">작성한 댓글</div></div>
+      <div class="stat-cell"><div class="stat-num" id="my-comment-count">0</div><div class="stat-label">작성한 댓글</div></div>
       <div class="stat-cell"><div class="stat-num" id="my-report-count">1</div><div class="stat-label">제보 내역</div></div>
       <div class="stat-cell"><div class="stat-num" id="my-fav-count">2</div><div class="stat-label">즐겨찾기</div></div>
     </div>
     <div class="my-section">
-      <div class="my-section-title">내가 작성한 댓글</div>
-      <div class="my-item" onclick="goToDetail(&#39;사회과학관&#39;,&#39;2층&#39;,&#39;toilet&#39;)">
-        <div class="my-item-icon o">🚻</div>
-        <div class="my-item-text"><strong>사회과학관 2층 화장실</strong><span>"여기 화장실은 깨끗하고 비데가 있어서 좋아요."</span></div>
+      <div class="my-section-title">프로필 설정</div>
+      <div class="my-item" onclick="setUserName()">
+        <div class="my-item-icon o">👤</div>
+        <div class="my-item-text"><strong>닉네임 설정</strong><span id="profile-setting-desc">댓글에 표시될 이름을 바꿀 수 있어요</span></div>
         <span class="my-item-arrow">›</span>
       </div>
-      <div class="my-item" onclick="goToDetail(&#39;원흥관&#39;,&#39;1층&#39;,&#39;store&#39;)">
-        <div class="my-item-icon g">🏪</div>
-        <div class="my-item-text"><strong>원흥관 1층 편의점</strong><span>"편의점이 가까워서 공강 시간에 자주 이용합니다."</span></div>
-        <span class="my-item-arrow">›</span>
+    </div>
+    <div class="my-section">
+      <div class="my-section-title">내가 작성한 댓글</div>
+      <div id="my-comments-list">
+        <div class="my-item">
+          <div class="my-item-icon o">💬</div>
+          <div class="my-item-text"><strong>아직 작성한 댓글이 없습니다</strong><span>시설 상세 페이지에서 리뷰를 작성하면 여기에 표시됩니다.</span></div>
+        </div>
       </div>
     </div>
     <div class="my-section">
@@ -1174,13 +1178,18 @@ let currentTabScreen = 'home';
 let screenStack = [];
 let userRating = 0;
 let favorites = new Set();
-let userComments = {};
+let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
+let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + tab).classList.add('active');
   currentTabScreen = tab;
+
+  if (tab === 'mypage') {
+    renderMyPage();
+  }
 
   ['buildings','floors','detail'].forEach(s => {
     document.getElementById('screen-' + s).classList.remove('active','exit');
@@ -1397,11 +1406,20 @@ function submitReview(key, cat, building, floor) {
   if(!text) { showToast('리뷰 내용을 입력해주세요.'); return; }
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
   if(!userComments[key]) userComments[key] = [];
-  userComments[key].push({ name: '나', rating: userRating, text, date: '2026.05.07' });
+  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  userComments[key].push({
+    name: currentUser,
+    rating: userRating,
+    text,
+    date: today,
+    cat,
+    building,
+    floor
+  });
+  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
   renderDetail(cat, building, floor);
+  renderMyPage();
   showToast('리뷰가 등록되었습니다! 🎉');
-  document.getElementById('my-comment-count').textContent =
-    parseInt(document.getElementById('my-comment-count').textContent) + 1;
 }
 
 // ============ FAVORITES ============
@@ -1857,6 +1875,76 @@ function openNearestToilet() {
   }
   goToDetail(nearestToilet.building, nearestToilet.floor, 'toilet');
 }
+
+
+// ============ USER PERSONALIZATION / MYPAGE ============
+function setUserName() {
+  const name = prompt('댓글에 표시할 닉네임을 입력하세요.', currentUser);
+  if (!name || !name.trim()) return;
+
+  currentUser = name.trim();
+  localStorage.setItem('cammapUserName', currentUser);
+  renderMyPage();
+  showToast(`${currentUser}님으로 설정되었습니다.`);
+}
+
+function getMyCommentsArray() {
+  const arr = [];
+  Object.entries(userComments).forEach(([key, comments]) => {
+    comments.forEach(comment => {
+      const parts = key.split('_');
+      arr.push({
+        key,
+        cat: comment.cat || parts[0],
+        building: comment.building || parts[1],
+        floor: comment.floor || parts[2],
+        ...comment
+      });
+    });
+  });
+  return arr;
+}
+
+function renderMyPage() {
+  const profileName = document.getElementById('profile-name');
+  const profileAvatar = document.getElementById('profile-avatar');
+  const profileDesc = document.getElementById('profile-setting-desc');
+
+  if (profileName) profileName.textContent = currentUser;
+  if (profileAvatar) profileAvatar.textContent = currentUser.trim().charAt(0) || '동';
+  if (profileDesc) profileDesc.textContent = `현재 댓글 표시 이름: ${currentUser}`;
+
+  const myComments = getMyCommentsArray();
+  const countEl = document.getElementById('my-comment-count');
+  const listEl = document.getElementById('my-comments-list');
+  if (countEl) countEl.textContent = myComments.length;
+  if (!listEl) return;
+
+  if (!myComments.length) {
+    listEl.innerHTML = `
+      <div class="my-item">
+        <div class="my-item-icon o">💬</div>
+        <div class="my-item-text"><strong>아직 작성한 댓글이 없습니다</strong><span>시설 상세 페이지에서 리뷰를 작성하면 여기에 표시됩니다.</span></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = myComments.slice().reverse().map(c => {
+    const icon = catInfo[c.cat]?.icon || '💬';
+    const iconClass = c.cat === 'store' ? 'g' : c.cat === 'smoke' ? 'p' : 'o';
+    const title = `${c.building} ${c.floor} ${catInfo[c.cat]?.label || ''}`;
+    const safeText = String(c.text || '').replaceAll('"', '&quot;');
+    return `
+      <div class="my-item" onclick="goToDetail('${c.building}','${c.floor}','${c.cat}')">
+        <div class="my-item-icon ${iconClass}">${icon}</div>
+        <div class="my-item-text"><strong>${title}</strong><span>"${safeText}" · ⭐ ${c.rating} · ${c.date}</span></div>
+        <span class="my-item-arrow">›</span>
+      </div>`;
+  }).join('');
+}
+
+// 최초 로딩 시 프로필 이름과 내가 쓴 댓글 목록을 반영한다.
+setTimeout(renderMyPage, 0);
 
 // ============ REPORT ============
 function submitReport() {
