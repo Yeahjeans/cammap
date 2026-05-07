@@ -833,7 +833,8 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 <script type="text/javascript"
-src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
+src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte"
+onerror="window.__naverMapScriptFailed = true;">
 </script>
 </head>
 <body>
@@ -1278,9 +1279,11 @@ function switchTab(tab) {
   screenStack = [];
 
   if (tab === 'map') {
-    setTimeout(() => {
+    let retryCount = 0;
+    const tryInitMap = () => {
+      retryCount += 1;
       initMap();
-      if (naverMap && window.naver && naver.maps) {
+      if (naverMap && window.naver && window.naver.maps) {
         naver.maps.Event.trigger(naverMap, 'resize');
 
         // 내 위치 추적 중이면 지도 중심을 내 위치로 유지한다.
@@ -1290,8 +1293,11 @@ function switchTab(tab) {
         } else if (!myLocation) {
           naverMap.setCenter(new naver.maps.LatLng(37.5579, 126.9990));
         }
+      } else if (retryCount < 5) {
+        setTimeout(tryInitMap, 400);
       }
-    }, 300);
+    };
+    setTimeout(tryInitMap, 300);
   }
 }
 
@@ -1635,6 +1641,8 @@ const facilityCoords = [
   { id:'store_culture', cat:'store', name:'문화관 편의점', building:'문화관', floor:'1층', lat:37.55775, lng:127.00248 }
 ];
 
+let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
+
 function applySavedCoordinateOverrides() {
   facilityCoords.forEach(f => {
     if (coordinateOverrides[f.id]) {
@@ -1673,21 +1681,23 @@ let nearestToiletHighlightMarker = null;
 let coordinateModeOn = false;
 let selectedCoordinateFacilityId = '';
 let coordinateClickListener = null;
-let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
 
 function initMap() {
   const mapDiv = document.getElementById('map');
   if (!mapDiv) return;
 
-  if (!window.naver || !naver.maps) {
+  if (window.__naverMapScriptFailed || !window.naver || !window.naver.maps) {
     mapDiv.innerHTML = `
       <div style="height:100%;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;line-height:1.7;color:#555;background:#fff;">
-        네이버 지도 API가 불러와지지 않았습니다.<br>
-        네이버 클라우드 Web 서비스 URL에<br>
-        <b>https://cammap-alpha.vercel.app</b><br>
-        <b>http://127.0.0.1:5500</b><br>
-        <b>http://localhost:5500</b><br>
-        이 등록되어 있는지 확인하세요.
+        <div>
+          <b>네이버 지도 API가 불러와지지 않았습니다.</b><br>
+          네이버 클라우드 <b>Web 서비스 URL</b>에 아래 주소를 모두 등록했는지 확인하세요.<br><br>
+          <b>https://cammap-alpha.vercel.app</b><br>
+          <b>https://cammap-alpha.vercel.app/</b><br>
+          <b>http://127.0.0.1:5500</b><br>
+          <b>http://localhost:5500</b><br><br>
+          등록 후 Vercel을 다시 배포하고 새로고침하세요.
+        </div>
       </div>`;
     return;
   }
