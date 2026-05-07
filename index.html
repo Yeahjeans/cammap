@@ -884,6 +884,22 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
     🚬 흡연구역
   </button>
 </div>
+      <div id="coord-editor" style="margin-top:12px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow-sm);">
+        <div style="font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">📌 좌표 보정 모드</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px;">
+          아래 시설을 선택한 뒤, 지도에서 실제 위치를 클릭하면 해당 마커 좌표가 바로 저장됩니다.
+        </div>
+        <select id="coord-target-select" class="form-select" style="margin-bottom:8px;">
+          <option value="">좌표를 수정할 화장실/편의점을 선택하세요</option>
+        </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button id="coord-picker-btn" onclick="toggleCoordinatePicker()" class="location-btn primary" style="padding:11px 12px;">좌표 찍기 OFF</button>
+          <button onclick="resetCoordinateOverrides()" class="location-btn secondary" style="padding:11px 12px;background:#666;">보정값 초기화</button>
+        </div>
+        <div id="coord-output" style="margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.6;word-break:break-all;">
+          아직 선택한 좌표가 없습니다.
+        </div>
+      </div>
       <div class="location-actions">
         <button class="location-btn primary" id="my-location-btn" onclick="toggleMyLocationTracking()">📍 내 위치 켜기</button>
         <button class="location-btn secondary" onclick="recommendNearestToilet()">🚻 가까운 화장실 추천</button>
@@ -1535,34 +1551,124 @@ const buildingCoords = {
 };
 
 const facilityCoords = [
-  // 화장실 — 공식 캠퍼스맵 편의시설 > 화장실 목록 기준
-  { name: '학술문화관 화장실', category: 'toilet', building: '학술문화관', floor: '1층', lat: 37.55875, lng: 126.99817, official: true },
-  { name: '경영관 화장실', category: 'toilet', building: '경영관', floor: '1층', lat: 37.55760, lng: 126.99900, official: true },
-  { name: '법학만해관 화장실', category: 'toilet', building: '법학관', floor: '2층', lat: 37.55720, lng: 126.99950, official: true },
-  { name: '중앙도서관 화장실', category: 'toilet', building: '중앙도서관', floor: '전층', lat: 37.55705, lng: 126.99810, official: true },
-  { name: '정보문화관 P동 화장실', category: 'toilet', building: '정보문화관 P동', floor: '3층', lat: 37.55860, lng: 126.99985, official: true },
-  { name: '정보문화관 Q동 화장실', category: 'toilet', building: '정보문화관 Q동', floor: '3층', lat: 37.55880, lng: 126.99955, official: true },
-  { name: '신공학관 화장실', category: 'toilet', building: '신공학관', floor: '3층', lat: 37.56015, lng: 126.99865, official: true },
-  { name: '과학관 화장실', category: 'toilet', building: '과학관', floor: '1층', lat: 37.55955, lng: 126.99810, official: true },
-  { name: '다향관 화장실', category: 'toilet', building: '다향관', floor: '1층', lat: 37.55895, lng: 126.99750, official: true },
-  { name: '본관 화장실', category: 'toilet', building: '본관', floor: '1층', lat: 37.55780, lng: 126.99800, official: true },
-  { name: '사회과학관 화장실', category: 'toilet', building: '사회과학관', floor: '2층', lat: 37.55800, lng: 126.99850, official: true },
-  { name: '혜화관 화장실', category: 'toilet', building: '혜화관', floor: '1층', lat: 37.55825, lng: 126.99920, official: true },
-  { name: '명진관 화장실', category: 'toilet', building: '명진관', floor: '1층', lat: 37.55735, lng: 126.99845, official: true },
-  { name: '학림관 화장실', category: 'toilet', building: '학림관', floor: '1층', lat: 37.55795, lng: 126.99720, official: true },
-  { name: '원흥관 화장실', category: 'toilet', building: '원흥관', floor: '3층', lat: 37.55840, lng: 126.99930, official: true },
+  // 화장실 — 공식 캠퍼스맵 편의시설 > 화장실 목록 기준. 좌표는 지도 클릭 보정 가능
+  { name: '학술문화관 화장실', category: 'toilet', building: '학술문화관', floor: '1층', lat: 37.55875, lng: 126.99817, officialList: true },
+  { name: '경영관 화장실', category: 'toilet', building: '경영관', floor: '1층', lat: 37.55760, lng: 126.99900, officialList: true },
+  { name: '법학만해관 화장실', category: 'toilet', building: '법학관', floor: '2층', lat: 37.55720, lng: 126.99950, officialList: true },
+  { name: '중앙도서관 화장실', category: 'toilet', building: '중앙도서관', floor: '전층', lat: 37.55705, lng: 126.99810, officialList: true },
+  { name: '정보문화관 P동 화장실', category: 'toilet', building: '정보문화관 P동', floor: '3층', lat: 37.55860, lng: 126.99985, officialList: true },
+  { name: '정보문화관 Q동 화장실', category: 'toilet', building: '정보문화관 Q동', floor: '3층', lat: 37.55880, lng: 126.99955, officialList: true },
+  { name: '신공학관 화장실', category: 'toilet', building: '신공학관', floor: '3층', lat: 37.56015, lng: 126.99865, officialList: true },
+  { name: '과학관 화장실', category: 'toilet', building: '과학관', floor: '1층', lat: 37.55955, lng: 126.99810, officialList: true },
+  { name: '다향관 화장실', category: 'toilet', building: '다향관', floor: '1층', lat: 37.55895, lng: 126.99750, officialList: true },
+  { name: '본관 화장실', category: 'toilet', building: '본관', floor: '1층', lat: 37.55780, lng: 126.99800, officialList: true },
+  { name: '사회과학관 화장실', category: 'toilet', building: '사회과학관', floor: '2층', lat: 37.55800, lng: 126.99850, officialList: true },
+  { name: '혜화관 화장실', category: 'toilet', building: '혜화관', floor: '1층', lat: 37.55825, lng: 126.99920, officialList: true },
+  { name: '명진관 화장실', category: 'toilet', building: '명진관', floor: '1층', lat: 37.55735, lng: 126.99845, officialList: true },
+  { name: '학림관 화장실', category: 'toilet', building: '학림관', floor: '1층', lat: 37.55795, lng: 126.99720, officialList: true },
+  { name: '원흥관 화장실', category: 'toilet', building: '원흥관', floor: '3층', lat: 37.55840, lng: 126.99930, officialList: true },
 
-  // 편의점 — 공식 캠퍼스맵 편의시설 > 편의점 목록 기준
-  { name: '법학관 쿱스켓 편의점', category: 'store', building: '법학관', floor: '2층', lat: 37.55724, lng: 126.99955, official: true },
-  { name: '문화관 쿱스켓 편의점', category: 'store', building: '문화관', floor: '1층', lat: 37.55772, lng: 126.99775, official: true },
-  { name: '학림관 쿱스켓 편의점', category: 'store', building: '학림관', floor: '1층', lat: 37.55795, lng: 126.99720, official: true },
-  { name: '중앙도서관 쿱스켓 편의점', category: 'store', building: '중앙도서관', floor: 'B1층', lat: 37.55705, lng: 126.99810, official: true },
-  { name: '상록원 쿱스켓 편의점', category: 'store', building: '상록원', floor: '1층', lat: 37.55660, lng: 126.99865, official: true },
-  { name: '혜화관 쿱스켓 편의점', category: 'store', building: '혜화관', floor: '1층', lat: 37.55828, lng: 126.99924, official: true },
-  { name: '원흥관 쿱스켓 편의점', category: 'store', building: '원흥관', floor: '1층', lat: 37.55843, lng: 126.99934, official: true },
-  { name: 'CU 동국대 기숙사점', category: 'store', building: '남산학사', floor: '1층', lat: 37.56040, lng: 127.00130, official: true },
-  { name: '경영관 이마트24 편의점', category: 'store', building: '경영관', floor: 'B1층', lat: 37.55763, lng: 126.99904, official: true }
+  // 편의점 — 공식 캠퍼스맵 편의시설 > 편의점 목록 기준. 좌표는 지도 클릭 보정 가능
+  { name: '법학관 쿱스켓 편의점', category: 'store', building: '법학관', floor: '2층', lat: 37.55724, lng: 126.99955, officialList: true },
+  { name: '문화관 쿱스켓 편의점', category: 'store', building: '문화관', floor: '1층', lat: 37.55772, lng: 126.99775, officialList: true },
+  { name: '학림관 쿱스켓 편의점', category: 'store', building: '학림관', floor: '1층', lat: 37.55795, lng: 126.99720, officialList: true },
+  { name: '중앙도서관 쿱스켓 편의점', category: 'store', building: '중앙도서관', floor: 'B1층', lat: 37.55705, lng: 126.99810, officialList: true },
+  { name: '상록원 쿱스켓 편의점', category: 'store', building: '상록원', floor: '1층', lat: 37.55660, lng: 126.99865, officialList: true },
+  { name: '혜화관 쿱스켓 편의점', category: 'store', building: '혜화관', floor: '1층', lat: 37.55828, lng: 126.99924, officialList: true },
+  { name: '원흥관 쿱스켓 편의점', category: 'store', building: '원흥관', floor: '1층', lat: 37.55843, lng: 126.99934, officialList: true },
+  { name: 'CU 동국대 기숙사점', category: 'store', building: '남산학사', floor: '1층', lat: 37.56040, lng: 127.00130, officialList: true },
+  { name: '경영관 이마트24 편의점', category: 'store', building: '경영관', floor: 'B1층', lat: 37.55763, lng: 126.99904, officialList: true }
 ];
+
+
+// 좌표 보정값은 localStorage에 따로 저장한다.
+// 공식 캠퍼스맵 HTML에는 시설명 목록은 있지만 lat/lng 값이 직접 노출되지 않기 때문에,
+// 지도 위에서 직접 클릭해 좌표를 확정하는 방식으로 보정한다.
+let coordinatePickerActive = false;
+let coordinatePickerListener = null;
+
+function getFacilityKey(facility) {
+  return `${facility.category}_${facility.name}`;
+}
+
+function getCoordinateOverrides() {
+  return JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
+}
+
+function saveCoordinateOverrides(overrides) {
+  localStorage.setItem('cammapFacilityCoordOverrides', JSON.stringify(overrides));
+}
+
+function applyCoordinateOverrides() {
+  const overrides = getCoordinateOverrides();
+  facilityCoords.forEach(facility => {
+    const saved = overrides[getFacilityKey(facility)];
+    if (saved && typeof saved.lat === 'number' && typeof saved.lng === 'number') {
+      facility.lat = saved.lat;
+      facility.lng = saved.lng;
+      facility.corrected = true;
+    }
+  });
+}
+
+function populateCoordinateSelect() {
+  const select = document.getElementById('coord-target-select');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">좌표를 수정할 화장실/편의점을 선택하세요</option>' +
+    facilityCoords
+      .filter(f => f.category === 'toilet' || f.category === 'store')
+      .map(f => `<option value="${getFacilityKey(f)}">${f.category === 'toilet' ? '🚻' : '🏪'} ${f.name}</option>`)
+      .join('');
+  if (current) select.value = current;
+}
+
+function toggleCoordinatePicker() {
+  if (!naverMap) initMap();
+  coordinatePickerActive = !coordinatePickerActive;
+  const btn = document.getElementById('coord-picker-btn');
+  if (btn) {
+    btn.textContent = coordinatePickerActive ? '좌표 찍기 ON' : '좌표 찍기 OFF';
+    btn.style.background = coordinatePickerActive ? '#4285F4' : '#1A1A1A';
+  }
+  showToast(coordinatePickerActive ? '지도에서 실제 위치를 클릭하세요.' : '좌표 찍기 모드를 껐습니다.');
+}
+
+function handleCoordinatePick(e) {
+  if (!coordinatePickerActive) return;
+  const select = document.getElementById('coord-target-select');
+  if (!select || !select.value) {
+    showToast('먼저 좌표를 수정할 시설을 선택해주세요.');
+    return;
+  }
+
+  const facility = facilityCoords.find(f => getFacilityKey(f) === select.value);
+  if (!facility) return;
+
+  const lat = Number(e.coord.lat().toFixed(7));
+  const lng = Number(e.coord.lng().toFixed(7));
+  facility.lat = lat;
+  facility.lng = lng;
+  facility.corrected = true;
+
+  const overrides = getCoordinateOverrides();
+  overrides[getFacilityKey(facility)] = { lat, lng, updatedAt: Date.now() };
+  saveCoordinateOverrides(overrides);
+
+  const output = document.getElementById('coord-output');
+  if (output) {
+    output.innerHTML = `<b>${facility.name}</b><br>lat: ${lat}, lng: ${lng}<br>저장 완료 · 새로고침해도 유지됩니다.`;
+  }
+
+  renderMapMarkers();
+  showToast(`${facility.name} 좌표를 저장했습니다.`);
+}
+
+function resetCoordinateOverrides() {
+  if (!confirm('직접 보정한 화장실/편의점 좌표를 모두 초기화할까요?')) return;
+  localStorage.removeItem('cammapFacilityCoordOverrides');
+  location.reload();
+}
 
 const pinColors = {
   toilet: '#F4762A',
@@ -1598,6 +1704,9 @@ function initMap() {
     return;
   }
 
+  applyCoordinateOverrides();
+  populateCoordinateSelect();
+
   const center = new naver.maps.LatLng(37.5579, 126.9990);
 
   if (!naverMap) {
@@ -1612,6 +1721,9 @@ function initMap() {
       }
     });
     renderMapMarkers();
+    if (!coordinatePickerListener) {
+      coordinatePickerListener = naver.maps.Event.addListener(naverMap, 'click', handleCoordinatePick);
+    }
   }
 
   setTimeout(() => {
@@ -1670,7 +1782,7 @@ function renderMapMarkers() {
     const infoWindow = new naver.maps.InfoWindow({
       content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:160px">
         <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${facility.name}</div>
-        <div style="font-size:11px;color:#888">${facility.floor} · 공식 캠퍼스맵 목록 기준</div>
+        <div style="font-size:11px;color:#888">${facility.floor} · ${facility.corrected ? '직접 보정 좌표' : '임시 좌표'}</div>
       </div>`,
       borderWidth: 0,
       borderRadius: '12px',
