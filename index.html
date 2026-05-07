@@ -1193,7 +1193,14 @@ function switchTab(tab) {
       initMap();
       if (naverMap && window.naver && naver.maps) {
         naver.maps.Event.trigger(naverMap, 'resize');
-        naverMap.setCenter(new naver.maps.LatLng(37.5579, 126.9990));
+
+        // 내 위치 추적 중이면 지도 중심을 내 위치로 유지한다.
+        // 추적 중이 아닐 때만 동국대 캠퍼스 기본 중심으로 이동한다.
+        if (myLocation && myLocationWatchId !== null) {
+          naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
+        } else if (!myLocation) {
+          naverMap.setCenter(new naver.maps.LatLng(37.5579, 126.9990));
+        }
       }
     }, 300);
   }
@@ -1534,7 +1541,13 @@ function initMap() {
 
   setTimeout(() => {
     naver.maps.Event.trigger(naverMap, 'resize');
-    naverMap.setCenter(center);
+
+    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
+    if (myLocation && myLocationWatchId !== null) {
+      naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
+    } else if (!myLocation) {
+      naverMap.setCenter(center);
+    }
   }, 100);
 }
 
@@ -1833,7 +1846,8 @@ function highlightNearestToilet(item) {
     }
   });
 
-  naverMap.panTo(pos);
+  // 가까운 화장실 추천은 표시만 하고, 지도 중심은 내 위치가 유지되도록 이동시키지 않는다.
+  // naverMap.panTo(pos);
 }
 
 function openNearestToilet() {
