@@ -568,6 +568,85 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 
 
 
+
+
+/* COORDINATE CAPTURE MODE */
+.coord-tool {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.coord-tool-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.coord-tool-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.coord-select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+}
+.coord-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.coord-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 11px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.coord-btn.on { background: #1A1A1A; color: white; }
+.coord-btn.off { background: var(--orange-light); color: var(--orange); }
+.coord-btn.copy { background: var(--green-light); color: var(--green); }
+.coord-btn.reset { background: var(--bg); color: var(--text-secondary); }
+.coord-output {
+  margin-top: 10px;
+  background: #FAFAFA;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #555;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.coord-mode-badge {
+  display: none;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #FFF3CD;
+  color: #8A5A00;
+  font-size: 12px;
+  font-weight: 700;
+}
+.coord-mode-badge.show { display: block; }
+@media (max-width: 420px) {
+  .coord-actions { grid-template-columns: 1fr; }
+}
+
 /* LOCATION / NEAREST TOILET */
 .location-actions {
   display: grid;
@@ -897,6 +976,20 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div><div class="legend-label">흡연구역</div></div>
+      </div>
+
+      <div class="coord-tool">
+        <div class="coord-tool-title">🧭 좌표 추출 모드</div>
+        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 건물 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다.</div>
+        <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
+        <div class="coord-actions">
+          <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
+          <button class="coord-btn copy" onclick="copyFacilityCoordsCode()">좌표 코드 복사</button>
+          <button class="coord-btn reset" onclick="resetSelectedCoordinate()">선택 좌표 초기화</button>
+          <button class="coord-btn off" onclick="showSelectedCoordinate()">현재 좌표 확인</button>
+        </div>
+        <div class="coord-mode-badge" id="coord-mode-badge">좌표 찍기 ON: 지도에서 위치를 클릭하면 선택한 시설 좌표가 저장됩니다.</div>
+        <div class="coord-output" id="coord-output">지도 탭을 열면 시설 목록이 표시됩니다.</div>
       </div>
       <div class="section-head" style="padding-left:0">건물별 편의시설</div>
       <div class="map-pins">
@@ -1542,9 +1635,25 @@ const facilityCoords = [
   { id:'store_culture', cat:'store', name:'문화관 편의점', building:'문화관', floor:'1층', lat:37.55775, lng:127.00248 }
 ];
 
-const buildingCoords = Object.fromEntries(
-  facilityCoords.map(f => [f.building, { lat: f.lat, lng: f.lng }])
-);
+function applySavedCoordinateOverrides() {
+  facilityCoords.forEach(f => {
+    if (coordinateOverrides[f.id]) {
+      f.lat = coordinateOverrides[f.id].lat;
+      f.lng = coordinateOverrides[f.id].lng;
+      f.isCorrected = true;
+    }
+  });
+}
+
+applySavedCoordinateOverrides();
+
+function getBuildingCoordsMap() {
+  return Object.fromEntries(
+    facilityCoords.map(f => [f.building, { lat: f.lat, lng: f.lng }])
+  );
+}
+
+let buildingCoords = getBuildingCoordsMap();
 
 const pinColors = {
   toilet: '#F4762A',
@@ -1561,6 +1670,10 @@ let myLocationWatchId = null;
 let myLocation = null;
 let nearestToilet = null;
 let nearestToiletHighlightMarker = null;
+let coordinateModeOn = false;
+let selectedCoordinateFacilityId = '';
+let coordinateClickListener = null;
+let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
 
 function initMap() {
   const mapDiv = document.getElementById('map');
@@ -1593,6 +1706,11 @@ function initMap() {
       }
     });
     renderMapMarkers();
+    setupCoordinateCaptureTool();
+    attachCoordinateClickListener();
+  } else {
+    setupCoordinateCaptureTool();
+    attachCoordinateClickListener();
   }
 
   setTimeout(() => {
@@ -1681,6 +1799,155 @@ function selectCategoryFromMap(cat, building) {
   setTimeout(() => selectBuilding(building), 50);
 }
 
+
+
+// ============ COORDINATE CAPTURE TOOL ============
+function getCoordinateFacilityList() {
+  return facilityCoords
+    .filter(f => f.cat === 'toilet' || f.cat === 'store')
+    .slice()
+    .sort((a, b) => {
+      if (a.cat !== b.cat) return a.cat === 'toilet' ? -1 : 1;
+      return a.name.localeCompare(b.name, 'ko');
+    });
+}
+
+function setupCoordinateCaptureTool() {
+  const select = document.getElementById('coord-facility-select');
+  if (!select) return;
+
+  const facilities = getCoordinateFacilityList();
+  if (!selectedCoordinateFacilityId && facilities.length) {
+    selectedCoordinateFacilityId = facilities[0].id;
+  }
+
+  select.innerHTML = facilities.map(f => {
+    const corrected = coordinateOverrides[f.id] ? ' ✅' : '';
+    return `<option value="${f.id}" ${f.id === selectedCoordinateFacilityId ? 'selected' : ''}>${catInfo[f.cat].icon} ${f.name}${corrected}</option>`;
+  }).join('');
+
+  updateCoordinateModeUI();
+  showSelectedCoordinate();
+}
+
+function attachCoordinateClickListener() {
+  if (!naverMap || coordinateClickListener) return;
+  coordinateClickListener = naver.maps.Event.addListener(naverMap, 'click', function(e) {
+    if (!coordinateModeOn) return;
+    saveCoordinateFromClick(e.coord.lat(), e.coord.lng());
+  });
+}
+
+function selectCoordinateFacility(id) {
+  selectedCoordinateFacilityId = id;
+  showSelectedCoordinate();
+}
+
+function getSelectedCoordinateFacility() {
+  return facilityCoords.find(f => f.id === selectedCoordinateFacilityId) || null;
+}
+
+function toggleCoordinateMode() {
+  coordinateModeOn = !coordinateModeOn;
+  updateCoordinateModeUI();
+  if (coordinateModeOn) {
+    const f = getSelectedCoordinateFacility();
+    showToast(`${f ? f.name : '시설'} 좌표 찍기 모드입니다. 지도에서 위치를 클릭하세요.`);
+  } else {
+    showToast('좌표 찍기 모드를 껐습니다.');
+  }
+}
+
+function updateCoordinateModeUI() {
+  const btn = document.getElementById('coord-mode-btn');
+  const badge = document.getElementById('coord-mode-badge');
+  if (btn) {
+    btn.textContent = coordinateModeOn ? '좌표 찍기 OFF' : '좌표 찍기 ON';
+    btn.className = coordinateModeOn ? 'coord-btn off' : 'coord-btn on';
+  }
+  if (badge) badge.classList.toggle('show', coordinateModeOn);
+}
+
+function saveCoordinateFromClick(lat, lng) {
+  const facility = getSelectedCoordinateFacility();
+  if (!facility) {
+    showToast('좌표를 저장할 시설을 먼저 선택하세요.');
+    return;
+  }
+
+  const fixedLat = Number(lat.toFixed(7));
+  const fixedLng = Number(lng.toFixed(7));
+  facility.lat = fixedLat;
+  facility.lng = fixedLng;
+  facility.isCorrected = true;
+
+  coordinateOverrides[facility.id] = { lat: fixedLat, lng: fixedLng };
+  localStorage.setItem('cammapFacilityCoordOverrides', JSON.stringify(coordinateOverrides));
+  buildingCoords = getBuildingCoordsMap();
+
+  renderMapMarkers();
+  if (myLocation) updateNearestToiletByLocation(myLocation.lat, myLocation.lng, false);
+  setupCoordinateCaptureTool();
+
+  const output = document.getElementById('coord-output');
+  if (output) {
+    output.textContent = `${facility.name}
+lat: ${fixedLat}
+lng: ${fixedLng}
+
+저장 완료. 새로고침해도 유지됩니다.`;
+  }
+  console.log(`[CAMMAP 좌표 저장] ${facility.name}`, { lat: fixedLat, lng: fixedLng });
+  showToast(`${facility.name} 좌표가 저장되었습니다.`);
+}
+
+function showSelectedCoordinate() {
+  const facility = getSelectedCoordinateFacility();
+  const output = document.getElementById('coord-output');
+  if (!output) return;
+  if (!facility) {
+    output.textContent = '시설을 선택하세요.';
+    return;
+  }
+
+  const corrected = coordinateOverrides[facility.id] ? '저장 좌표 적용됨' : '기본 좌표 사용 중';
+  output.textContent = `${facility.name}
+${corrected}
+lat: ${facility.lat}
+lng: ${facility.lng}
+
+지도에서 실제 위치를 클릭하면 이 좌표가 바뀝니다.`;
+}
+
+function resetSelectedCoordinate() {
+  const facility = getSelectedCoordinateFacility();
+  if (!facility) return;
+  if (!confirm(`${facility.name}의 저장된 보정 좌표를 삭제할까요?`)) return;
+
+  delete coordinateOverrides[facility.id];
+  localStorage.setItem('cammapFacilityCoordOverrides', JSON.stringify(coordinateOverrides));
+  location.reload();
+}
+
+function copyFacilityCoordsCode() {
+  const code = 'const facilityCoords = ' + JSON.stringify(facilityCoords.map(f => ({
+    id: f.id,
+    cat: f.cat,
+    name: f.name,
+    building: f.building,
+    floor: f.floor,
+    lat: Number(f.lat),
+    lng: Number(f.lng)
+  })), null, 2) + ';';
+
+  navigator.clipboard?.writeText(code).then(() => {
+    showToast('facilityCoords 코드가 복사되었습니다.');
+  }).catch(() => {
+    const output = document.getElementById('coord-output');
+    if (output) output.textContent = code;
+    showToast('복사가 안 되어 아래 박스에 코드를 표시했습니다.');
+  });
+}
 
 // ============ MY LOCATION / NEAREST TOILET ============
 function toggleMyLocationTracking() {
