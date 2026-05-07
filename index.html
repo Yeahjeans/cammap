@@ -981,6 +981,20 @@ window.__naverMapScriptLoaded = false;
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div><div class="legend-label">흡연구역</div></div>
       </div>
+
+      <div class="coord-tool">
+        <div class="coord-tool-title">🧭 좌표 추출 모드</div>
+        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 건물 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다.</div>
+        <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
+        <div class="coord-actions">
+          <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
+          <button class="coord-btn copy" onclick="copyFacilityCoordsCode()">좌표 코드 복사</button>
+          <button class="coord-btn reset" onclick="resetSelectedCoordinate()">선택 좌표 초기화</button>
+          <button class="coord-btn off" onclick="showSelectedCoordinate()">현재 좌표 확인</button>
+        </div>
+        <div class="coord-mode-badge" id="coord-mode-badge">좌표 찍기 ON: 지도에서 위치를 클릭하면 선택한 시설 좌표가 저장됩니다.</div>
+        <div class="coord-output" id="coord-output">지도 탭을 열면 시설 목록이 표시됩니다.</div>
+      </div>
       <div class="section-head" style="padding-left:0">건물별 편의시설</div>
       <div class="map-pins">
         <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;원흥관&#39;)">
@@ -1585,37 +1599,35 @@ function clearSearch() {
 // 공식 캠퍼스맵 화면을 기준으로 화장실/편의점 마커를 건물 위치에 맞춰 배치한다.
 // 번호 마커가 아니라 시설 아이콘 마커만 표시한다.
 const facilityCoords = [
-  // 화장실 15개: 좌표 추출 UI 없이 코드에 고정 표시
-  { id:'toilet_academic_culture', cat:'toilet', name:'학술문화관 화장실', building:'학술문화관', floor:'1층', lat:37.5576200, lng:127.0021300 },
-  { id:'toilet_business', cat:'toilet', name:'경영관 화장실', building:'경영관', floor:'1층', lat:37.5570251, lng:127.0029541 },
-  { id:'toilet_law_manhae', cat:'toilet', name:'법학만해관 화장실', building:'법학만해관', floor:'1층', lat:37.5573000, lng:127.0016000 },
-  { id:'toilet_library', cat:'toilet', name:'중앙도서관 화장실', building:'중앙도서관', floor:'1층', lat:37.5578000, lng:126.9984200 },
-  { id:'toilet_info_p', cat:'toilet', name:'정보문화관 P동 화장실', building:'정보문화관 P동', floor:'1층', lat:37.5591600, lng:126.9980500 },
-  { id:'toilet_info_q', cat:'toilet', name:'정보문화관 Q동 화장실', building:'정보문화관 Q동', floor:'1층', lat:37.5590200, lng:126.9975200 },
-  { id:'toilet_engineering', cat:'toilet', name:'신공학관 화장실', building:'신공학관', floor:'1층', lat:37.5581200, lng:126.9975500 },
-  { id:'toilet_science', cat:'toilet', name:'과학관 화장실', building:'과학관', floor:'1층', lat:37.5572700, lng:126.9990200 },
-  { id:'toilet_dahyang', cat:'toilet', name:'다향관 화장실', building:'다향관', floor:'1층', lat:37.5585600, lng:127.0002200 },
-  { id:'toilet_main', cat:'toilet', name:'서울캠퍼스 본관 화장실', building:'서울캠퍼스 본관', floor:'1층', lat:37.5583400, lng:126.9991500 },
-  { id:'toilet_social_science', cat:'toilet', name:'사회과학관 화장실', building:'사회과학관', floor:'1층', lat:37.5582100, lng:126.9983300 },
-  { id:'toilet_hyehwa', cat:'toilet', name:'혜화관 화장실', building:'혜화관', floor:'1층', lat:37.5572500, lng:127.0013300 },
-  { id:'toilet_myeongjin', cat:'toilet', name:'명진관 화장실', building:'명진관', floor:'1층', lat:37.5575800, lng:126.9991400 },
-  { id:'toilet_hakrim', cat:'toilet', name:'학림관 화장실', building:'학림관', floor:'1층', lat:37.5595400, lng:126.9994500 },
-  { id:'toilet_wonheung', cat:'toilet', name:'원흥관 화장실', building:'원흥관', floor:'1층', lat:37.5584400, lng:126.9978200 },
+  // 화장실 15개
+  { id:'toilet_academic_culture', cat:'toilet', name:'학술문화관 화장실', building:'학술문화관', floor:'1층', lat:37.55762, lng:127.00213 },
+  { id:'toilet_business', cat:'toilet', name:'경영관 화장실', building:'경영관', floor:'1층', lat:37.55772, lng:127.00042 },
+  { id:'toilet_law_manhae', cat:'toilet', name:'법학만해관 화장실', building:'법학만해관', floor:'1층', lat:37.55730, lng:127.00160 },
+  { id:'toilet_library', cat:'toilet', name:'중앙도서관 화장실', building:'중앙도서관', floor:'1층', lat:37.55780, lng:126.99842 },
+  { id:'toilet_info_p', cat:'toilet', name:'정보문화관 P동 화장실', building:'정보문화관 P동', floor:'1층', lat:37.55916, lng:126.99805 },
+  { id:'toilet_info_q', cat:'toilet', name:'정보문화관 Q동 화장실', building:'정보문화관 Q동', floor:'1층', lat:37.55695, lng:126.99885 },
+  { id:'toilet_engineering', cat:'toilet', name:'신공학관 화장실', building:'신공학관', floor:'1층', lat:37.55812, lng:126.99755 },
+  { id:'toilet_science', cat:'toilet', name:'과학관 화장실', building:'과학관', floor:'1층', lat:37.55727, lng:126.99902 },
+  { id:'toilet_dahyang', cat:'toilet', name:'다향관 화장실', building:'다향관', floor:'1층', lat:37.55856, lng:127.00022 },
+  { id:'toilet_main', cat:'toilet', name:'서울캠퍼스 본관 화장실', building:'서울캠퍼스 본관', floor:'1층', lat:37.55834, lng:126.99915 },
+  { id:'toilet_hyehwa', cat:'toilet', name:'혜화관 화장실', building:'혜화관', floor:'1층', lat:37.55725, lng:127.00133 },
+  { id:'toilet_jeonggakwon', cat:'toilet', name:'정각원 화장실', building:'정각원', floor:'1층', lat:37.55747, lng:127.00072 },
+  { id:'toilet_myeongjin', cat:'toilet', name:'명진관 화장실', building:'명진관', floor:'1층', lat:37.55758, lng:126.99914 },
+  { id:'toilet_culture', cat:'toilet', name:'문화관 화장실', building:'문화관', floor:'1층', lat:37.55772, lng:127.00224 },
+  { id:'toilet_student_center', cat:'toilet', name:'학생회관 화장실', building:'학생회관', floor:'1층', lat:37.55847, lng:126.99802 },
 
   // 편의점 9개
-  { id:'store_engineering_cu', cat:'store', name:'신공학관 CU', building:'신공학관', floor:'1층', lat:37.5580300, lng:126.9973100 },
-  { id:'store_science_emart24', cat:'store', name:'과학관 이마트24', building:'과학관', floor:'1층', lat:37.5570800, lng:126.9986200 },
-  { id:'store_wonheung_cu', cat:'store', name:'원흥관 CU', building:'원흥관', floor:'1층', lat:37.5583900, lng:126.9979000 },
-  { id:'store_library', cat:'store', name:'중앙도서관 편의점', building:'중앙도서관', floor:'1층', lat:37.5577800, lng:126.9985800 },
-  { id:'store_law', cat:'store', name:'법학관 편의점', building:'법학관', floor:'1층', lat:37.5575000, lng:127.0006800 },
-  { id:'store_business', cat:'store', name:'경영관 편의점', building:'경영관', floor:'1층', lat:37.5571800, lng:127.0012300 },
-  { id:'store_sangrok', cat:'store', name:'상록원 편의점', building:'상록원', floor:'1층', lat:37.5566800, lng:127.0012500 },
-  { id:'store_hakrim', cat:'store', name:'학림관 편의점', building:'학림관', floor:'1층', lat:37.5595400, lng:126.9994500 },
-  { id:'store_culture', cat:'store', name:'문화관 편의점', building:'문화관', floor:'1층', lat:37.5577500, lng:127.0024800 }
+  { id:'store_engineering_cu', cat:'store', name:'신공학관 CU', building:'신공학관', floor:'1층', lat:37.55803, lng:126.99731 },
+  { id:'store_science_emart24', cat:'store', name:'과학관 이마트24', building:'과학관', floor:'1층', lat:37.55708, lng:126.99862 },
+  { id:'store_wonheung_cu', cat:'store', name:'원흥관 CU', building:'원흥관', floor:'1층', lat:37.55839, lng:126.99790 },
+  { id:'store_library', cat:'store', name:'중앙도서관 편의점', building:'중앙도서관', floor:'1층', lat:37.55778, lng:126.99858 },
+  { id:'store_law', cat:'store', name:'법학관 편의점', building:'법학관', floor:'1층', lat:37.55750, lng:127.00068 },
+  { id:'store_business', cat:'store', name:'경영관 편의점', building:'경영관', floor:'1층', lat:37.55718, lng:127.00123 },
+  { id:'store_sangrok', cat:'store', name:'상록원 편의점', building:'상록원', floor:'1층', lat:37.55668, lng:127.00125 },
+  { id:'store_hakrim', cat:'store', name:'학림관 편의점', building:'학림관', floor:'1층', lat:37.55954, lng:126.99945 },
+  { id:'store_culture', cat:'store', name:'문화관 편의점', building:'문화관', floor:'1층', lat:37.55775, lng:127.00248 }
 ];
 
-// 이전 좌표 추출 모드에서 저장된 보정값은 더 이상 적용하지 않는다.
-localStorage.removeItem('cammapFacilityCoordOverrides');
 let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
 
 function applySavedCoordinateOverrides() {
@@ -1732,6 +1744,11 @@ function initMap() {
       }
     });
     renderMapMarkers();
+    setupCoordinateCaptureTool();
+    attachCoordinateClickListener();
+  } else {
+    setupCoordinateCaptureTool();
+    attachCoordinateClickListener();
   }
 
   setTimeout(() => {
