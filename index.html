@@ -804,11 +804,22 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
   </div>
   <div class="scroll-content">
     <div class="map-container">
-      <div class="map-placeholder-big">
-        <div class="map-icon">🗺️</div>
-        <div class="map-text">동국대학교 서울캠퍼스</div>
-        <div class="map-sub">편의시설 위치 핀 표시</div>
-      </div>
+      <div id="map" style="width:100%;height:300px;border-radius:20px;overflow:hidden;"></div>
+		<!-- 필터 버튼 -->
+<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+  <button id="filter-btn-toilet" onclick="toggleMapFilter('toilet')"
+    style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #F4762A;background:#FFF0E6;color:#F4762A;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    🚻 화장실
+  </button>
+  <button id="filter-btn-store" onclick="toggleMapFilter('store')"
+    style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #27AE60;background:#E8F8EF;color:#27AE60;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    🏪 편의점
+  </button>
+  <button id="filter-btn-smoke" onclick="toggleMapFilter('smoke')"
+    style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #E91E8C;background:#FCE4F3;color:#E91E8C;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    🚬 흡연구역
+  </button>
+</div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
@@ -1078,6 +1089,17 @@ let currentBuilding = '';
 let currentFloor = '';
 let currentTabScreen = 'home';
 let screenStack = [];
+	function switchTab(tab) {
+  document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  currentTabScreen = tab;
+  // close any sub-screens
+  ['buildings','floors','detail'].forEach(s => {
+    document.getElementById('screen-' + s).classList.remove('active','exit');
+  });
+  screenStack = [];
+  if (tab === 'map') setTimeout(initMap, 100);  // ← 이것만 추가
+}
 let userRating = 0;
 let favorites = new Set();
 let userComments = {};
@@ -1370,7 +1392,97 @@ function clearSearch() {
 }
 
 // ============ MAP ============
-v
+// 동국대 서울캠퍼스 주요 건물 좌표
+const buildingCoords = {
+  '원흥관':     { lat: 37.5584, lng: 126.9993 },
+  '사회과학관': { lat: 37.5580, lng: 126.9985 },
+  '경영관':     { lat: 37.5576, lng: 126.9990 },
+  '법학관':     { lat: 37.5572, lng: 126.9995 }
+};
+
+const pinColors = {
+  toilet: '#F4762A',
+  store:  '#27AE60',
+  smoke:  '#E91E8C'
+};
+
+let naverMap = null;
+let mapMarkers = [];
+let activeFilter = { toilet: true, store: true, smoke: true };
+
+function initMap() {
+  if (naverMap) return;
+  naverMap = new naver.maps.Map('map', {
+    center: new naver.maps.LatLng(37.5579, 126.9990),
+    zoom: 17,
+    mapTypeId: naver.maps.MapTypeId.NORMAL
+  });
+  renderMapMarkers();
+}
+
+function renderMapMarkers() {
+  // 기존 마커 제거
+  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers = [];
+
+  Object.entries(buildingCoords).forEach(([building, coords]) => {
+    ['toilet', 'store', 'smoke'].forEach(cat => {
+      if (!floorData[cat][building]) return;
+      if (!activeFilter[cat]) return;
+
+      const marker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(
+          coords.lat + (cat === 'toilet' ? 0 : cat === 'store' ? 0.00005 : -0.00005),
+          coords.lng + (cat === 'toilet' ? 0 : cat === 'store' ? 0.00005 : -0.00005)
+        ),
+        map: naverMap,
+        icon: {
+          content: `<div style="
+            background:${pinColors[cat]};
+            color:#fff;
+            border-radius:50% 50% 50% 0;
+            transform:rotate(-45deg);
+            width:32px;height:32px;
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 2px 8px rgba(0,0,0,0.25);
+            border:2px solid #fff;
+          "><span style="transform:rotate(45deg);font-size:14px">${catInfo[cat].icon}</span></div>`,
+          anchor: new naver.maps.Point(16, 32)
+        }
+      });
+
+      const infoWindow = new naver.maps.InfoWindow({
+        content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:140px">
+          <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${building} ${catInfo[cat].label}</div>
+          <div style="font-size:11px;color:#888">${floorData[cat][building][0].tags}</div>
+        </div>`,
+        borderWidth: 0,
+        borderRadius: '12px',
+        disableAnchor: false,
+        backgroundColor: '#fff',
+        pixelOffset: new naver.maps.Point(0, -10)
+      });
+
+      naver.maps.Event.addListener(marker, 'click', () => {
+        infoWindow.open(naverMap, marker);
+        setTimeout(() => infoWindow.close(), 2500);
+        goToDetail(building, floorData[cat][building][0].floor, cat);
+        switchTab('home');
+      });
+
+      mapMarkers.push(marker);
+    });
+  });
+}
+
+function toggleMapFilter(cat) {
+  activeFilter[cat] = !activeFilter[cat];
+  const btn = document.getElementById('filter-btn-' + cat);
+  if (btn) {
+    btn.style.opacity = activeFilter[cat] ? '1' : '0.35';
+  }
+  renderMapMarkers();
+}
 
 // ============ REPORT ============
 function submitReport() {
