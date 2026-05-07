@@ -920,12 +920,14 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
           <div class="map-pin-name">📍 경영관</div>
           <div class="map-pin-badges">
             <span class="pin-badge t">화장실</span>
+            <span class="pin-badge s">편의점</span>
           </div>
         </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;법학관&#39;)">
           <div class="map-pin-name">📍 법학관</div>
           <div class="map-pin-badges">
             <span class="pin-badge t">화장실</span>
+            <span class="pin-badge s">편의점</span>
             <span class="pin-badge k">흡연구역</span>
           </div>
         </div>
@@ -1090,8 +1092,10 @@ const buildingData = {
     { name: '원흥관',     walk: '도보 6분', floors: ['1층','4층'],       rating: 3.9, comments: 9,  updated: '2026.05.04' }
   ],
   store: [
-    { name: '원흥관',     walk: '도보 2분', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.07' },
-    { name: '사회과학관', walk: '도보 4분', floors: ['1층'], rating: 4.0, comments: 8,  updated: '2026.05.06' }
+    { name: '원흥관',     walk: '도보 2분', floors: ['1층'],  rating: 4.4, comments: 12, updated: '2026.05.07' },
+    { name: '사회과학관', walk: '도보 4분', floors: ['1층'],  rating: 4.0, comments: 8,  updated: '2026.05.06' },
+    { name: '경영관',     walk: '도보 3분', floors: ['B1층'], rating: 4.1, comments: 6,  updated: '2026.05.07' },
+    { name: '법학관',     walk: '도보 5분', floors: ['2층'],  rating: 4.2, comments: 7,  updated: '2026.05.07' }
   ],
   smoke: [
     { name: '사회과학관', walk: '도보 2분', floors: ['외부 출입구 근처'],   rating: 3.7, comments: 6, updated: '2026.05.07' },
@@ -1121,8 +1125,10 @@ const floorData = {
     ]
   },
   store: {
-    '원흥관':     [{ floor: '1층', tags: '운영 중 / 학생 많이 이용', loc: '원흥관 정문 로비에서 왼쪽에 위치합니다.',         info: { 위치: ['원흥관 1층 로비 근처',''], 운영시간: ['평일 08:00~20:00',''], 주요판매품목: ['음료·간식·문구류·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/현금/페이','good'] } }],
-    '사회과학관': [{ floor: '1층', tags: '운영 중 / 음료 다양',      loc: '사회과학관 정문을 들어오면 정면에 있습니다.',      info: { 위치: ['사회과학관 1층 로비',''], 운영시간: ['평일 09:00~18:00',''], 주요판매품목: ['음료·간식·복사용품',''], 혼잡도: ['쉬는 시간 혼잡','warn'], 결제방식: ['카드/현금','good'] } }]
+    '원흥관':     [{ floor: '1층',  tags: '운영 중 / 학생 많이 이용', loc: '원흥관 정문 로비에서 왼쪽에 위치합니다.',         info: { 위치: ['원흥관 1층 로비 근처',''], 운영시간: ['평일 08:00~20:00',''], 주요판매품목: ['음료·간식·문구류·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/현금/페이','good'] } }],
+    '사회과학관': [{ floor: '1층',  tags: '운영 중 / 음료 다양',      loc: '사회과학관 정문을 들어오면 정면에 있습니다.',      info: { 위치: ['사회과학관 1층 로비',''], 운영시간: ['평일 09:00~18:00',''], 주요판매품목: ['음료·간식·복사용품',''], 혼잡도: ['쉬는 시간 혼잡','warn'], 결제방식: ['카드/현금','good'] } }],
+    '경영관':     [{ floor: 'B1층', tags: '운영 중 / 지하층 위치',      loc: '경영관 지하 1층 출입구 근처에 위치합니다.',          info: { 위치: ['경영관 B1층',''], 운영시간: ['평일 09:00~18:00',''], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/페이','good'] } }],
+    '법학관':     [{ floor: '2층',  tags: '쿱스켓 / 화장실 근처',      loc: '법학관 2층 쿱스켓 구역에 위치합니다.',              info: { 위치: ['법학관 2층',''], 운영시간: ['평일 09:00~18:00',''], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['수업 후 혼잡','warn'], 결제방식: ['카드/페이','good'] } }]
   },
   smoke: {
     '사회과학관': [{ floor: '외부', tags: '지붕 없음 / 벤치 있음',    loc: '사회과학관 후문 외부 출입구 오른편에 지정 구역이 있습니다.', info: { 위치: ['외부 출입구 근처',''], 지붕여부: ['없음','none'], 벤치여부: ['있음','good'], 쓰레기통: ['있음','good'], 혼잡도: ['쉬는 시간 혼잡','warn'] } }],
@@ -1518,6 +1524,51 @@ const buildingCoords = {
   '법학관':     { lat: 37.5572, lng: 126.9995 }
 };
 
+// 화장실과 편의점은 건물 대표 좌표가 아니라 시설별 좌표로 따로 관리한다.
+// 현재 좌표는 동국대 공식 캠퍼스맵의 건물 위치를 기준으로 한 1차 좌표이며,
+// 실제 출입구 위치 확인 후 lat/lng만 미세 조정하면 된다.
+const facilityCoords = [
+  { name: '사회과학관 1층 화장실', category: 'toilet', building: '사회과학관', floor: '1층', lat: 37.55802, lng: 126.99848 },
+  { name: '사회과학관 2층 화장실', category: 'toilet', building: '사회과학관', floor: '2층', lat: 37.55800, lng: 126.99850 },
+  { name: '사회과학관 4층 화장실', category: 'toilet', building: '사회과학관', floor: '4층', lat: 37.55798, lng: 126.99852 },
+
+  { name: '경영관 1층 화장실', category: 'toilet', building: '경영관', floor: '1층', lat: 37.55762, lng: 126.99898 },
+  { name: '경영관 3층 화장실', category: 'toilet', building: '경영관', floor: '3층', lat: 37.55758, lng: 126.99902 },
+
+  { name: '법학관 2층 화장실', category: 'toilet', building: '법학관', floor: '2층', lat: 37.55722, lng: 126.99948 },
+  { name: '법학관 5층 화장실', category: 'toilet', building: '법학관', floor: '5층', lat: 37.55718, lng: 126.99952 },
+
+  { name: '원흥관 1층 화장실', category: 'toilet', building: '원흥관', floor: '1층', lat: 37.55842, lng: 126.99928 },
+  { name: '원흥관 4층 화장실', category: 'toilet', building: '원흥관', floor: '4층', lat: 37.55838, lng: 126.99932 },
+
+  // 편의점도 시설별 좌표로 관리한다.
+  // 실제 출입구 위치 확인 후 lat/lng만 미세 조정하면 된다.
+  { name: '원흥관 1층 편의점', category: 'store', building: '원흥관', floor: '1층', lat: 37.55843, lng: 126.99934 },
+  { name: '사회과학관 1층 편의점', category: 'store', building: '사회과학관', floor: '1층', lat: 37.55803, lng: 126.99854 },
+  { name: '경영관 B1층 편의점', category: 'store', building: '경영관', floor: 'B1층', lat: 37.55763, lng: 126.99904 },
+  { name: '법학관 2층 편의점', category: 'store', building: '법학관', floor: '2층', lat: 37.55722, lng: 126.99955 }
+];
+
+function getFacilityCoord(cat, building, floor) {
+  const exact = facilityCoords.find(item =>
+    item.category === cat && item.building === building && item.floor === floor
+  );
+  if (exact) return exact;
+
+  const buildingPoint = buildingCoords[building];
+  if (!buildingPoint) return null;
+
+  return {
+    name: `${building} ${floor} ${catInfo[cat]?.label || ''}`,
+    category: cat,
+    building,
+    floor,
+    lat: buildingPoint.lat,
+    lng: buildingPoint.lng,
+    isFallback: true
+  };
+}
+
 const pinColors = {
   toilet: '#F4762A',
   store:  '#27AE60',
@@ -1579,58 +1630,79 @@ function initMap() {
   }, 100);
 }
 
+function createFacilityMarker(item) {
+  const cat = item.category;
+  const marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng(item.lat, item.lng),
+    map: naverMap,
+    icon: {
+      content: `<div style="
+        background:${pinColors[cat]};
+        color:#fff;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        width:32px;height:32px;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 8px rgba(0,0,0,0.25);
+        border:2px solid #fff;
+      "><span style="transform:rotate(45deg);font-size:14px">${catInfo[cat].icon}</span></div>`,
+      anchor: new naver.maps.Point(16, 32)
+    }
+  });
+
+  const floorInfo = floorData[cat]?.[item.building]?.find(f => f.floor === item.floor) || floorData[cat]?.[item.building]?.[0];
+  const infoWindow = new naver.maps.InfoWindow({
+    content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:150px">
+      <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${item.building} ${item.floor} ${catInfo[cat].label}</div>
+      <div style="font-size:11px;color:#888">${floorInfo?.tags || '시설 위치 정보'}</div>
+    </div>`,
+    borderWidth: 0,
+    borderRadius: '12px',
+    disableAnchor: false,
+    backgroundColor: '#fff',
+    pixelOffset: new naver.maps.Point(0, -10)
+  });
+
+  naver.maps.Event.addListener(marker, 'click', () => {
+    infoWindow.open(naverMap, marker);
+    setTimeout(() => infoWindow.close(), 1800);
+    goToDetail(item.building, item.floor, cat);
+  });
+
+  mapMarkers.push(marker);
+}
+
 function renderMapMarkers() {
   // 기존 마커 제거
   mapMarkers.forEach(m => m.setMap(null));
   mapMarkers = [];
 
+  // 화장실과 편의점은 시설별 좌표 기준으로 표시한다.
+  ['toilet', 'store'].forEach(cat => {
+    if (!activeFilter[cat]) return;
+
+    facilityCoords
+      .filter(item => item.category === cat)
+      .filter(item => floorData[cat]?.[item.building]?.some(f => f.floor === item.floor))
+      .forEach(item => createFacilityMarker(item));
+  });
+
+  // 흡연구역은 아직 공식 좌표가 없어서 기존 건물 좌표 기반 임시 위치로 유지한다.
   Object.entries(buildingCoords).forEach(([building, coords]) => {
-    ['toilet', 'store', 'smoke'].forEach(cat => {
-      if (!floorData[cat][building]) return;
-      if (!activeFilter[cat]) return;
+    const cat = 'smoke';
+    if (!floorData[cat][building]) return;
+    if (!activeFilter[cat]) return;
 
-      const marker = new naver.maps.Marker({
-        position: new naver.maps.LatLng(
-          coords.lat + (cat === 'toilet' ? 0 : cat === 'store' ? 0.00005 : -0.00005),
-          coords.lng + (cat === 'toilet' ? 0 : cat === 'store' ? 0.00005 : -0.00005)
-        ),
-        map: naverMap,
-        icon: {
-          content: `<div style="
-            background:${pinColors[cat]};
-            color:#fff;
-            border-radius:50% 50% 50% 0;
-            transform:rotate(-45deg);
-            width:32px;height:32px;
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:0 2px 8px rgba(0,0,0,0.25);
-            border:2px solid #fff;
-          "><span style="transform:rotate(45deg);font-size:14px">${catInfo[cat].icon}</span></div>`,
-          anchor: new naver.maps.Point(16, 32)
-        }
-      });
-
-      const infoWindow = new naver.maps.InfoWindow({
-        content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:140px">
-          <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${building} ${catInfo[cat].label}</div>
-          <div style="font-size:11px;color:#888">${floorData[cat][building][0].tags}</div>
-        </div>`,
-        borderWidth: 0,
-        borderRadius: '12px',
-        disableAnchor: false,
-        backgroundColor: '#fff',
-        pixelOffset: new naver.maps.Point(0, -10)
-      });
-
-      naver.maps.Event.addListener(marker, 'click', () => {
-        infoWindow.open(naverMap, marker);
-        setTimeout(() => infoWindow.close(), 2500);
-        goToDetail(building, floorData[cat][building][0].floor, cat);
-        switchTab('home');
-      });
-
-      mapMarkers.push(marker);
-    });
+    const item = {
+      name: `${building} ${catInfo[cat].label}`,
+      category: cat,
+      building,
+      floor: floorData[cat][building][0].floor,
+      lat: coords.lat - 0.00005,
+      lng: coords.lng - 0.00005,
+      isTemporary: true
+    };
+    createFacilityMarker(item);
   });
 }
 
@@ -1778,16 +1850,21 @@ function formatDistance(meter) {
 }
 
 function getToiletCandidates() {
-  return (buildingData.toilet || [])
-    .filter(item => buildingCoords[item.name])
-    .map(item => ({
-      building: item.name,
-      floor: item.floors[0],
-      rating: item.rating,
-      comments: item.comments,
-      lat: buildingCoords[item.name].lat,
-      lng: buildingCoords[item.name].lng
-    }));
+  return facilityCoords
+    .filter(item => item.category === 'toilet')
+    .filter(item => floorData.toilet?.[item.building]?.some(f => f.floor === item.floor))
+    .map(item => {
+      const buildingMeta = (buildingData.toilet || []).find(b => b.name === item.building) || {};
+      return {
+        name: item.name,
+        building: item.building,
+        floor: item.floor,
+        rating: buildingMeta.rating || 0,
+        comments: buildingMeta.comments || 0,
+        lat: item.lat,
+        lng: item.lng
+      };
+    });
 }
 
 function updateNearestToiletByLocation(lat, lng, openCard = true) {
@@ -1849,7 +1926,7 @@ function renderNearestToiletCard(item, openCard = true) {
   if (!card || !title || !desc) return;
 
   title.textContent = `🚻 가장 가까운 화장실: ${item.building} ${item.floor}`;
-  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>현재는 건물 좌표 기준 추천입니다. 실제 화장실 위치 좌표를 넣으면 더 정확해집니다.`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>현재는 화장실 시설별 좌표 기준 추천입니다. 실제 출입구 위치 확인 후 좌표를 미세 조정하면 더 정확해집니다.`;
   if (openCard) card.classList.add('show');
 }
 
@@ -2111,8 +2188,8 @@ function renderMyPage() {
   renderRecentViews();
 }
 
-// 최초 로딩 시 프로필 이름과 개인화 목록을 반영한다.
-setTimeout(renderMyPage, 0);
+// 최초 로딩 시 홈 최근 기록과 개인화 목록을 반영한다.
+setTimeout(() => { renderHomeRecentViews(); renderMyPage(); }, 0);
 
 // ============ REPORT ============
 function submitReport() {
