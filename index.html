@@ -1089,11 +1089,10 @@ let currentBuilding = '';
 let currentFloor = '';
 let currentTabScreen = 'home';
 let screenStack = [];
-	function switchTab(tab) {
+function switchTab(tab) {
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + tab).classList.add('active');
   currentTabScreen = tab;
-  // close any sub-screens
   ['buildings','floors','detail'].forEach(s => {
     document.getElementById('screen-' + s).classList.remove('active','exit');
   });
