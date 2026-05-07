@@ -566,6 +566,67 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
 .legend-label { font-size: 12px; color: var(--text-secondary); }
 
+
+
+/* LOCATION / NEAREST TOILET */
+.location-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.location-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 13px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+}
+.location-btn:active { transform: scale(0.98); }
+.location-btn.primary { background: #1A1A1A; color: #fff; }
+.location-btn.secondary { background: var(--orange); color: #fff; }
+.location-btn.is-on { background: #4285F4; color: #fff; }
+.nearest-card {
+  display: none;
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.nearest-card.show { display: block; }
+.nearest-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.nearest-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.nearest-open-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  background: var(--orange-light);
+  color: var(--orange);
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+@media (max-width: 420px) {
+  .location-actions { grid-template-columns: 1fr; }
+}
+
 /* REPORT SCREEN */
 .report-container { padding: 16px 20px; }
 .example-box {
@@ -833,6 +894,15 @@ src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte">
     🚬 흡연구역
   </button>
 </div>
+      <div class="location-actions">
+        <button class="location-btn primary" id="my-location-btn" onclick="toggleMyLocationTracking()">📍 내 위치 켜기</button>
+        <button class="location-btn secondary" onclick="recommendNearestToilet()">🚻 가까운 화장실 추천</button>
+      </div>
+      <div class="nearest-card" id="nearest-card">
+        <div class="nearest-title" id="nearest-title">가까운 화장실</div>
+        <div class="nearest-desc" id="nearest-desc">내 위치를 켜면 가장 가까운 화장실을 계산해 보여줍니다.</div>
+        <button class="nearest-open-btn" id="nearest-open-btn" onclick="openNearestToilet()">상세 정보 보기</button>
+      </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
@@ -1422,6 +1492,12 @@ const pinColors = {
 let naverMap = null;
 let mapMarkers = [];
 let activeFilter = { toilet: true, store: true, smoke: true };
+let myLocationMarker = null;
+let myAccuracyCircle = null;
+let myLocationWatchId = null;
+let myLocation = null;
+let nearestToilet = null;
+let nearestToiletHighlightMarker = null;
 
 function initMap() {
   const mapDiv = document.getElementById('map');
@@ -1536,6 +1612,236 @@ function selectCategoryFromMap(cat, building) {
   renderBuildingList(cat);
   pushScreen('buildings');
   setTimeout(() => selectBuilding(building), 50);
+}
+
+
+// ============ MY LOCATION / NEAREST TOILET ============
+function toggleMyLocationTracking() {
+  if (myLocationWatchId !== null) {
+    stopMyLocationTracking();
+  } else {
+    startMyLocationTracking();
+  }
+}
+
+function startMyLocationTracking() {
+  if (!navigator.geolocation) {
+    showToast('이 브라우저에서는 현재 위치 기능을 사용할 수 없습니다.');
+    return;
+  }
+  if (!naverMap) initMap();
+
+  const btn = document.getElementById('my-location-btn');
+  if (btn) {
+    btn.textContent = '📍 위치 확인 중...';
+    btn.classList.add('is-on');
+  }
+
+  myLocationWatchId = navigator.geolocation.watchPosition(
+    function(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy || 0;
+      updateMyLocationOnMap(lat, lng, accuracy, true);
+      updateNearestToiletByLocation(lat, lng, false);
+      if (btn) btn.textContent = '📍 내 위치 따라가기 ON';
+    },
+    function(error) {
+      console.error(error);
+      stopMyLocationTracking(false);
+      if (error.code === error.PERMISSION_DENIED) {
+        showToast('위치 권한을 허용해야 현재 위치를 표시할 수 있어요.');
+      } else {
+        showToast('현재 위치를 가져오지 못했습니다.');
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 3000
+    }
+  );
+}
+
+function stopMyLocationTracking(showMessage = true) {
+  if (myLocationWatchId !== null) {
+    navigator.geolocation.clearWatch(myLocationWatchId);
+    myLocationWatchId = null;
+  }
+  const btn = document.getElementById('my-location-btn');
+  if (btn) {
+    btn.textContent = '📍 내 위치 켜기';
+    btn.classList.remove('is-on');
+  }
+  if (showMessage) showToast('내 위치 따라가기를 껐습니다.');
+}
+
+function updateMyLocationOnMap(lat, lng, accuracy = 0, moveCenter = true) {
+  if (!naverMap || !window.naver || !naver.maps) return;
+
+  myLocation = { lat, lng, accuracy };
+  const pos = new naver.maps.LatLng(lat, lng);
+
+  if (!myLocationMarker) {
+    myLocationMarker = new naver.maps.Marker({
+      position: pos,
+      map: naverMap,
+      icon: {
+        content: `<div style="
+          width:20px;height:20px;background:#4285F4;border:3px solid white;
+          border-radius:50%;box-shadow:0 0 0 7px rgba(66,133,244,0.18), 0 2px 10px rgba(0,0,0,0.25);
+        "></div>`,
+        anchor: new naver.maps.Point(10, 10)
+      }
+    });
+  } else {
+    myLocationMarker.setPosition(pos);
+  }
+
+  if (!myAccuracyCircle) {
+    myAccuracyCircle = new naver.maps.Circle({
+      map: naverMap,
+      center: pos,
+      radius: Math.max(accuracy, 15),
+      fillColor: '#4285F4',
+      fillOpacity: 0.12,
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.35,
+      strokeWeight: 1
+    });
+  } else {
+    myAccuracyCircle.setCenter(pos);
+    myAccuracyCircle.setRadius(Math.max(accuracy, 15));
+  }
+
+  if (moveCenter) {
+    naverMap.setCenter(pos);
+  }
+}
+
+function getDistanceMeter(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(meter) {
+  if (meter < 1000) return `약 ${Math.round(meter)}m`;
+  return `약 ${(meter / 1000).toFixed(1)}km`;
+}
+
+function getToiletCandidates() {
+  return (buildingData.toilet || [])
+    .filter(item => buildingCoords[item.name])
+    .map(item => ({
+      building: item.name,
+      floor: item.floors[0],
+      rating: item.rating,
+      comments: item.comments,
+      lat: buildingCoords[item.name].lat,
+      lng: buildingCoords[item.name].lng
+    }));
+}
+
+function updateNearestToiletByLocation(lat, lng, openCard = true) {
+  const candidates = getToiletCandidates().map(item => ({
+    ...item,
+    distance: getDistanceMeter(lat, lng, item.lat, item.lng)
+  }));
+
+  candidates.sort((a, b) => a.distance - b.distance);
+  nearestToilet = candidates[0];
+
+  if (!nearestToilet) {
+    showToast('등록된 화장실 좌표가 없습니다.');
+    return;
+  }
+
+  renderNearestToiletCard(nearestToilet, openCard);
+  highlightNearestToilet(nearestToilet);
+}
+
+function recommendNearestToilet() {
+  if (!naverMap) initMap();
+
+  if (myLocation) {
+    updateNearestToiletByLocation(myLocation.lat, myLocation.lng, true);
+    showToast(`가장 가까운 화장실은 ${nearestToilet.building} ${nearestToilet.floor}입니다.`);
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    showToast('현재 위치 기능을 지원하지 않는 브라우저입니다.');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      updateMyLocationOnMap(lat, lng, position.coords.accuracy || 0, true);
+      updateNearestToiletByLocation(lat, lng, true);
+      showToast(`가장 가까운 화장실은 ${nearestToilet.building} ${nearestToilet.floor}입니다.`);
+    },
+    function(error) {
+      console.error(error);
+      showToast('위치 권한을 허용해야 가까운 화장실을 추천할 수 있어요.');
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+function renderNearestToiletCard(item, openCard = true) {
+  const card = document.getElementById('nearest-card');
+  const title = document.getElementById('nearest-title');
+  const desc = document.getElementById('nearest-desc');
+  if (!card || !title || !desc) return;
+
+  title.textContent = `🚻 가장 가까운 화장실: ${item.building} ${item.floor}`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>현재는 건물 좌표 기준 추천입니다. 실제 화장실 위치 좌표를 넣으면 더 정확해집니다.`;
+  if (openCard) card.classList.add('show');
+}
+
+function highlightNearestToilet(item) {
+  if (!naverMap || !window.naver || !naver.maps) return;
+
+  if (nearestToiletHighlightMarker) {
+    nearestToiletHighlightMarker.setMap(null);
+  }
+
+  const pos = new naver.maps.LatLng(item.lat, item.lng);
+  nearestToiletHighlightMarker = new naver.maps.Marker({
+    position: pos,
+    map: naverMap,
+    icon: {
+      content: `<div style="
+        background:#F4762A;color:#fff;border-radius:18px;padding:7px 10px;
+        font-size:12px;font-weight:800;white-space:nowrap;
+        box-shadow:0 3px 12px rgba(0,0,0,0.28);border:2px solid #fff;
+      ">가장 가까움 🚻</div>`,
+      anchor: new naver.maps.Point(48, 38)
+    }
+  });
+
+  naverMap.panTo(pos);
+}
+
+function openNearestToilet() {
+  if (!nearestToilet) {
+    recommendNearestToilet();
+    return;
+  }
+  goToDetail(nearestToilet.building, nearestToilet.floor, 'toilet');
 }
 
 // ============ REPORT ============
