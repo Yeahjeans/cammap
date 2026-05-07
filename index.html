@@ -1091,14 +1091,22 @@ let currentTabScreen = 'home';
 let screenStack = [];
 function switchTab(tab) {
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
+function switchTab(tab) {
+  document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + tab).classList.add('active');
   currentTabScreen = tab;
+
   ['buildings','floors','detail'].forEach(s => {
     document.getElementById('screen-' + s).classList.remove('active','exit');
   });
+
   screenStack = [];
-  if (tab === 'map') setTimeout(initMap, 100);  // ← 이것만 추가
+
+  if (tab === 'map') {
+    setTimeout(initMap, 300);
+  }
 }
+
 let userRating = 0;
 let favorites = new Set();
 let userComments = {};
