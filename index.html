@@ -958,6 +958,10 @@ window.__naverMapScriptLoaded = false;
     style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #F4762A;background:#FFF0E6;color:#F4762A;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
     🚻 화장실
   </button>
+  <button id="filter-btn-store" onclick="toggleMapFilter('store')"
+    style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #27AE60;background:#E8F8EF;color:#27AE60;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    🏪 편의점
+  </button>
 </div>
       <div class="location-actions">
         <button class="location-btn primary" id="my-location-btn" onclick="toggleMyLocationTracking()">📍 내 위치 켜기</button>
@@ -970,11 +974,12 @@ window.__naverMapScriptLoaded = false;
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
       </div>
 
       <div class="coord-tool">
         <div class="coord-tool-title">🧭 좌표 추출 모드</div>
-        <div class="coord-tool-desc">화장실을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 건물 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 현재 좌표 추출 대상은 화장실만입니다.</div>
+        <div class="coord-tool-desc">편의점을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 편의점 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 현재 좌표 추출 대상은 편의점만입니다.</div>
         <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
         <div class="coord-actions">
           <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
@@ -987,34 +992,32 @@ window.__naverMapScriptLoaded = false;
       </div>
       <div class="section-head" style="padding-left:0">건물별 편의시설</div>
       <div class="map-pins">
-        <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;원흥관&#39;)">
-          <div class="map-pin-name">📍 원흥관</div>
-          <div class="map-pin-badges">
-            <span class="pin-badge t">화장실</span>
-            <span class="pin-badge s">편의점</span>
-            <span class="pin-badge k">흡연구역</span>
-          </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','법학관')">
+          <div class="map-pin-name">📍 법학관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;사회과학관&#39;)">
-          <div class="map-pin-name">📍 사회과학관</div>
-          <div class="map-pin-badges">
-            <span class="pin-badge t">화장실</span>
-            <span class="pin-badge s">편의점</span>
-            <span class="pin-badge k">흡연구역</span>
-          </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','문화관')">
+          <div class="map-pin-name">📍 문화관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;경영관&#39;)">
-          <div class="map-pin-name">📍 경영관</div>
-          <div class="map-pin-badges">
-            <span class="pin-badge t">화장실</span>
-          </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','학림관')">
+          <div class="map-pin-name">📍 학림관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap(&#39;toilet&#39;,&#39;법학관&#39;)">
-          <div class="map-pin-name">📍 법학관</div>
-          <div class="map-pin-badges">
-            <span class="pin-badge t">화장실</span>
-            <span class="pin-badge k">흡연구역</span>
-          </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','중앙도서관')">
+          <div class="map-pin-name">📍 중앙도서관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','상록원')">
+          <div class="map-pin-name">📍 상록원</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','혜화관')">
+          <div class="map-pin-name">📍 혜화관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','원흥관')">
+          <div class="map-pin-name">📍 원흥관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','기숙사')">
+          <div class="map-pin-name">📍 CU 동국대 기숙사점</div><div class="map-pin-badges"><span class="pin-badge s">CU</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','경영관')">
+          <div class="map-pin-name">📍 경영관</div><div class="map-pin-badges"><span class="pin-badge s">이마트24 편의점</span></div>
         </div>
       </div>
     </div>
@@ -1050,7 +1053,7 @@ window.__naverMapScriptLoaded = false;
         <label class="form-label">건물 선택</label>
         <select class="form-select" id="report-building">
           <option value="">건물을 선택하세요</option>
-          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>법학관</option>
+          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>법학관</option><option>문화관</option><option>학림관</option><option>중앙도서관</option><option>상록원</option><option>혜화관</option><option>기숙사</option>
         </select>
       </div>
       <div class="form-group">
@@ -1177,8 +1180,15 @@ const buildingData = {
     { name: '원흥관',     walk: '도보 6분', floors: ['1층','4층'],       rating: 3.9, comments: 9,  updated: '2026.05.04' }
   ],
   store: [
-    { name: '원흥관',     walk: '도보 2분', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.07' },
-    { name: '사회과학관', walk: '도보 4분', floors: ['1층'], rating: 4.0, comments: 8,  updated: '2026.05.06' }
+    { name: '법학관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '문화관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '학림관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '중앙도서관', walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '상록원',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '혜화관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.12' },
+    { name: '기숙사',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '경영관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' }
   ],
   smoke: [
     { name: '사회과학관', walk: '도보 2분', floors: ['외부 출입구 근처'],   rating: 3.7, comments: 6, updated: '2026.05.07' },
@@ -1208,8 +1218,15 @@ const floorData = {
     ]
   },
   store: {
-    '원흥관':     [{ floor: '1층', tags: '운영 중 / 학생 많이 이용', loc: '원흥관 정문 로비에서 왼쪽에 위치합니다.',         info: { 위치: ['원흥관 1층 로비 근처',''], 운영시간: ['평일 08:00~20:00',''], 주요판매품목: ['음료·간식·문구류·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/현금/페이','good'] } }],
-    '사회과학관': [{ floor: '1층', tags: '운영 중 / 음료 다양',      loc: '사회과학관 정문을 들어오면 정면에 있습니다.',      info: { 위치: ['사회과학관 1층 로비',''], 운영시간: ['평일 09:00~18:00',''], 주요판매품목: ['음료·간식·복사용품',''], 혼잡도: ['쉬는 시간 혼잡','warn'], 결제방식: ['카드/현금','good'] } }]
+    '법학관':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '법학관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['법학관 쿱스켓 편의점',''], 위치: ['법학관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '문화관':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '문화관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['문화관 쿱스켓 편의점',''], 위치: ['문화관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '학림관':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '학림관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['학림관 쿱스켓 편의점',''], 위치: ['학림관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '중앙도서관': [{ floor: '1층', tags: '쿱스켓 편의점', loc: '중앙도서관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['중앙도서관 쿱스켓 편의점',''], 위치: ['중앙도서관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '상록원':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '상록원 쿱스켓 편의점 위치입니다.', info: { 매장명: ['상록원 쿱스켓 편의점',''], 위치: ['상록원 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '혜화관':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '혜화관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['혜화관 쿱스켓 편의점',''], 위치: ['혜화관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '원흥관':     [{ floor: '1층', tags: '쿱스켓 편의점', loc: '원흥관 쿱스켓 편의점 위치입니다.', info: { 매장명: ['원흥관 쿱스켓 편의점',''], 위치: ['원흥관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/페이','good'] } }],
+    '기숙사':     [{ floor: '1층', tags: 'CU 동국대 기숙사점', loc: 'CU 동국대 기숙사점 위치입니다.', info: { 매장명: ['CU 동국대 기숙사점',''], 위치: ['기숙사 인근',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '경영관':     [{ floor: '1층', tags: '이마트24 편의점', loc: '경영관 이마트24 편의점 위치입니다.', info: { 매장명: ['경영관 이마트24 편의점',''], 위치: ['경영관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }]
   },
   smoke: {
     '사회과학관': [{ floor: '외부', tags: '지붕 없음 / 벤치 있음',    loc: '사회과학관 후문 외부 출입구 오른편에 지정 구역이 있습니다.', info: { 위치: ['외부 출입구 근처',''], 지붕여부: ['없음','none'], 벤치여부: ['있음','good'], 쓰레기통: ['있음','good'], 혼잡도: ['쉬는 시간 혼잡','warn'] } }],
@@ -1221,31 +1238,46 @@ const floorData = {
 
 
 // 지도 핀에서 바로 층 선택 화면으로 이동할 수 있도록,
-// 지도에만 있는 건물도 기본 1층 화장실 데이터를 자동으로 만들어준다.
-function ensureToiletDataForMapFacility(facility) {
-  if (!facility || facility.cat !== 'toilet') return;
+// 지도에만 있는 시설도 기본 데이터를 자동으로 만들어준다.
+function ensureFacilityDataForMapFacility(facility) {
+  if (!facility || !facility.cat || !facility.building) return;
 
-  if (!floorData.toilet[facility.building]) {
-    floorData.toilet[facility.building] = [
-      {
-        floor: facility.floor || '1층',
-        tags: '지도 위치 기준 / 상세 정보 준비 중',
-        loc: `${facility.building} 건물 내 ${facility.floor || '1층'} 화장실 위치입니다. 정확한 내부 위치 정보는 추후 업데이트 예정입니다.`,
-        info: {
+  if (!floorData[facility.cat]) floorData[facility.cat] = {};
+
+  if (!floorData[facility.cat][facility.building]) {
+    const label = catInfo[facility.cat]?.label || '시설';
+    const info = facility.cat === 'store'
+      ? {
+          매장명: [facility.name, ''],
+          위치: [`${facility.building} ${facility.floor || '1층'}`, ''],
+          운영시간: ['정보 업데이트 예정', 'none'],
+          주요판매품목: ['음료·간식·간편식', ''],
+          혼잡도: ['정보 없음', 'none'],
+          결제방식: ['카드/페이', 'good']
+        }
+      : {
           파우더룸: ['정보 없음','none'],
           청결도: ['정보 없음','none'],
           휴지비치: ['정보 없음','none'],
           비데: ['정보 없음','none'],
           혼잡도: ['정보 없음','none'],
           장애인화장실: ['정보 없음','none']
-        }
+        };
+
+    floorData[facility.cat][facility.building] = [
+      {
+        floor: facility.floor || '1층',
+        tags: facility.cat === 'store' ? facility.name : '지도 위치 기준 / 상세 정보 준비 중',
+        loc: `${facility.name} 위치입니다. 정확한 내부 위치 정보는 추후 업데이트 예정입니다.`,
+        info
       }
     ];
   }
 
-  const existsInBuildingList = buildingData.toilet.some(b => b.name === facility.building);
+  if (!buildingData[facility.cat]) buildingData[facility.cat] = [];
+  const existsInBuildingList = buildingData[facility.cat].some(b => b.name === facility.building);
   if (!existsInBuildingList) {
-    buildingData.toilet.push({
+    buildingData[facility.cat].push({
       name: facility.building,
       walk: '위치 확인 필요',
       floors: [facility.floor || '1층'],
@@ -1256,9 +1288,17 @@ function ensureToiletDataForMapFacility(facility) {
   }
 }
 
-function ensureAllMapToiletData() {
+function ensureToiletDataForMapFacility(facility) {
+  ensureFacilityDataForMapFacility(facility);
+}
+
+function ensureAllMapFacilityData() {
   if (typeof facilityCoords === 'undefined') return;
-  facilityCoords.filter(f => f.cat === 'toilet').forEach(ensureToiletDataForMapFacility);
+  facilityCoords.forEach(ensureFacilityDataForMapFacility);
+}
+
+function ensureAllMapToiletData() {
+  ensureAllMapFacilityData();
 }
 
 const commentsData = {
@@ -1591,7 +1631,7 @@ function handleSearch(q) {
   mainContent.style.display = 'none';
 
   const keywords = { '화장실': 'toilet', '편의점': 'store', '흡연': 'smoke', '흡연구역': 'smoke' };
-  const buildings = ['원흥관','사회과학관','경영관','법학관'];
+  const buildings = ['원흥관','사회과학관','경영관','법학관','문화관','학림관','중앙도서관','상록원','혜화관','기숙사'];
   let results = [];
 
   for(const [kw, cat] of Object.entries(keywords)) {
@@ -1629,8 +1669,8 @@ function clearSearch() {
 }
 
 // ============ MAP ============
-// 화장실 15개만 지도에 표시하고, 좌표 추출 모드로 직접 위치를 보정한다.
-// 편의점 좌표는 제외했다.
+// 화장실과 편의점 핀을 지도에 표시한다.
+// 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -1647,8 +1687,8 @@ const facilityCoords = [
     "name": "경영관 화장실",
     "building": "경영관",
     "floor": "1층",
-    "lat": 37.5570102,
-    "lng": 127.0029165
+    "lat": 37.5569911,
+    "lng": 127.0029112
   },
   {
     "id": "toilet_law_manhae",
@@ -1766,8 +1806,89 @@ const facilityCoords = [
     "floor": "1층",
     "lat": 37.5588644,
     "lng": 126.9989817
+  },
+  {
+    "id": "store_law",
+    "cat": "store",
+    "name": "법학관 쿱스켓 편의점",
+    "building": "법학관",
+    "floor": "1층",
+    "lat": 37.5581360,
+    "lng": 127.0008860
+  },
+  {
+    "id": "store_culture",
+    "cat": "store",
+    "name": "문화관 쿱스켓 편의점",
+    "building": "문화관",
+    "floor": "1층",
+    "lat": 37.5574550,
+    "lng": 127.0019320
+  },
+  {
+    "id": "store_hakrim",
+    "cat": "store",
+    "name": "학림관 쿱스켓 편의점",
+    "building": "학림관",
+    "floor": "1층",
+    "lat": 37.5602879,
+    "lng": 126.9997079
+  },
+  {
+    "id": "store_library",
+    "cat": "store",
+    "name": "중앙도서관 쿱스켓 편의점",
+    "building": "중앙도서관",
+    "floor": "1층",
+    "lat": 37.5572148,
+    "lng": 127.0005127
+  },
+  {
+    "id": "store_sangrokwon",
+    "cat": "store",
+    "name": "상록원 쿱스켓 편의점",
+    "building": "상록원",
+    "floor": "1층",
+    "lat": 37.5567230,
+    "lng": 127.0002310
+  },
+  {
+    "id": "store_hyehwa",
+    "cat": "store",
+    "name": "혜화관 쿱스켓 편의점",
+    "building": "혜화관",
+    "floor": "1층",
+    "lat": 37.5575142,
+    "lng": 127.0017953
+  },
+  {
+    "id": "store_wonheung",
+    "cat": "store",
+    "name": "원흥관 쿱스켓 편의점",
+    "building": "원흥관",
+    "floor": "1층",
+    "lat": 37.5588644,
+    "lng": 126.9989817
+  },
+  {
+    "id": "store_dorm_cu",
+    "cat": "store",
+    "name": "CU 동국대 기숙사점",
+    "building": "기숙사",
+    "floor": "1층",
+    "lat": 37.5579150,
+    "lng": 126.9988610
+  },
+  {
+    "id": "store_business_emart24",
+    "cat": "store",
+    "name": "경영관 이마트24 편의점",
+    "building": "경영관",
+    "floor": "1층",
+    "lat": 37.5569911,
+    "lng": 127.0029112
   }
-];
+]
 
 let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
 
@@ -1947,12 +2068,8 @@ function renderMapMarkers() {
       infoWindow.open(naverMap, marker);
       setTimeout(() => infoWindow.close(), 1200);
 
-      if (facility.cat === 'toilet') {
-        ensureToiletDataForMapFacility(facility);
-        openMapFacilityFloorList(facility);
-      } else {
-        showToast(`${facility.name} 위치입니다.`);
-      }
+      ensureFacilityDataForMapFacility(facility);
+      openMapFacilityFloorList(facility);
     });
 
     mapMarkers.push(marker);
@@ -2015,10 +2132,10 @@ function selectCategoryFromMap(cat, building) {
 // ============ COORDINATE CAPTURE TOOL ============
 function getCoordinateFacilityList() {
   return facilityCoords
-    .filter(f => f.cat === 'toilet')
+    .filter(f => f.cat === 'store')
     .slice()
     .sort((a, b) => {
-      if (a.cat !== b.cat) return a.cat === 'toilet' ? -1 : 1;
+      if (a.cat !== b.cat) return a.cat === 'store' ? -1 : 1;
       return a.name.localeCompare(b.name, 'ko');
     });
 }
@@ -2152,7 +2269,7 @@ function copyFacilityCoordsCode() {
   })), null, 2) + ';';
 
   navigator.clipboard?.writeText(code).then(() => {
-    showToast('화장실 facilityCoords 코드가 복사되었습니다.');
+    showToast('편의점/화장실 facilityCoords 코드가 복사되었습니다.');
   }).catch(() => {
     const output = document.getElementById('coord-output');
     if (output) output.textContent = code;
