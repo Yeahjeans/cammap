@@ -1142,6 +1142,41 @@ const catInfo = {
   smoke:  { label: '흡연구역', icon: '🚬', color: 'var(--pink)' }
 };
 
+function getFacilityDisplayTitle(cat, building, floor) {
+  const label = catInfo[cat]?.label || '';
+  const floorText = String(floor || '');
+  const base = `${building} ${floorText}`.trim();
+
+  // 예: '원흥관 1층 여자화장실'처럼 floor 안에 이미 '화장실'이 들어간 경우
+  // 뒤에 '화장실'을 한 번 더 붙이지 않는다.
+  if (label && floorText.includes(label)) return base;
+
+  return `${base} ${label}`.trim();
+}
+
+function getFacilityCoordForBuilding(cat, building) {
+  if (typeof facilityCoords === 'undefined') return null;
+  return facilityCoords.find(f => f.cat === cat && f.building === building)
+      || facilityCoords.find(f => f.building === building)
+      || null;
+}
+
+function getWalkLabelByCoord(lat, lng) {
+  const reference = myLocation || { lat: 37.5576375, lng: 127.0026443 };
+  if (typeof getDistanceMeter !== 'function') return '도보 정보 업데이트 예정';
+  const meter = getDistanceMeter(reference.lat, reference.lng, lat, lng);
+  const minutes = Math.max(1, Math.round(meter / 70));
+  return `도보 ${minutes}분`;
+}
+
+function updateBuildingWalkLabels(cat) {
+  if (typeof facilityCoords === 'undefined' || !buildingData[cat]) return;
+  buildingData[cat].forEach(b => {
+    const coord = getFacilityCoordForBuilding(cat, b.name);
+    if (coord) b.walk = getWalkLabelByCoord(coord.lat, coord.lng);
+  });
+}
+
 const buildingData = {
   toilet: [
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 4.3, comments: 15, updated: '2026.05.12' },
@@ -1150,21 +1185,21 @@ const buildingData = {
     { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실'], rating: 3.9, comments: 9,  updated: '2026.05.12' }
   ],
   store: [
-    { name: '법학관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '문화관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '학림관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '중앙도서관', walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '상록원',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '혜화관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '원흥관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.12' },
-    { name: '기숙사',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '경영관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' }
+    { name: '법학관',     walk: '도보 3분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '문화관',     walk: '도보 2분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '학림관',     walk: '도보 5분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '중앙도서관', walk: '도보 3분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '상록원',     walk: '도보 4분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '혜화관',     walk: '도보 2분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관',     walk: '도보 4분', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.12' },
+    { name: '기숙사',     walk: '도보 6분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
+    { name: '경영관',     walk: '도보 1분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' }
   ],
   smoke: [
-    { name: '혜화관 옆',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 앞',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 다리', walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '원흥관 앞',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' }
+    { name: '혜화관 옆',   walk: '도보 2분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 앞',   walk: '도보 3분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 다리', walk: '도보 2분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관 앞',   walk: '도보 4분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' }
   ]
 };
 
@@ -1287,15 +1322,37 @@ function syncMapFacilitiesIntoCategory(cat) {
   facilityCoords
     .filter(f => f.cat === cat && f.building)
     .forEach(facility => {
+      const existingFloors = floorData[cat][facility.building];
+      let building = buildingData[cat].find(b => b.name === facility.building);
+
+      // 이미 floorData가 있는 건물은 그 데이터만 기준으로 목록을 맞춘다.
+      // 원흥관처럼 1층 여자화장실/2층 남자화장실만 있어야 하는 곳에
+      // 지도 핀의 generic '1층 화장실'이 추가되지 않게 하기 위함.
+      if (existingFloors && existingFloors.length) {
+        if (!building) {
+          building = {
+            name: facility.building,
+            walk: '도보 정보 업데이트 예정',
+            floors: [],
+            rating: 4.0,
+            comments: 0,
+            updated: '2026.05.12'
+          };
+          buildingData[cat].push(building);
+        }
+        building.floors = existingFloors.map(item => item.floor);
+        return;
+      }
+
       ensureFacilityDataForMapFacility(facility);
 
       const floor = facility.floor || '1층';
-      let building = buildingData[cat].find(b => b.name === facility.building);
+      building = buildingData[cat].find(b => b.name === facility.building);
 
       if (!building) {
         building = {
           name: facility.building,
-          walk: '위치 확인 필요',
+          walk: '도보 정보 업데이트 예정',
           floors: [],
           rating: 4.0,
           comments: 0,
@@ -1304,52 +1361,11 @@ function syncMapFacilitiesIntoCategory(cat) {
         buildingData[cat].push(building);
       }
 
-      if (!building.floors.includes(floor)) {
-        building.floors.push(floor);
-      }
-
-      if (!floorData[cat][facility.building]) floorData[cat][facility.building] = [];
-
-      const hasFloorDetail = floorData[cat][facility.building].some(item => item.floor === floor);
-      if (!hasFloorDetail) {
-        const info = cat === 'store'
-          ? {
-              매장명: [facility.name, ''],
-              위치: [`${facility.building} ${floor}`, ''],
-              운영시간: ['정보 업데이트 예정', 'none'],
-              주요판매품목: ['음료·간식·간편식', ''],
-              혼잡도: ['정보 없음', 'none'],
-              결제방식: ['카드/페이', 'good']
-            }
-          : cat === 'smoke'
-            ? {
-                위치: [`${facility.building} ${floor}`, ''],
-                지붕여부: ['정보 업데이트 예정', 'none'],
-                벤치여부: ['정보 업데이트 예정', 'none'],
-                쓰레기통: ['정보 업데이트 예정', 'none'],
-                혼잡도: ['정보 없음', 'none']
-              }
-            : {
-                파우더룸: ['정보 업데이트 예정', 'none'],
-                청결도: ['정보 업데이트 예정', 'none'],
-                휴지비치: ['정보 업데이트 예정', 'none'],
-                비데: ['정보 업데이트 예정', 'none'],
-                혼잡도: ['정보 업데이트 예정', 'none'],
-                장애인화장실: ['정보 업데이트 예정', 'none']
-              };
-
-        floorData[cat][facility.building].push({
-          floor,
-          tags: facility.name || '지도 핀 기준 등록 시설',
-          loc: `${facility.name || facility.building} 위치입니다. 도면과 사진을 추가해 주세요.`,
-          planImage: `${facility.id}-map.png`,
-          photos: [`${facility.id}-photo1.jpg`, `${facility.id}-photo2.jpg`],
-          info
-        });
-      }
+      if (!building.floors.includes(floor)) building.floors.push(floor);
     });
-}
 
+  updateBuildingWalkLabels(cat);
+}
 const commentsData = {
   'toilet_사회과학관_2층': [
     { name:'동국01', rating:5, text:'여기 화장실은 깨끗하고 비데가 있어서 좋아요.', date:'2026.05.06' },
@@ -1452,6 +1468,7 @@ function selectCategory(cat) {
 function renderBuildingList(cat) {
   ensureAllMapFacilityData();
   syncMapFacilitiesIntoCategory(cat);
+  updateBuildingWalkLabels(cat);
 
   const list = document.getElementById('building-list');
 
@@ -1521,7 +1538,7 @@ function renderFloorList() {
     <div class="floor-card" onclick="selectFloor('${f.floor}')">
       <div class="floor-num">${shortFloor}</div>
       <div class="floor-info">
-        <h3>${currentBuilding} ${f.floor} ${catInfo[currentCat].label}</h3>
+        <h3>${getFacilityDisplayTitle(currentCat, currentBuilding, f.floor)}</h3>
         <p>${f.tags}</p>
       </div>
       <span class="floor-arrow">›</span>
@@ -1641,7 +1658,7 @@ function previewPhotoImage(event, safeId, num) {
 function renderDetail(cat, building, floor) {
   const fd = (floorData[cat][building] || []).find(f => f.floor === floor) || (floorData[cat][building] || [])[0];
   if(!fd) return;
-  const title = `${building} ${floor} ${catInfo[cat].label}`;
+  const title = getFacilityDisplayTitle(cat, building, floor);
   document.getElementById('detail-title').textContent = title;
   const favKey = cat + '_' + building + '_' + floor;
   const favBtn = document.getElementById('fav-detail-btn');
@@ -2370,7 +2387,7 @@ function showMapFloorPopup(facility) {
     <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
       <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${(String(f.floor).match(/^(\d+)층/) ? String(f.floor).match(/^(\d+)층/)[1] : String(f.floor).replace('외부','외'))}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:900;color:#1A1A1A">${facility.building} ${f.floor} ${catInfo[facility.cat].label}</div>
+        <div style="font-size:15px;font-weight:900;color:#1A1A1A">${getFacilityDisplayTitle(facility.cat, facility.building, f.floor)}</div>
         <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
       </div>
       <div style="font-size:20px;color:#AAA">›</div>
@@ -2501,6 +2518,7 @@ function startMyLocationTracking() {
       const accuracy = position.coords.accuracy || 0;
       updateMyLocationOnMap(lat, lng, accuracy, true);
       updateNearestToiletByLocation(lat, lng, false);
+      ['toilet','store','smoke'].forEach(updateBuildingWalkLabels);
       if (btn) btn.textContent = '📍 내 위치 따라가기 ON';
     },
     function(error) {
@@ -2726,7 +2744,7 @@ function getCatIconClass(cat) {
 }
 
 function getFacilityTitle(cat, building, floor) {
-  return `${building} ${floor} ${catInfo[cat]?.label || ''}`;
+  return getFacilityDisplayTitle(cat, building, floor);
 }
 
 function escapeHTML(value) {
