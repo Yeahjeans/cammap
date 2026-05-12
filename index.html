@@ -570,83 +570,6 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 
 
 
-/* COORDINATE CAPTURE MODE */
-.coord-tool {
-  margin-top: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  box-shadow: var(--shadow-sm);
-}
-.coord-tool-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-.coord-tool-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 10px;
-}
-.coord-select {
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  background: #fff;
-}
-.coord-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-.coord-btn {
-  border: none;
-  border-radius: 12px;
-  padding: 11px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  font-family: inherit;
-  cursor: pointer;
-}
-.coord-btn.on { background: #1A1A1A; color: white; }
-.coord-btn.off { background: var(--orange-light); color: var(--orange); }
-.coord-btn.copy { background: var(--green-light); color: var(--green); }
-.coord-btn.reset { background: var(--bg); color: var(--text-secondary); }
-.coord-output {
-  margin-top: 10px;
-  background: #FAFAFA;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  font-size: 11px;
-  line-height: 1.6;
-  color: #555;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-.coord-mode-badge {
-  display: none;
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #FFF3CD;
-  color: #8A5A00;
-  font-size: 12px;
-  font-weight: 700;
-}
-.coord-mode-badge.show { display: block; }
-@media (max-width: 420px) {
-  .coord-actions { grid-template-columns: 1fr; }
-}
-
 /* LOCATION / NEAREST TOILET */
 .location-actions {
   display: grid;
@@ -831,21 +754,6 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* 지도 팝업에서 상세페이지로 이동할 때, 지도 탭보다 상세페이지가 위에 뜨도록 고정 */
-#screen-buildings.active,
-#screen-floors.active,
-#screen-detail.active {
-  z-index: 300 !important;
-  display: flex !important;
-}
-#screen-home.exit,
-#screen-map.exit,
-#screen-report.exit,
-#screen-mypage.exit {
-  z-index: 5 !important;
-}
-
 </style>
 <script>
 // 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
@@ -995,20 +903,6 @@ window.__naverMapScriptLoaded = false;
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div><div class="legend-label">흡연구역</div></div>
-      </div>
-
-      <div class="coord-tool">
-        <div class="coord-tool-title">🧭 좌표 추출 모드</div>
-        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 화장실·편의점·흡연구역 모두 좌표 추출이 가능합니다.</div>
-        <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
-        <div class="coord-actions">
-          <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
-          <button class="coord-btn copy" onclick="copyFacilityCoordsCode()">좌표 코드 복사</button>
-          <button class="coord-btn reset" onclick="resetSelectedCoordinate()">선택 좌표 초기화</button>
-          <button class="coord-btn off" onclick="showSelectedCoordinate()">현재 좌표 확인</button>
-        </div>
-        <div class="coord-mode-badge" id="coord-mode-badge">좌표 찍기 ON: 지도에서 위치를 클릭하면 선택한 시설 좌표가 저장됩니다.</div>
-        <div class="coord-output" id="coord-output">지도 탭을 열면 시설 목록이 표시됩니다.</div>
       </div>
       <div class="section-head" style="padding-left:0">건물별 편의시설</div>
       <div class="map-pins">
@@ -1407,7 +1301,6 @@ function pushScreen(id) {
 function goBack(from) {
   const el = document.getElementById('screen-' + from);
   el.classList.remove('active');
-  if (from === 'detail') el.style.zIndex = '';
   screenStack.pop();
   if(screenStack.length > 0) {
     const prev = screenStack[screenStack.length - 1];
@@ -1481,28 +1374,18 @@ function selectFloor(floor) {
 }
 
 function goToDetail(building, floor, cat) {
-  closeMapFloorPopup();
-
   currentCat = cat;
   currentBuilding = building;
   currentFloor = floor;
-
   renderDetail(cat, building, floor);
   addRecentView(building, floor, cat);
-
+  // from any tab screen, push screen
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
-    if (el) el.classList.remove('active','exit');
+    el.classList.remove('active','exit');
   });
-
   screenStack = [];
   pushScreen('detail');
-
-  const detailEl = document.getElementById('screen-detail');
-  if (detailEl) {
-    detailEl.classList.add('active');
-    detailEl.style.zIndex = '300';
-  }
 }
 
 // ============ DETAIL ============
@@ -1715,30 +1598,18 @@ function clearSearch() {
 
 // ============ MAP ============
 // 화장실·편의점·흡연구역 핀을 지도에 표시한다.
-// 좌표 추출 모드는 모든 시설 핀의 좌표 보정용으로 사용한다.
+// 시설 좌표는 아래 facilityCoords 값으로 고정한다.
 
 let naverMap = null;
 let mapMarkers = [];
 let activeMapInfoWindow = null;
 let buildingCoords = {};
-let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
 
 const pinColors = {
   toilet: '#F4762A',
   store: '#27AE60',
   smoke: '#E91E8C'
 };
-
-function applySavedCoordinateOverrides() {
-  if (typeof facilityCoords === 'undefined') return;
-  facilityCoords.forEach(f => {
-    if (coordinateOverrides[f.id]) {
-      f.lat = coordinateOverrides[f.id].lat;
-      f.lng = coordinateOverrides[f.id].lng;
-      f.isCorrected = true;
-    }
-  });
-}
 
 function getBuildingCoordsMap() {
   const map = {};
@@ -1819,8 +1690,8 @@ const facilityCoords = [
     "name": "과학관 화장실",
     "building": "과학관",
     "floor": "1층",
-    "lat": 37.5573079,
-    "lng": 126.9998588
+    "lat": 37.5578246,
+    "lng": 127.0016612
   },
   {
     "id": "toilet_dahyang",
@@ -1891,8 +1762,8 @@ const facilityCoords = [
     "name": "법학관 쿱스켓 편의점",
     "building": "법학관",
     "floor": "1층",
-    "lat": 37.5579400,
-    "lng": 127.0010500
+    "lat": 37.55794,
+    "lng": 127.00105
   },
   {
     "id": "store_culture_coopsket",
@@ -1900,8 +1771,8 @@ const facilityCoords = [
     "name": "문화관 쿱스켓 편의점",
     "building": "문화관",
     "floor": "1층",
-    "lat": 37.5576200,
-    "lng": 127.0029200
+    "lat": 37.5576885,
+    "lng": 127.0030345
   },
   {
     "id": "store_hakrim_coopsket",
@@ -1909,8 +1780,8 @@ const facilityCoords = [
     "name": "학림관 쿱스켓 편의점",
     "building": "학림관",
     "floor": "1층",
-    "lat": 37.5602879,
-    "lng": 126.9997079
+    "lat": 37.5604739,
+    "lng": 126.9992258
   },
   {
     "id": "store_library_coopsket",
@@ -1927,8 +1798,8 @@ const facilityCoords = [
     "name": "상록원 쿱스켓 편의점",
     "building": "상록원",
     "floor": "1층",
-    "lat": 37.5566100,
-    "lng": 126.9991000
+    "lat": 37.5570187,
+    "lng": 126.9998239
   },
   {
     "id": "store_hyehwa_coopsket",
@@ -1936,8 +1807,8 @@ const facilityCoords = [
     "name": "혜화관 쿱스켓 편의점",
     "building": "혜화관",
     "floor": "1층",
-    "lat": 37.5575142,
-    "lng": 127.0017953
+    "lat": 37.5576896,
+    "lng": 127.0017042
   },
   {
     "id": "store_wonheung_coopsket",
@@ -1945,8 +1816,8 @@ const facilityCoords = [
     "name": "원흥관 쿱스켓 편의점",
     "building": "원흥관",
     "floor": "1층",
-    "lat": 37.5588644,
-    "lng": 126.9989817
+    "lat": 37.5589494,
+    "lng": 126.9988315
   },
   {
     "id": "store_dorm_cu",
@@ -1954,8 +1825,8 @@ const facilityCoords = [
     "name": "CU 동국대 기숙사점",
     "building": "기숙사",
     "floor": "1층",
-    "lat": 37.5589500,
-    "lng": 127.0035600
+    "lat": 37.5584019,
+    "lng": 126.9978391
   },
   {
     "id": "store_business_emart24",
@@ -1963,8 +1834,8 @@ const facilityCoords = [
     "name": "경영관 이마트24 편의점",
     "building": "경영관",
     "floor": "1층",
-    "lat": 37.5569911,
-    "lng": 127.0029112
+    "lat": 37.5569858,
+    "lng": 127.0029366
   },
   {
     "id": "smoke_hyehwa_side",
@@ -1972,8 +1843,8 @@ const facilityCoords = [
     "name": "혜화관 옆 흡연구역",
     "building": "혜화관 옆",
     "floor": "외부",
-    "lat": 37.5575700,
-    "lng": 127.0019600
+    "lat": 37.5568407,
+    "lng": 127.0018745
   },
   {
     "id": "smoke_law_front",
@@ -1981,8 +1852,8 @@ const facilityCoords = [
     "name": "법학관 앞 흡연구역",
     "building": "법학관 앞",
     "floor": "외부",
-    "lat": 37.5579400,
-    "lng": 127.0011000
+    "lat": 37.5583557,
+    "lng": 127.0008083
   },
   {
     "id": "smoke_law_bridge",
@@ -1990,8 +1861,8 @@ const facilityCoords = [
     "name": "법학관 다리 흡연구역",
     "building": "법학관 다리",
     "floor": "외부",
-    "lat": 37.5582300,
-    "lng": 127.0007200
+    "lat": 37.5578432,
+    "lng": 127.0015137
   },
   {
     "id": "smoke_wonheung_front",
@@ -1999,8 +1870,8 @@ const facilityCoords = [
     "name": "원흥관 앞 흡연구역",
     "building": "원흥관 앞",
     "floor": "외부",
-    "lat": 37.5587600,
-    "lng": 126.9991800
+    "lat": 37.5589606,
+    "lng": 126.9994806
   }
 ];
 let activeFilter = { toilet: true, store: true, smoke: true };
@@ -2010,9 +1881,6 @@ let myLocationWatchId = null;
 let myLocation = null;
 let nearestToilet = null;
 let nearestToiletHighlightMarker = null;
-let coordinateModeOn = false;
-let selectedCoordinateFacilityId = '';
-let coordinateClickListener = null;
 
 function setMapMessage(html) {
   const mapDiv = document.getElementById('map');
@@ -2072,7 +1940,6 @@ function initMap() {
     return;
   }
 
-  applySavedCoordinateOverrides();
   buildingCoords = getBuildingCoordsMap();
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
@@ -2094,8 +1961,6 @@ function initMap() {
   }
 
   renderMapMarkers();
-  setupCoordinateCaptureTool();
-  attachCoordinateClickListener();
 
   setTimeout(() => {
     if (!naverMap || !window.naver || !naver.maps) return;
@@ -2289,154 +2154,6 @@ function selectCategoryFromMap(cat, building) {
 }
 
 
-
-// ============ COORDINATE CAPTURE TOOL ============
-function getCoordinateFacilityList() {
-  return facilityCoords
-    .slice()
-    .sort((a, b) => {
-      const order = { toilet: 1, store: 2, smoke: 3 };
-      if (a.cat !== b.cat) return (order[a.cat] || 9) - (order[b.cat] || 9);
-      return a.name.localeCompare(b.name, 'ko');
-    });
-}
-
-function setupCoordinateCaptureTool() {
-  const select = document.getElementById('coord-facility-select');
-  if (!select) return;
-
-  const facilities = getCoordinateFacilityList();
-  if (!selectedCoordinateFacilityId && facilities.length) {
-    selectedCoordinateFacilityId = facilities[0].id;
-  }
-
-  select.innerHTML = facilities.map(f => {
-    const corrected = coordinateOverrides[f.id] ? ' ✅' : '';
-    return `<option value="${f.id}" ${f.id === selectedCoordinateFacilityId ? 'selected' : ''}>${catInfo[f.cat].icon} ${f.name}${corrected}</option>`;
-  }).join('');
-
-  updateCoordinateModeUI();
-  showSelectedCoordinate();
-}
-
-function attachCoordinateClickListener() {
-  if (!naverMap || coordinateClickListener) return;
-  coordinateClickListener = naver.maps.Event.addListener(naverMap, 'click', function(e) {
-    if (!coordinateModeOn) return;
-    saveCoordinateFromClick(e.coord.lat(), e.coord.lng());
-  });
-}
-
-function selectCoordinateFacility(id) {
-  selectedCoordinateFacilityId = id;
-  showSelectedCoordinate();
-}
-
-function getSelectedCoordinateFacility() {
-  return facilityCoords.find(f => f.id === selectedCoordinateFacilityId) || null;
-}
-
-function toggleCoordinateMode() {
-  coordinateModeOn = !coordinateModeOn;
-  updateCoordinateModeUI();
-  if (coordinateModeOn) {
-    const f = getSelectedCoordinateFacility();
-    showToast(`${f ? f.name : '시설'} 좌표 찍기 모드입니다. 지도에서 위치를 클릭하세요.`);
-  } else {
-    showToast('좌표 찍기 모드를 껐습니다.');
-  }
-}
-
-function updateCoordinateModeUI() {
-  const btn = document.getElementById('coord-mode-btn');
-  const badge = document.getElementById('coord-mode-badge');
-  if (btn) {
-    btn.textContent = coordinateModeOn ? '좌표 찍기 OFF' : '좌표 찍기 ON';
-    btn.className = coordinateModeOn ? 'coord-btn off' : 'coord-btn on';
-  }
-  if (badge) badge.classList.toggle('show', coordinateModeOn);
-}
-
-function saveCoordinateFromClick(lat, lng) {
-  const facility = getSelectedCoordinateFacility();
-  if (!facility) {
-    showToast('좌표를 저장할 시설을 먼저 선택하세요.');
-    return;
-  }
-
-  const fixedLat = Number(lat.toFixed(7));
-  const fixedLng = Number(lng.toFixed(7));
-  facility.lat = fixedLat;
-  facility.lng = fixedLng;
-  facility.isCorrected = true;
-
-  coordinateOverrides[facility.id] = { lat: fixedLat, lng: fixedLng };
-  localStorage.setItem('cammapFacilityCoordOverrides', JSON.stringify(coordinateOverrides));
-  buildingCoords = getBuildingCoordsMap();
-
-  renderMapMarkers();
-  if (myLocation) updateNearestToiletByLocation(myLocation.lat, myLocation.lng, false);
-  setupCoordinateCaptureTool();
-
-  const output = document.getElementById('coord-output');
-  if (output) {
-    output.textContent = `${facility.name}
-lat: ${fixedLat}
-lng: ${fixedLng}
-
-저장 완료. 새로고침해도 유지됩니다.`;
-  }
-  console.log(`[CAMMAP 좌표 저장] ${facility.name}`, { lat: fixedLat, lng: fixedLng });
-  showToast(`${facility.name} 좌표가 저장되었습니다.`);
-}
-
-function showSelectedCoordinate() {
-  const facility = getSelectedCoordinateFacility();
-  const output = document.getElementById('coord-output');
-  if (!output) return;
-  if (!facility) {
-    output.textContent = '시설을 선택하세요.';
-    return;
-  }
-
-  const corrected = coordinateOverrides[facility.id] ? '저장 좌표 적용됨' : '기본 좌표 사용 중';
-  output.textContent = `${facility.name}
-${corrected}
-lat: ${facility.lat}
-lng: ${facility.lng}
-
-지도에서 실제 위치를 클릭하면 이 좌표가 바뀝니다.`;
-}
-
-function resetSelectedCoordinate() {
-  const facility = getSelectedCoordinateFacility();
-  if (!facility) return;
-  if (!confirm(`${facility.name}의 저장된 보정 좌표를 삭제할까요?`)) return;
-
-  delete coordinateOverrides[facility.id];
-  localStorage.setItem('cammapFacilityCoordOverrides', JSON.stringify(coordinateOverrides));
-  location.reload();
-}
-
-function copyFacilityCoordsCode() {
-  const code = 'const facilityCoords = ' + JSON.stringify(facilityCoords.map(f => ({
-    id: f.id,
-    cat: f.cat,
-    name: f.name,
-    building: f.building,
-    floor: f.floor,
-    lat: Number(f.lat),
-    lng: Number(f.lng)
-  })), null, 2) + ';';
-
-  navigator.clipboard?.writeText(code).then(() => {
-    showToast('전체 시설 facilityCoords 코드가 복사되었습니다.');
-  }).catch(() => {
-    const output = document.getElementById('coord-output');
-    if (output) output.textContent = code;
-    showToast('복사가 안 되어 아래 박스에 코드를 표시했습니다.');
-  });
-}
 
 // ============ MY LOCATION / NEAREST TOILET ============
 function toggleMyLocationTracking() {
@@ -2633,7 +2350,7 @@ function renderNearestToiletCard(item, openCard = true) {
   if (!card || !title || !desc) return;
 
   title.textContent = `🚻 가장 가까운 화장실: ${item.name || (item.building + " " + item.floor)}`;
-  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>저장된 화장실 좌표 기준 추천입니다.`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>고정된 화장실 좌표 기준 추천입니다.`;
   if (openCard) card.classList.add('show');
 }
 
