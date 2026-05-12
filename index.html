@@ -1690,6 +1690,45 @@ function clearSearch() {
 // ============ MAP ============
 // 화장실과 편의점 핀을 지도에 표시한다.
 // 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
+// 네이버 지도 전역 상태값입니다.
+// 지도 탭을 나갔다가 다시 들어와도 기존 지도 객체를 안전하게 재사용합니다.
+let naverMap = null;
+let mapMarkers = [];
+let activeMapInfoWindow = null;
+let buildingCoords = {};
+let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
+
+const pinColors = {
+  toilet: '#F4762A',
+  store: '#27AE60',
+  smoke: '#E91E8C'
+};
+
+function applySavedCoordinateOverrides() {
+  if (typeof facilityCoords === 'undefined') return;
+
+  facilityCoords.forEach(f => {
+    if (coordinateOverrides[f.id]) {
+      f.lat = coordinateOverrides[f.id].lat;
+      f.lng = coordinateOverrides[f.id].lng;
+      f.isCorrected = true;
+    }
+  });
+}
+
+function getBuildingCoordsMap() {
+  const map = {};
+  if (typeof facilityCoords === 'undefined') return map;
+
+  facilityCoords.forEach(f => {
+    if (!map[f.building]) {
+      map[f.building] = { lat: f.lat, lng: f.lng };
+    }
+  });
+
+  return map;
+}
+
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -1894,6 +1933,22 @@ function ensureNaverMapReady() {
     return;
   }
 
+  const existingScript = document.querySelector('script[src*="oapi.map.naver.com/openapi/v3/maps.js"]');
+  if (existingScript) {
+    window.__naverMapScriptLoading = true;
+    setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
+
+    setTimeout(() => {
+      window.__naverMapScriptLoading = false;
+      if (window.naver && window.naver.maps) {
+        initMap();
+      } else {
+        setMapMessage('<div><b>네이버 지도를 다시 불러오지 못했습니다.</b><br>브라우저를 새로고침한 뒤 다시 시도해주세요.</div>');
+      }
+    }, 500);
+    return;
+  }
+
   window.__naverMapScriptLoading = true;
   window.__naverMapCallback = function() {
     window.__naverMapScriptLoaded = true;
@@ -1915,9 +1970,11 @@ function ensureNaverMapReady() {
       네이버 클라우드 <b>Web 서비스 URL</b>에 아래 주소를 모두 등록했는지 확인하세요.<br><br>
       <b>https://cammap-alpha.vercel.app</b><br>
       <b>https://cammap-alpha.vercel.app/</b><br>
+      <b>https://dongguk-place-finder.lovable.app</b><br>
+      <b>https://dongguk-place-finder.lovable.app/</b><br>
       <b>http://127.0.0.1:5500</b><br>
       <b>http://localhost:5500</b><br><br>
-      그리고 새 배포 후 브라우저에서 강력 새로고침을 해주세요.
+      등록 후 새 배포 및 강력 새로고침을 해주세요.
     </div>`);
   };
   document.head.appendChild(script);
@@ -1932,12 +1989,15 @@ function initMap() {
     return;
   }
 
-  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
-  mapDiv.innerHTML = '';
+  applySavedCoordinateOverrides();
+  buildingCoords = getBuildingCoordsMap();
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
+    // 최초 1회만 지도 div를 비우고 네이버 지도 객체를 생성합니다.
+    mapDiv.innerHTML = '';
+
     naverMap = new naver.maps.Map('map', {
       center: center,
       zoom: 17,
@@ -1948,24 +2008,32 @@ function initMap() {
         position: naver.maps.Position.TOP_RIGHT
       }
     });
+
     renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
+    // 이미 생성된 지도는 다시 만들지 않고 resize만 걸어줍니다.
+    renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   }
 
   setTimeout(() => {
+    if (!naverMap || !window.naver || !naver.maps) return;
     naver.maps.Event.trigger(naverMap, 'resize');
 
-    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
     if (myLocation && myLocationWatchId !== null) {
       naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
-    } else if (!myLocation) {
+    } else {
       naverMap.setCenter(center);
     }
-  }, 100);
+  }, 150);
+
+  setTimeout(() => {
+    if (!naverMap || !window.naver || !naver.maps) return;
+    naver.maps.Event.trigger(naverMap, 'resize');
+  }, 350);
 }
 
 function renderMapMarkers() {
