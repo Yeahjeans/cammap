@@ -406,6 +406,24 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .photo-ph .ph-icon { font-size: 24px; }
 .photo-ph .ph-text { font-size: 11px; color: var(--text-muted); }
 
+.actual-media-img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.photo-img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
 .loc-box {
   margin: 0 20px 16px;
   background: #FFF8F3;
@@ -1098,7 +1116,7 @@ const catInfo = {
 
 const buildingData = {
   toilet: [
-    { name: '사회과학관', walk: '도보 2분', floors: ['1층','2층','4층'], rating: 4.3, comments: 15, updated: '2026.05.07' },
+    { name: '사회과학관', walk: '도보 2분', floors: ['3층','5층'], rating: 4.3, comments: 15, updated: '2026.05.12' },
     { name: '경영관',     walk: '도보 3분', floors: ['1층','3층'],       rating: 4.1, comments: 10, updated: '2026.05.06' },
     { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 3.8, comments: 7,  updated: '2026.05.05' },
     { name: '원흥관',     walk: '도보 6분', floors: ['1층','4층'],       rating: 3.9, comments: 9,  updated: '2026.05.04' }
@@ -1125,9 +1143,22 @@ const buildingData = {
 const floorData = {
   toilet: {
     '사회과학관': [
-      { floor: '1층', tags: '접근성 좋음 / 이용자 많음',   loc: '정문을 들어와 왼쪽 복도를 따라 직진하면 있습니다.',             info: { 파우더룸: ['없음','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['항상 혼잡','warn'], 장애인화장실: ['있음','good'] } },
-      { floor: '2층', tags: '비교적 깨끗함 / 비데 있음',    loc: '엘리베이터에서 내려 오른쪽 복도 끝에 위치해 있습니다.',         info: { 파우더룸: ['있음','good'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['점심시간 혼잡','warn'], 장애인화장실: ['있음','good'] } },
-      { floor: '4층', tags: '조용함 / 위치 찾기 어려움',    loc: '계단에서 왼쪽으로 돌아 복도 중간에 위치합니다.',               info: { 파우더룸: ['없음','none'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['비교적 한산','good'], 장애인화장실: ['없음','none'] } }
+      {
+        floor: '3층',
+        tags: '엘리베이터·계단 근처 / 도면 추가 가능',
+        loc: '사회과학관 3층 엘리베이터와 계단 근처에 위치합니다.',
+        floorMap: 'sagwa-3f-map.png',
+        photos: ['sagwa-3f-photo1.jpg', 'sagwa-3f-photo2.jpg'],
+        info: { 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] }
+      },
+      {
+        floor: '5층',
+        tags: '사회과학관 5층 화장실 / 도면·사진 추가 가능',
+        loc: '사회과학관 5층 화장실 위치입니다. 정확한 내부 위치 설명은 추후 업데이트 가능합니다.',
+        floorMap: 'sagwa-5f-map.png',
+        photos: ['sagwa-5f-photo1.jpg', 'sagwa-5f-photo2.jpg'],
+        info: { 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] }
+      }
     ],
     '경영관': [
       { floor: '1층', tags: '넓고 쾌적 / 접근 쉬움',       loc: '정문 입구 오른편 복도에 있습니다.',                            info: { 파우더룸: ['있음','good'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['점심시간 혼잡','warn'], 장애인화장실: ['있음','good'] } },
@@ -1443,20 +1474,29 @@ function renderDetail(cat, building, floor) {
     </div>
   `).join('');
 
-  document.getElementById('detail-content').innerHTML = `
-    <div class="media-block">
-      <div class="media-label">층별 도면</div>
-      <div class="img-placeholder">
+  const floorMapHTML = fd.floorMap
+    ? `<img class="actual-media-img" src="${fd.floorMap}" alt="${building} ${floor} 도면">`
+    : `<div class="img-placeholder">
         <span class="ph-icon">🗂️</span>
         <span class="ph-text">도면 이미지 업로드 예정</span>
         <span class="ph-sub">${building} ${floor} 평면도</span>
-      </div>
+      </div>`;
+
+  const photoList = Array.isArray(fd.photos) ? fd.photos.filter(Boolean) : [];
+  const photoHTML = photoList.length
+    ? photoList.map((src, idx) => `<img class="photo-img" src="${src}" alt="${building} ${floor} 실사진 ${idx + 1}">`).join('')
+    : `<div class="photo-ph"><span class="ph-icon">📷</span><span class="ph-text">사진 1</span></div>
+       <div class="photo-ph"><span class="ph-icon">➕</span><span class="ph-text">사진 추가</span></div>`;
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="media-block">
+      <div class="media-label">층별 도면</div>
+      ${floorMapHTML}
     </div>
     <div class="media-block" style="padding-top:0">
       <div class="media-label">실사진</div>
       <div class="photo-row">
-        <div class="photo-ph"><span class="ph-icon">📷</span><span class="ph-text">사진 1</span></div>
-        <div class="photo-ph"><span class="ph-icon">➕</span><span class="ph-text">사진 추가</span></div>
+        ${photoHTML}
       </div>
     </div>
     <div class="loc-box">
@@ -1731,11 +1771,20 @@ const facilityCoords = [
     "lng": 126.9994887
   },
   {
-    "id": "toilet_social_science",
+    "id": "toilet_social_science_3f",
     "cat": "toilet",
-    "name": "사회과학관 화장실",
+    "name": "사회과학관 3층 화장실",
     "building": "사회과학관",
-    "floor": "1층",
+    "floor": "3층",
+    "lat": 37.5576375,
+    "lng": 127.0026443
+  },
+  {
+    "id": "toilet_social_science_5f",
+    "cat": "toilet",
+    "name": "사회과학관 5층 화장실",
+    "building": "사회과학관",
+    "floor": "5층",
     "lat": 37.5576375,
     "lng": 127.0026443
   },
