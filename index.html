@@ -984,7 +984,7 @@ window.__naverMapScriptLoaded = false;
 
       <div class="coord-tool">
         <div class="coord-tool-title">🧭 좌표 추출 모드</div>
-        <div class="coord-tool-desc">편의점을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 편의점 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 현재 좌표 추출 대상은 편의점만입니다.</div>
+        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 화장실·편의점·흡연구역 모두 좌표 추출이 가능합니다.</div>
         <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
         <div class="coord-actions">
           <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
@@ -1688,8 +1688,41 @@ function clearSearch() {
 }
 
 // ============ MAP ============
-// 화장실과 편의점 핀을 지도에 표시한다.
-// 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
+// 화장실·편의점·흡연구역 핀을 지도에 표시한다.
+// 좌표 추출 모드는 모든 시설 핀의 좌표 보정용으로 사용한다.
+
+let naverMap = null;
+let mapMarkers = [];
+let activeMapInfoWindow = null;
+let buildingCoords = {};
+let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
+
+const pinColors = {
+  toilet: '#F4762A',
+  store: '#27AE60',
+  smoke: '#E91E8C'
+};
+
+function applySavedCoordinateOverrides() {
+  if (typeof facilityCoords === 'undefined') return;
+  facilityCoords.forEach(f => {
+    if (coordinateOverrides[f.id]) {
+      f.lat = coordinateOverrides[f.id].lat;
+      f.lng = coordinateOverrides[f.id].lng;
+      f.isCorrected = true;
+    }
+  });
+}
+
+function getBuildingCoordsMap() {
+  const map = {};
+  if (typeof facilityCoords === 'undefined') return map;
+  facilityCoords.forEach(f => {
+    if (!map[f.building]) map[f.building] = { lat: f.lat, lng: f.lng };
+  });
+  return map;
+}
+
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -1932,12 +1965,15 @@ function initMap() {
     return;
   }
 
-  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
-  mapDiv.innerHTML = '';
+  applySavedCoordinateOverrides();
+  buildingCoords = getBuildingCoordsMap();
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
+    // 최초 생성 때만 div를 비웁니다. 이미 생성된 뒤 다시 비우면 지도가 사라집니다.
+    mapDiv.innerHTML = '';
+
     naverMap = new naver.maps.Map('map', {
       center: center,
       zoom: 17,
@@ -1948,27 +1984,31 @@ function initMap() {
         position: naver.maps.Position.TOP_RIGHT
       }
     });
-    renderMapMarkers();
-    setupCoordinateCaptureTool();
-    attachCoordinateClickListener();
-  } else {
-    setupCoordinateCaptureTool();
-    attachCoordinateClickListener();
   }
 
-  setTimeout(() => {
-    naver.maps.Event.trigger(naverMap, 'resize');
+  renderMapMarkers();
+  setupCoordinateCaptureTool();
+  attachCoordinateClickListener();
 
-    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
+  setTimeout(() => {
+    if (!naverMap || !window.naver || !naver.maps) return;
+    naver.maps.Event.trigger(naverMap, 'resize');
     if (myLocation && myLocationWatchId !== null) {
       naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
-    } else if (!myLocation) {
+    } else {
       naverMap.setCenter(center);
     }
-  }, 100);
+  }, 120);
+
+  setTimeout(() => {
+    if (!naverMap || !window.naver || !naver.maps) return;
+    naver.maps.Event.trigger(naverMap, 'resize');
+  }, 350);
 }
 
 function renderMapMarkers() {
+  if (!naverMap || !window.naver || !naver.maps) return;
+
   mapMarkers.forEach(m => m.setMap(null));
   mapMarkers = [];
 
@@ -1980,7 +2020,7 @@ function renderMapMarkers() {
       map: naverMap,
       icon: {
         content: `<div style="
-          background:${pinColors[facility.cat]};
+          background:${pinColors[facility.cat] || '#F4762A'};
           color:#fff;
           border-radius:50% 50% 50% 0;
           transform:rotate(-45deg);
@@ -1993,29 +2033,97 @@ function renderMapMarkers() {
       }
     });
 
-    const detailExists = !!(floorData[facility.cat]?.[facility.building]);
+    const popupBg = facility.cat === 'toilet' ? '#FFF0E6' : facility.cat === 'store' ? '#E8F8EF' : '#FCE4F3';
+    const popupColor = pinColors[facility.cat] || '#F4762A';
     const infoWindow = new naver.maps.InfoWindow({
-      content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:160px">
-        <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${facility.name}</div>
-        <div style="font-size:11px;color:#888">${detailExists ? '상세 정보 보기' : '공식 캠퍼스맵 위치 기준'}</div>
+      content: `<div style="padding:16px 18px;font-family:'Noto Sans KR',sans-serif;min-width:220px;max-width:270px;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,0.18)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:12px;background:${popupBg};font-size:17px">${catInfo[facility.cat].icon}</span>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:900;color:#1A1A1A;line-height:1.35">${facility.name}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">${catInfo[facility.cat].label} · ${facility.floor || '위치 정보'}</div>
+          </div>
+        </div>
+        <div style="background:#F7F6F3;border:1px solid #EBEBEB;border-radius:14px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11px;color:#777;margin-bottom:4px">위치</div>
+          <div style="font-size:13px;font-weight:700;color:#333">${facility.building} ${facility.floor || ''}</div>
+        </div>
+        <button onclick="showMapFloorPopupById('${facility.id}')" style="width:100%;border:none;border-radius:12px;background:${popupColor};color:#fff;padding:11px 10px;font-size:13px;font-weight:800;font-family:'Noto Sans KR',sans-serif;cursor:pointer">
+          층 선택하기
+        </button>
       </div>`,
       borderWidth: 0,
-      borderRadius: '12px',
       disableAnchor: false,
-      backgroundColor: '#fff',
-      pixelOffset: new naver.maps.Point(0, -10)
+      backgroundColor: 'transparent',
+      pixelOffset: new naver.maps.Point(0, -14)
     });
 
     naver.maps.Event.addListener(marker, 'click', () => {
-      infoWindow.open(naverMap, marker);
-      setTimeout(() => infoWindow.close(), 1200);
-
       ensureFacilityDataForMapFacility(facility);
-      openMapFacilityFloorList(facility);
+      if (activeMapInfoWindow) activeMapInfoWindow.close();
+      infoWindow.open(naverMap, marker);
+      activeMapInfoWindow = infoWindow;
     });
 
     mapMarkers.push(marker);
   });
+}
+
+function showMapFloorPopupById(id) {
+  const facility = facilityCoords.find(f => f.id === id);
+  if (!facility) return;
+  ensureFacilityDataForMapFacility(facility);
+  showMapFloorPopup(facility);
+}
+
+function showMapFloorPopup(facility) {
+  const old = document.getElementById('map-floor-popup-backdrop');
+  if (old) old.remove();
+
+  const floors = floorData[facility.cat]?.[facility.building] || [{
+    floor: facility.floor || '1층',
+    tags: '지도 위치 기준 / 상세 정보 준비 중'
+  }];
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'map-floor-popup-backdrop';
+  backdrop.style.cssText = `position:absolute;inset:0;background:rgba(0,0,0,0.48);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;`;
+  backdrop.onclick = function(e) {
+    if (e.target.id === 'map-floor-popup-backdrop') closeMapFloorPopup();
+  };
+
+  const card = document.createElement('div');
+  card.style.cssText = `width:min(520px,92vw);max-height:78vh;overflow:auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,0.28);font-family:'Noto Sans KR',sans-serif;`;
+
+  const items = floors.map(f => `
+    <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
+      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${String(f.floor).replace('층','').replace('외부','외')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:900;color:#1A1A1A">${facility.building} ${f.floor} ${catInfo[facility.cat].label}</div>
+        <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
+      </div>
+      <div style="font-size:20px;color:#AAA">›</div>
+    </div>
+  `).join('');
+
+  card.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#1A1A1A">${facility.name}</div>
+        <div style="font-size:13px;color:#777;margin-top:5px">원하는 층을 누르면 사진/도면이 있는 상세페이지로 이동합니다.</div>
+      </div>
+      <button onclick="closeMapFloorPopup()" style="width:34px;height:34px;border-radius:50%;border:1px solid #DDD;background:#fff;cursor:pointer;font-size:18px">×</button>
+    </div>
+    ${items}
+  `;
+
+  backdrop.appendChild(card);
+  document.querySelector('.device-frame').appendChild(backdrop);
+}
+
+function closeMapFloorPopup() {
+  const popup = document.getElementById('map-floor-popup-backdrop');
+  if (popup) popup.remove();
 }
 
 function openMapFacilityFloorList(facility) {
@@ -2074,10 +2182,10 @@ function selectCategoryFromMap(cat, building) {
 // ============ COORDINATE CAPTURE TOOL ============
 function getCoordinateFacilityList() {
   return facilityCoords
-    .filter(f => f.cat === 'store')
     .slice()
     .sort((a, b) => {
-      if (a.cat !== b.cat) return a.cat === 'store' ? -1 : 1;
+      const order = { toilet: 1, store: 2, smoke: 3 };
+      if (a.cat !== b.cat) return (order[a.cat] || 9) - (order[b.cat] || 9);
       return a.name.localeCompare(b.name, 'ko');
     });
 }
@@ -2211,7 +2319,7 @@ function copyFacilityCoordsCode() {
   })), null, 2) + ';';
 
   navigator.clipboard?.writeText(code).then(() => {
-    showToast('편의점/화장실 facilityCoords 코드가 복사되었습니다.');
+    showToast('전체 시설 facilityCoords 코드가 복사되었습니다.');
   }).catch(() => {
     const output = document.getElementById('coord-output');
     if (output) output.textContent = code;
