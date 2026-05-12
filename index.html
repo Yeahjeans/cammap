@@ -570,6 +570,148 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 
 
 
+
+/* MAP FLOOR POPUP MODAL */
+.map-floor-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.42);
+  z-index: 9998;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.map-floor-modal-backdrop.show {
+  display: flex;
+}
+.map-floor-modal {
+  width: min(560px, calc(100vw - 40px));
+  max-height: min(76vh, 720px);
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.28);
+  border: 1px solid var(--border);
+  padding: 22px;
+  animation: mapModalUp 0.18s ease-out;
+}
+@keyframes mapModalUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.map-floor-modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.map-floor-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.map-floor-modal-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.map-floor-modal-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+.map-floor-modal-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.map-floor-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.map-floor-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.map-floor-modal-item {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s;
+}
+.map-floor-modal-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--orange);
+  background: #fff;
+}
+.map-floor-modal-floor {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--orange-light);
+  color: var(--orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.map-floor-modal-info {
+  flex: 1;
+  min-width: 0;
+}
+.map-floor-modal-info strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.map-floor-modal-info span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.map-floor-modal-arrow {
+  color: var(--text-muted);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+@media (max-width: 520px) {
+  .map-floor-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .map-floor-modal {
+    width: 100%;
+    max-height: 78vh;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
 /* COORDINATE CAPTURE MODE */
 .coord-tool {
   margin-top: 12px;
@@ -952,6 +1094,20 @@ window.__naverMapScriptLoaded = false;
   <div class="scroll-content">
     <div class="map-container">
       <div id="map"></div>
+      <div class="map-floor-modal-backdrop" id="map-floor-modal-backdrop" onclick="closeMapFloorModal()">
+        <div class="map-floor-modal" onclick="event.stopPropagation()">
+          <div class="map-floor-modal-head">
+            <div class="map-floor-modal-icon" id="map-floor-modal-icon">🚻</div>
+            <div class="map-floor-modal-title-wrap">
+              <div class="map-floor-modal-title" id="map-floor-modal-title">시설명</div>
+              <div class="map-floor-modal-sub" id="map-floor-modal-sub">층을 선택하세요</div>
+            </div>
+            <button class="map-floor-modal-close" onclick="closeMapFloorModal()">×</button>
+          </div>
+          <div class="map-floor-modal-list" id="map-floor-modal-list"></div>
+        </div>
+      </div>
+
 		<!-- 필터 버튼 -->
 <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
   <button id="filter-btn-toilet" onclick="toggleMapFilter('toilet')"
@@ -1690,45 +1846,6 @@ function clearSearch() {
 // ============ MAP ============
 // 화장실과 편의점 핀을 지도에 표시한다.
 // 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
-// 네이버 지도 전역 상태값입니다.
-// 지도 탭을 나갔다가 다시 들어와도 기존 지도 객체를 안전하게 재사용합니다.
-let naverMap = null;
-let mapMarkers = [];
-let activeMapInfoWindow = null;
-let buildingCoords = {};
-let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
-
-const pinColors = {
-  toilet: '#F4762A',
-  store: '#27AE60',
-  smoke: '#E91E8C'
-};
-
-function applySavedCoordinateOverrides() {
-  if (typeof facilityCoords === 'undefined') return;
-
-  facilityCoords.forEach(f => {
-    if (coordinateOverrides[f.id]) {
-      f.lat = coordinateOverrides[f.id].lat;
-      f.lng = coordinateOverrides[f.id].lng;
-      f.isCorrected = true;
-    }
-  });
-}
-
-function getBuildingCoordsMap() {
-  const map = {};
-  if (typeof facilityCoords === 'undefined') return map;
-
-  facilityCoords.forEach(f => {
-    if (!map[f.building]) {
-      map[f.building] = { lat: f.lat, lng: f.lng };
-    }
-  });
-
-  return map;
-}
-
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -1912,6 +2029,8 @@ let nearestToiletHighlightMarker = null;
 let coordinateModeOn = false;
 let selectedCoordinateFacilityId = '';
 let coordinateClickListener = null;
+let activeMapInfoWindow = null;
+let mapModalFacility = null;
 
 function setMapMessage(html) {
   const mapDiv = document.getElementById('map');
@@ -1930,22 +2049,6 @@ function ensureNaverMapReady() {
 
   if (window.__naverMapScriptLoading) {
     setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
-    return;
-  }
-
-  const existingScript = document.querySelector('script[src*="oapi.map.naver.com/openapi/v3/maps.js"]');
-  if (existingScript) {
-    window.__naverMapScriptLoading = true;
-    setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
-
-    setTimeout(() => {
-      window.__naverMapScriptLoading = false;
-      if (window.naver && window.naver.maps) {
-        initMap();
-      } else {
-        setMapMessage('<div><b>네이버 지도를 다시 불러오지 못했습니다.</b><br>브라우저를 새로고침한 뒤 다시 시도해주세요.</div>');
-      }
-    }, 500);
     return;
   }
 
@@ -1970,11 +2073,9 @@ function ensureNaverMapReady() {
       네이버 클라우드 <b>Web 서비스 URL</b>에 아래 주소를 모두 등록했는지 확인하세요.<br><br>
       <b>https://cammap-alpha.vercel.app</b><br>
       <b>https://cammap-alpha.vercel.app/</b><br>
-      <b>https://dongguk-place-finder.lovable.app</b><br>
-      <b>https://dongguk-place-finder.lovable.app/</b><br>
       <b>http://127.0.0.1:5500</b><br>
       <b>http://localhost:5500</b><br><br>
-      등록 후 새 배포 및 강력 새로고침을 해주세요.
+      그리고 새 배포 후 브라우저에서 강력 새로고침을 해주세요.
     </div>`);
   };
   document.head.appendChild(script);
@@ -1989,15 +2090,12 @@ function initMap() {
     return;
   }
 
-  applySavedCoordinateOverrides();
-  buildingCoords = getBuildingCoordsMap();
+  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
+  mapDiv.innerHTML = '';
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
-    // 최초 1회만 지도 div를 비우고 네이버 지도 객체를 생성합니다.
-    mapDiv.innerHTML = '';
-
     naverMap = new naver.maps.Map('map', {
       center: center,
       zoom: 17,
@@ -2008,32 +2106,24 @@ function initMap() {
         position: naver.maps.Position.TOP_RIGHT
       }
     });
-
     renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
-    // 이미 생성된 지도는 다시 만들지 않고 resize만 걸어줍니다.
-    renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   }
 
   setTimeout(() => {
-    if (!naverMap || !window.naver || !naver.maps) return;
     naver.maps.Event.trigger(naverMap, 'resize');
 
+    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
     if (myLocation && myLocationWatchId !== null) {
       naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
-    } else {
+    } else if (!myLocation) {
       naverMap.setCenter(center);
     }
-  }, 150);
-
-  setTimeout(() => {
-    if (!naverMap || !window.naver || !naver.maps) return;
-    naver.maps.Event.trigger(naverMap, 'resize');
-  }, 350);
+  }, 100);
 }
 
 function renderMapMarkers() {
@@ -2108,31 +2198,61 @@ function openMapFacilityFloorListById(id) {
 function openMapFacilityFloorList(facility) {
   if (!facility) return;
 
+  ensureFacilityDataForMapFacility(facility);
+  mapModalFacility = facility;
   currentCat = facility.cat;
   currentBuilding = facility.building;
 
-  document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-home').classList.add('active');
-  currentTabScreen = 'home';
+  const backdrop = document.getElementById('map-floor-modal-backdrop');
+  const iconEl = document.getElementById('map-floor-modal-icon');
+  const titleEl = document.getElementById('map-floor-modal-title');
+  const subEl = document.getElementById('map-floor-modal-sub');
+  const listEl = document.getElementById('map-floor-modal-list');
+  if (!backdrop || !iconEl || !titleEl || !subEl || !listEl) return;
 
-  ['buildings','floors','detail'].forEach(s => {
-    const el = document.getElementById('screen-' + s);
-    if (el) el.classList.remove('active','exit');
-  });
-  screenStack = [];
+  const cat = facility.cat;
+  const floors = floorData[cat]?.[facility.building] || [];
+  const bg = cat === 'toilet' ? 'var(--orange-light)' : cat === 'store' ? 'var(--green-light)' : 'var(--pink-light)';
+  const color = cat === 'toilet' ? 'var(--orange)' : cat === 'store' ? 'var(--green)' : 'var(--pink)';
 
-  document.getElementById('floors-title').textContent = facility.building;
-  document.getElementById('floors-sub').textContent = catInfo[facility.cat].label + ' — 층 선택';
+  iconEl.textContent = catInfo[cat]?.icon || '📍';
+  iconEl.style.background = bg;
+  iconEl.style.color = color;
+  titleEl.textContent = facility.name || `${facility.building} ${catInfo[cat]?.label || '시설'}`;
+  subEl.textContent = `${catInfo[cat]?.label || '시설'} · 층/위치를 선택하세요`;
 
-  const favKey = facility.cat + '_' + facility.building;
-  const favBtn = document.getElementById('fav-building-btn');
-  if (favBtn) {
-    favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
-    favBtn.classList.toggle('fav-active', favorites.has(favKey));
-  }
+  listEl.innerHTML = floors.length ? floors.map(f => {
+    const shortFloor = String(f.floor || '')
+      .replace('층','')
+      .replace('외부','외')
+      .replace('건물 외부 지정 구역','외')
+      .replace('외부 출입구 근처','외')
+      .replace('건물 뒤편 지정 구역','외');
+    return `
+      <button class="map-floor-modal-item" onclick="openMapFloorDetail('${escapeHTML(f.floor)}')">
+        <div class="map-floor-modal-floor" style="background:${bg};color:${color}">${escapeHTML(shortFloor || '위치')}</div>
+        <div class="map-floor-modal-info">
+          <strong>${escapeHTML(facility.building)} ${escapeHTML(f.floor)} ${escapeHTML(catInfo[cat]?.label || '시설')}</strong>
+          <span>${escapeHTML(f.tags || facility.name || '상세 정보 보기')}</span>
+        </div>
+        <span class="map-floor-modal-arrow">›</span>
+      </button>`;
+  }).join('') : `<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">해당 시설 정보가 없습니다.</div>`;
 
-  renderFloorList();
-  pushScreen('floors');
+  if (activeMapInfoWindow) activeMapInfoWindow.close();
+  backdrop.classList.add('show');
+}
+
+function closeMapFloorModal() {
+  const backdrop = document.getElementById('map-floor-modal-backdrop');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+function openMapFloorDetail(floor) {
+  if (!mapModalFacility) return;
+  const facility = mapModalFacility;
+  closeMapFloorModal();
+  goToDetail(facility.building, floor, facility.cat);
 }
 
 function toggleMapFilter(cat) {
