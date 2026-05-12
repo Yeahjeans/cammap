@@ -1120,9 +1120,9 @@ const catInfo = {
 const buildingData = {
   toilet: [
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 4.3, comments: 15, updated: '2026.05.12' },
-    { name: '경영관',     walk: '도보 3분', floors: ['1층','3층'],       rating: 4.1, comments: 10, updated: '2026.05.06' },
+    { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 4.1, comments: 10, updated: '2026.05.12' },
     { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 3.8, comments: 7,  updated: '2026.05.05' },
-    { name: '원흥관',     walk: '도보 6분', floors: ['1층','4층'],       rating: 3.9, comments: 9,  updated: '2026.05.04' }
+    { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실'], rating: 3.9, comments: 9,  updated: '2026.05.12' }
   ],
   store: [
     { name: '법학관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
@@ -1152,16 +1152,19 @@ const floorData = {
       { floor: '5층', tags: '상층부 / 조용함', loc: '5층 엘리베이터와 계단 인근에 위치해 있습니다.', planImage: 'sagwa-5f-map.png', photos: ['sagwa-5f-photo1.jpg', 'sagwa-5f-photo2.jpg'], info: { 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '경영관': [
-      { floor: '1층', tags: '넓고 쾌적 / 접근 쉬움',       loc: '정문 입구 오른편 복도에 있습니다.',                            info: { 파우더룸: ['있음','good'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['점심시간 혼잡','warn'], 장애인화장실: ['있음','good'] } },
-      { floor: '3층', tags: '한산 / 청결 양호',             loc: '강의실 303호 맞은편에 있습니다.',                              info: { 파우더룸: ['없음','none'], 청결도: ['매우 좋음','good'], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['한산','good'], 장애인화장실: ['없음','none'] } }
+      { floor: '1층', tags: '경영관 1층 화장실', loc: '경영관 1층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-1f-map.png', photos: ['business-1f-photo1.jpg', 'business-1f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '2층', tags: '경영관 2층 화장실', loc: '경영관 2층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-2f-map.png', photos: ['business-2f-photo1.jpg', 'business-2f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '3층', tags: '경영관 3층 화장실', loc: '경영관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-3f-map.png', photos: ['business-3f-photo1.jpg', 'business-3f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '4층', tags: '경영관 4층 화장실', loc: '경영관 4층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-4f-map.png', photos: ['business-4f-photo1.jpg', 'business-4f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '5층', tags: '경영관 5층 화장실', loc: '경영관 5층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-5f-map.png', photos: ['business-5f-photo1.jpg', 'business-5f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '법학관': [
       { floor: '2층', tags: '비데 있음 / 쿱스켓 옆',       loc: '2층 쿱스켓 옆 복도를 따라 들어가면 있습니다.',                 info: { 파우더룸: ['없음','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['수업 후 혼잡','warn'], 장애인화장실: ['없음','none'] } },
       { floor: '5층', tags: '조용 / 교수 연구실 층',       loc: '5층 엘리베이터에서 왼쪽 복도 끝에 있습니다.',                  info: { 파우더룸: ['없음','none'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['한산','good'], 장애인화장실: ['없음','none'] } }
     ],
     '원흥관': [
-      { floor: '1층', tags: '로비 근처 / 이용자 많음',     loc: '로비에서 오른쪽, 엘리베이터 맞은편입니다.',                    info: { 파우더룸: ['있음','good'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['항상 혼잡','warn'], 장애인화장실: ['있음','good'] } },
-      { floor: '4층', tags: '조용하고 쾌적',              loc: '4층 세미나실 옆에 위치합니다.',                                info: { 파우더룸: ['없음','none'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['비교적 한산','good'], 장애인화장실: ['없음','none'] } }
+      { floor: '1층 여자화장실', tags: '여자화장실 / 1층', loc: '원흥관 1층 여자화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'wonheung-1f-women-map.png', photos: ['wonheung-1f-women-photo1.jpg', 'wonheung-1f-women-photo2.jpg'], info: { 구분: ['여자화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '2층 남자화장실', tags: '남자화장실 / 2층', loc: '원흥관 2층 남자화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'wonheung-2f-men-map.png', photos: ['wonheung-2f-men-photo1.jpg', 'wonheung-2f-men-photo2.jpg'], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ]
   },
   store: {
