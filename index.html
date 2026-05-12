@@ -1023,7 +1023,7 @@ window.__naverMapScriptLoaded = false;
         <label class="form-label">건물 선택</label>
         <select class="form-select" id="report-building">
           <option value="">건물을 선택하세요</option>
-          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>법학관</option><option>문화관</option><option>학림관</option><option>중앙도서관</option><option>상록원</option><option>혜화관</option><option>기숙사</option>
+          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>과학관</option><option>법학관</option><option>문화관</option><option>학림관</option><option>중앙도서관</option><option>상록원</option><option>혜화관</option><option>기숙사</option>
         </select>
       </div>
       <div class="form-group">
@@ -1244,6 +1244,7 @@ const buildingData = {
   toilet: [
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 4.3, comments: 15, updated: '2026.05.12' },
     { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 4.1, comments: 10, updated: '2026.05.12' },
+    { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 4.0, comments: 0, updated: '2026.05.12' },
     { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 3.8, comments: 7,  updated: '2026.05.05' },
     { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실'], rating: 3.9, comments: 9,  updated: '2026.05.12' }
   ],
@@ -1280,6 +1281,12 @@ const floorData = {
       { floor: '3층', tags: '경영관 3층 화장실', loc: '경영관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-3f-map.png', photos: ['business-3f-photo1.jpg', 'business-3f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '4층', tags: '경영관 4층 화장실', loc: '경영관 4층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-4f-map.png', photos: ['business-4f-photo1.jpg', 'business-4f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '5층', tags: '경영관 5층 화장실', loc: '경영관 5층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-5f-map.png', photos: ['business-5f-photo1.jpg', 'business-5f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
+    ],
+    '과학관': [
+      { floor: '1층 남자화장실', tags: '남자화장실 / 홀수층', loc: '과학관 1층 남자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-1f-men-map.png', photos: ['science-1f-men-photo1.jpg', 'science-1f-men-photo2.jpg'], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '2층 여자화장실', tags: '여자화장실 / 짝수층', loc: '과학관 2층 여자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-2f-women-map.png', photos: ['science-2f-women-photo1.jpg', 'science-2f-women-photo2.jpg'], info: { 구분: ['여자화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '3층 남자화장실', tags: '남자화장실 / 홀수층', loc: '과학관 3층 남자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-3f-men-map.png', photos: ['science-3f-men-photo1.jpg', 'science-3f-men-photo2.jpg'], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '4층 여자화장실', tags: '여자화장실 / 짝수층', loc: '과학관 4층 여자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-4f-women-map.png', photos: ['science-4f-women-photo1.jpg', 'science-4f-women-photo2.jpg'], info: { 구분: ['여자화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '법학관': [
       { floor: '2층', tags: '비데 있음 / 쿱스켓 옆',       loc: '2층 쿱스켓 옆 복도를 따라 들어가면 있습니다.',                 info: { 파우더룸: ['없음','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['수업 후 혼잡','warn'], 장애인화장실: ['없음','none'] } },
@@ -1915,7 +1922,7 @@ function handleSearch(q) {
   mainContent.style.display = 'none';
 
   const keywords = { '화장실': 'toilet', '편의점': 'store', '흡연': 'smoke', '흡연구역': 'smoke' };
-  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','법학관','법학관 앞','법학관 다리','문화관','학림관','중앙도서관','상록원','혜화관','혜화관 옆','기숙사'];
+  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','과학관','법학관','법학관 앞','법학관 다리','문화관','학림관','중앙도서관','상록원','혜화관','혜화관 옆','기숙사'];
   let results = [];
 
   for(const [kw, cat] of Object.entries(keywords)) {
@@ -2044,7 +2051,7 @@ const facilityCoords = [
     "cat": "toilet",
     "name": "과학관 화장실",
     "building": "과학관",
-    "floor": "1층",
+    "floor": "1층 남자화장실",
     "lat": 37.5578246,
     "lng": 127.0016612
   },
