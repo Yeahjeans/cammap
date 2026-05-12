@@ -1994,28 +1994,47 @@ function renderMapMarkers() {
     });
 
     const detailExists = !!(floorData[facility.cat]?.[facility.building]);
+    const popupBg = facility.cat === 'toilet' ? '#FFF0E6' : facility.cat === 'store' ? '#E8F8EF' : '#FCE4F3';
+    const popupColor = pinColors[facility.cat];
     const infoWindow = new naver.maps.InfoWindow({
-      content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:160px">
-        <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${facility.name}</div>
-        <div style="font-size:11px;color:#888">${detailExists ? '상세 정보 보기' : '공식 캠퍼스맵 위치 기준'}</div>
+      content: `<div style="padding:16px 18px;font-family:'Noto Sans KR',sans-serif;min-width:220px;max-width:260px;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,0.18)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:12px;background:${popupBg};font-size:17px">${catInfo[facility.cat].icon}</span>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:900;color:#1A1A1A;line-height:1.35">${facility.name}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">${catInfo[facility.cat].label} · ${facility.floor || '위치 정보'}</div>
+          </div>
+        </div>
+        <div style="background:#F7F6F3;border:1px solid #EBEBEB;border-radius:14px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11px;color:#777;margin-bottom:4px">위치</div>
+          <div style="font-size:13px;font-weight:700;color:#333">${facility.building} ${facility.floor || ''}</div>
+        </div>
+        <button onclick="openMapFacilityFloorListById('${facility.id}')" style="width:100%;border:none;border-radius:12px;background:${popupColor};color:#fff;padding:11px 10px;font-size:13px;font-weight:800;font-family:'Noto Sans KR',sans-serif;cursor:pointer">
+          상세 정보 보기
+        </button>
       </div>`,
       borderWidth: 0,
-      borderRadius: '12px',
       disableAnchor: false,
-      backgroundColor: '#fff',
-      pixelOffset: new naver.maps.Point(0, -10)
+      backgroundColor: 'transparent',
+      pixelOffset: new naver.maps.Point(0, -14)
     });
 
     naver.maps.Event.addListener(marker, 'click', () => {
-      infoWindow.open(naverMap, marker);
-      setTimeout(() => infoWindow.close(), 1200);
-
       ensureFacilityDataForMapFacility(facility);
-      openMapFacilityFloorList(facility);
+      if (activeMapInfoWindow) activeMapInfoWindow.close();
+      infoWindow.open(naverMap, marker);
+      activeMapInfoWindow = infoWindow;
     });
 
     mapMarkers.push(marker);
   });
+}
+
+function openMapFacilityFloorListById(id) {
+  const facility = facilityCoords.find(f => f.id === id);
+  if (!facility) return;
+  ensureFacilityDataForMapFacility(facility);
+  openMapFacilityFloorList(facility);
 }
 
 function openMapFacilityFloorList(facility) {
