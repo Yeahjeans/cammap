@@ -962,6 +962,10 @@ window.__naverMapScriptLoaded = false;
     style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #27AE60;background:#E8F8EF;color:#27AE60;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
     🏪 편의점
   </button>
+  <button id="filter-btn-smoke" onclick="toggleMapFilter('smoke')"
+    style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:2px solid #E91E8C;background:#FCE4F3;color:#E91E8C;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+    🚬 흡연구역
+  </button>
 </div>
       <div class="location-actions">
         <button class="location-btn primary" id="my-location-btn" onclick="toggleMyLocationTracking()">📍 내 위치 켜기</button>
@@ -975,6 +979,7 @@ window.__naverMapScriptLoaded = false;
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-label">편의점</div></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div><div class="legend-label">흡연구역</div></div>
       </div>
 
       <div class="coord-tool">
@@ -992,6 +997,18 @@ window.__naverMapScriptLoaded = false;
       </div>
       <div class="section-head" style="padding-left:0">건물별 편의시설</div>
       <div class="map-pins">
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','혜화관 옆')">
+          <div class="map-pin-name">📍 혜화관 옆</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학관 앞')">
+          <div class="map-pin-name">📍 법학관 앞</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학관 다리')">
+          <div class="map-pin-name">📍 법학관 다리</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','원흥관 앞')">
+          <div class="map-pin-name">📍 원흥관 앞</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('store','법학관')">
           <div class="map-pin-name">📍 법학관</div><div class="map-pin-badges"><span class="pin-badge s">쿱스켓 편의점</span></div>
         </div>
@@ -1191,9 +1208,10 @@ const buildingData = {
     { name: '경영관',     walk: '위치 확인 필요', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' }
   ],
   smoke: [
-    { name: '사회과학관', walk: '도보 2분', floors: ['외부 출입구 근처'],   rating: 3.7, comments: 6, updated: '2026.05.07' },
-    { name: '법학관',     walk: '도보 4분', floors: ['건물 외부 지정 구역'], rating: 3.5, comments: 5, updated: '2026.05.06' },
-    { name: '원흥관',     walk: '도보 6분', floors: ['건물 뒤편 지정 구역'], rating: 3.6, comments: 4, updated: '2026.05.05' }
+    { name: '혜화관 옆',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 앞',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 다리', walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관 앞',   walk: '위치 확인 필요', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' }
   ]
 };
 
@@ -1229,9 +1247,10 @@ const floorData = {
     '경영관':     [{ floor: '1층', tags: '이마트24 편의점', loc: '경영관 이마트24 편의점 위치입니다.', info: { 매장명: ['경영관 이마트24 편의점',''], 위치: ['경영관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }]
   },
   smoke: {
-    '사회과학관': [{ floor: '외부', tags: '지붕 없음 / 벤치 있음',    loc: '사회과학관 후문 외부 출입구 오른편에 지정 구역이 있습니다.', info: { 위치: ['외부 출입구 근처',''], 지붕여부: ['없음','none'], 벤치여부: ['있음','good'], 쓰레기통: ['있음','good'], 혼잡도: ['쉬는 시간 혼잡','warn'] } }],
-    '법학관':     [{ floor: '외부', tags: '외부 지정 구역',            loc: '법학관 측면 출구를 나오면 바로 오른쪽에 지정 구역 표시가 있습니다.', info: { 위치: ['건물 외부 측면',''], 지붕여부: ['없음','none'], 벤치여부: ['없음','none'], 쓰레기통: ['있음','good'], 혼잡도: ['쉬는 시간 혼잡','warn'] } }],
-    '원흥관':     [{ floor: '외부', tags: '건물 뒤편 / 비교적 조용',   loc: '원흥관 뒤편 출구로 나가면 지정 구역이 있습니다.',          info: { 위치: ['건물 뒤편 지정 구역',''], 지붕여부: ['있음','good'], 벤치여부: ['있음','good'], 쓰레기통: ['있음','good'], 혼잡도: ['비교적 한산','good'] } }]
+    '혜화관 옆': [{ floor: '외부', tags: '혜화관 옆 지정 흡연구역', loc: '혜화관 옆 외부 흡연구역입니다.', info: { 위치: ['혜화관 옆',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
+    '법학관 앞': [{ floor: '외부', tags: '법학관 앞 지정 흡연구역', loc: '법학관 앞 외부 흡연구역입니다.', info: { 위치: ['법학관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
+    '법학관 다리': [{ floor: '외부', tags: '법학관 다리 인근 지정 흡연구역', loc: '법학관 다리 인근 외부 흡연구역입니다.', info: { 위치: ['법학관 다리',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
+    '원흥관 앞': [{ floor: '외부', tags: '원흥관 앞 지정 흡연구역', loc: '원흥관 앞 외부 흡연구역입니다.', info: { 위치: ['원흥관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }]
   }
 };
 
@@ -1631,7 +1650,7 @@ function handleSearch(q) {
   mainContent.style.display = 'none';
 
   const keywords = { '화장실': 'toilet', '편의점': 'store', '흡연': 'smoke', '흡연구역': 'smoke' };
-  const buildings = ['원흥관','사회과학관','경영관','법학관','문화관','학림관','중앙도서관','상록원','혜화관','기숙사'];
+  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','법학관','법학관 앞','법학관 다리','문화관','학림관','중앙도서관','상록원','혜화관','혜화관 옆','기숙사'];
   let results = [];
 
   for(const [kw, cat] of Object.entries(keywords)) {
@@ -1671,45 +1690,6 @@ function clearSearch() {
 // ============ MAP ============
 // 화장실과 편의점 핀을 지도에 표시한다.
 // 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
-
-// 네이버 지도 전역 상태값입니다.
-// 지도 탭을 나갔다가 다시 들어와도 기존 지도 객체를 안전하게 재사용합니다.
-let naverMap = null;
-let mapMarkers = [];
-let buildingCoords = {};
-let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
-
-const pinColors = {
-  toilet: '#F4762A',
-  store: '#27AE60',
-  smoke: '#E91E8C'
-};
-
-function applySavedCoordinateOverrides() {
-  if (typeof facilityCoords === 'undefined') return;
-
-  facilityCoords.forEach(f => {
-    if (coordinateOverrides[f.id]) {
-      f.lat = coordinateOverrides[f.id].lat;
-      f.lng = coordinateOverrides[f.id].lng;
-      f.isCorrected = true;
-    }
-  });
-}
-
-function getBuildingCoordsMap() {
-  const map = {};
-  if (typeof facilityCoords === 'undefined') return map;
-
-  facilityCoords.forEach(f => {
-    if (!map[f.building]) {
-      map[f.building] = { lat: f.lat, lng: f.lng };
-    }
-  });
-
-  return map;
-}
-
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -1845,6 +1825,42 @@ const facilityCoords = [
     "floor": "1층",
     "lat": 37.5588644,
     "lng": 126.9989817
+  },
+  {
+    "id": "smoke_hyehwa_side",
+    "cat": "smoke",
+    "name": "혜화관 옆 흡연구역",
+    "building": "혜화관 옆",
+    "floor": "외부",
+    "lat": 37.5575700,
+    "lng": 127.0019600
+  },
+  {
+    "id": "smoke_law_front",
+    "cat": "smoke",
+    "name": "법학관 앞 흡연구역",
+    "building": "법학관 앞",
+    "floor": "외부",
+    "lat": 37.5579400,
+    "lng": 127.0011000
+  },
+  {
+    "id": "smoke_law_bridge",
+    "cat": "smoke",
+    "name": "법학관 다리 흡연구역",
+    "building": "법학관 다리",
+    "floor": "외부",
+    "lat": 37.5582300,
+    "lng": 127.0007200
+  },
+  {
+    "id": "smoke_wonheung_front",
+    "cat": "smoke",
+    "name": "원흥관 앞 흡연구역",
+    "building": "원흥관 앞",
+    "floor": "외부",
+    "lat": 37.5587600,
+    "lng": 126.9991800
   }
 ];
 let activeFilter = { toilet: true, store: true, smoke: true };
@@ -1875,22 +1891,6 @@ function ensureNaverMapReady() {
 
   if (window.__naverMapScriptLoading) {
     setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
-    return;
-  }
-
-  const existingScript = document.querySelector('script[src*="oapi.map.naver.com/openapi/v3/maps.js"]');
-  if (existingScript) {
-    window.__naverMapScriptLoading = true;
-    setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>잠시만 기다려주세요.</div>');
-
-    setTimeout(() => {
-      window.__naverMapScriptLoading = false;
-      if (window.naver && window.naver.maps) {
-        initMap();
-      } else {
-        setMapMessage('<div><b>네이버 지도를 다시 불러오지 못했습니다.</b><br>새로고침 후 다시 시도해주세요.</div>');
-      }
-    }, 500);
     return;
   }
 
@@ -1932,15 +1932,12 @@ function initMap() {
     return;
   }
 
-  applySavedCoordinateOverrides();
-  buildingCoords = getBuildingCoordsMap();
+  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
+  mapDiv.innerHTML = '';
 
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
-    // 최초 1회만 지도 div를 비우고 네이버 지도 객체를 생성합니다.
-    mapDiv.innerHTML = '';
-
     naverMap = new naver.maps.Map('map', {
       center: center,
       zoom: 17,
@@ -1951,34 +1948,24 @@ function initMap() {
         position: naver.maps.Position.TOP_RIGHT
       }
     });
-
     renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
-    // 이미 생성된 지도는 다시 만들지 않고 resize만 걸어줍니다.
-    renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   }
 
   setTimeout(() => {
-    if (!naverMap || !window.naver || !naver.maps) return;
-
     naver.maps.Event.trigger(naverMap, 'resize');
 
-    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않습니다.
+    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
     if (myLocation && myLocationWatchId !== null) {
       naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
-    } else {
+    } else if (!myLocation) {
       naverMap.setCenter(center);
     }
-  }, 150);
-
-  setTimeout(() => {
-    if (!naverMap || !window.naver || !naver.maps) return;
-    naver.maps.Event.trigger(naverMap, 'resize');
-  }, 350);
+  }, 100);
 }
 
 function renderMapMarkers() {
