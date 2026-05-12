@@ -831,6 +831,21 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 지도 팝업에서 상세페이지로 이동할 때, 지도 탭보다 상세페이지가 위에 뜨도록 고정 */
+#screen-buildings.active,
+#screen-floors.active,
+#screen-detail.active {
+  z-index: 300 !important;
+  display: flex !important;
+}
+#screen-home.exit,
+#screen-map.exit,
+#screen-report.exit,
+#screen-mypage.exit {
+  z-index: 5 !important;
+}
+
 </style>
 <script>
 // 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
@@ -1392,6 +1407,7 @@ function pushScreen(id) {
 function goBack(from) {
   const el = document.getElementById('screen-' + from);
   el.classList.remove('active');
+  if (from === 'detail') el.style.zIndex = '';
   screenStack.pop();
   if(screenStack.length > 0) {
     const prev = screenStack[screenStack.length - 1];
@@ -1465,18 +1481,28 @@ function selectFloor(floor) {
 }
 
 function goToDetail(building, floor, cat) {
+  closeMapFloorPopup();
+
   currentCat = cat;
   currentBuilding = building;
   currentFloor = floor;
+
   renderDetail(cat, building, floor);
   addRecentView(building, floor, cat);
-  // from any tab screen, push screen
+
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
-    el.classList.remove('active','exit');
+    if (el) el.classList.remove('active','exit');
   });
+
   screenStack = [];
   pushScreen('detail');
+
+  const detailEl = document.getElementById('screen-detail');
+  if (detailEl) {
+    detailEl.classList.add('active');
+    detailEl.style.zIndex = '300';
+  }
 }
 
 // ============ DETAIL ============
