@@ -1162,6 +1162,8 @@ function getFacilityCoordForBuilding(cat, building) {
 }
 
 function getWalkLabelByCoord(lat, lng) {
+  // 위치 권한을 허용하면 사용자 현재 위치 기준으로 계산하고,
+  // 아직 위치 권한이 없으면 사회과학관 근처 임시 기준점으로 표시한다.
   const reference = myLocation || { lat: 37.5576375, lng: 127.0026443 };
   if (typeof getDistanceMeter !== 'function') return '도보 정보 업데이트 예정';
   const meter = getDistanceMeter(reference.lat, reference.lng, lat, lng);
@@ -1169,12 +1171,73 @@ function getWalkLabelByCoord(lat, lng) {
   return `도보 ${minutes}분`;
 }
 
+function getDistanceFromUserToBuilding(cat, building) {
+  const coord = getFacilityCoordForBuilding(cat, building);
+  if (!coord || !myLocation || typeof getDistanceMeter !== 'function') return Number.POSITIVE_INFINITY;
+  return getDistanceMeter(myLocation.lat, myLocation.lng, coord.lat, coord.lng);
+}
+
 function updateBuildingWalkLabels(cat) {
   if (typeof facilityCoords === 'undefined' || !buildingData[cat]) return;
   buildingData[cat].forEach(b => {
     const coord = getFacilityCoordForBuilding(cat, b.name);
-    if (coord) b.walk = getWalkLabelByCoord(coord.lat, coord.lng);
+    if (coord) {
+      b.walk = getWalkLabelByCoord(coord.lat, coord.lng);
+      b._distanceMeter = getDistanceFromUserToBuilding(cat, b.name);
+    }
   });
+}
+
+function getSortedBuildingData(cat) {
+  updateBuildingWalkLabels(cat);
+  const items = [...(buildingData[cat] || [])];
+
+  // 사용자의 현재 위치가 있으면 가까운 순으로 정렬한다.
+  // 위치 권한이 없거나 아직 위치를 못 받았으면 기존 순서를 유지한다.
+  if (myLocation) {
+    items.sort((a, b) => {
+      const da = Number.isFinite(a._distanceMeter) ? a._distanceMeter : Number.POSITIVE_INFINITY;
+      const db = Number.isFinite(b._distanceMeter) ? b._distanceMeter : Number.POSITIVE_INFINITY;
+      return da - db;
+    });
+  }
+
+  return items;
+}
+
+function requestUserLocationForCategorySort(cat) {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      myLocation = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: position.coords.accuracy || 0
+      };
+
+      if (naverMap && window.naver && window.naver.maps) {
+        updateMyLocationOnMap(myLocation.lat, myLocation.lng, myLocation.accuracy, false);
+      }
+
+      ['toilet','store','smoke'].forEach(updateBuildingWalkLabels);
+
+      const buildingScreen = document.getElementById('screen-buildings');
+      if (buildingScreen && buildingScreen.classList.contains('active') && currentCat === cat) {
+        renderBuildingList(cat);
+      }
+
+      showToast('현재 위치 기준으로 가까운 순 정렬했습니다.');
+    },
+    function() {
+      showToast('위치 권한을 허용하면 가까운 순으로 정렬됩니다.');
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 3000
+    }
+  );
 }
 
 const buildingData = {
@@ -1463,6 +1526,12 @@ function selectCategory(cat) {
   document.getElementById('buildings-title').textContent = catInfo[cat].label;
   renderBuildingList(cat);
   pushScreen('buildings');
+
+  // 홈에서 카테고리에 들어갈 때 위치 권한을 요청하고,
+  // 허용되면 사용자 위치 기준으로 가까운 시설부터 다시 정렬한다.
+  if (!myLocation) {
+    requestUserLocationForCategorySort(cat);
+  }
 }
 
 function renderBuildingList(cat) {
@@ -1472,7 +1541,7 @@ function renderBuildingList(cat) {
 
   const list = document.getElementById('building-list');
 
-  list.innerHTML = (buildingData[cat] || []).map(b => {
+  list.innerHTML = getSortedBuildingData(cat).map(b => {
     const floors = floorData[cat]?.[b.name] || [];
 
     // 편의점처럼 한 건물에 등록된 시설이 1개뿐이면
@@ -2519,6 +2588,10 @@ function startMyLocationTracking() {
       updateMyLocationOnMap(lat, lng, accuracy, true);
       updateNearestToiletByLocation(lat, lng, false);
       ['toilet','store','smoke'].forEach(updateBuildingWalkLabels);
+      const buildingScreen = document.getElementById('screen-buildings');
+      if (buildingScreen && buildingScreen.classList.contains('active')) {
+        renderBuildingList(currentCat);
+      }
       if (btn) btn.textContent = '📍 내 위치 따라가기 ON';
     },
     function(error) {
