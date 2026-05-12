@@ -1357,6 +1357,14 @@ function switchTab(tab) {
   if (tab === 'map') {
     setTimeout(() => {
       ensureNaverMapReady();
+
+      if (naverMap && window.naver && window.naver.maps) {
+        naver.maps.Event.trigger(naverMap, 'resize');
+        naverMap.setCenter(new naver.maps.LatLng(37.55805, 126.99995));
+        if (!mapMarkers || mapMarkers.length === 0) {
+          renderMapMarkers();
+        }
+      }
     }, 150);
   }
 }
@@ -1946,7 +1954,9 @@ function ensureNaverMapReady() {
   if (!mapDiv) return;
 
   if (window.naver && window.naver.maps) {
-    initMap();
+    if (currentTabScreen === 'map') {
+      initMap();
+    }
     return;
   }
 
@@ -1959,7 +1969,12 @@ function ensureNaverMapReady() {
   window.__naverMapCallback = function() {
     window.__naverMapScriptLoaded = true;
     window.__naverMapScriptLoading = false;
-    initMap();
+
+    // 지도가 display:none 상태인 홈/제보/마이페이지에서 생성되면 빈 화면이 될 수 있으므로,
+    // 실제 지도 탭이 보일 때만 지도 객체를 생성한다.
+    if (currentTabScreen === 'map') {
+      initMap();
+    }
   };
 
   if (currentTabScreen === 'map') {
