@@ -1846,7 +1846,9 @@ function ensureNaverMapReady() {
     initMap();
   };
 
-  setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>지도가 계속 비어 있으면 네이버 클라우드 Web 서비스 URL을 확인하세요.</div>');
+  if (currentTabScreen === 'map') {
+    setMapMessage('<div><b>네이버 지도를 불러오는 중입니다.</b><br>지도가 계속 비어 있으면 네이버 클라우드 Web 서비스 URL을 확인하세요.</div>');
+  }
 
   const script = document.createElement('script');
   script.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=gukrzbpqte&callback=__naverMapCallback';
@@ -1899,6 +1901,9 @@ function initMap() {
   } else {
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
+    if (!mapMarkersRenderedOnce || mapMarkers.length === 0) {
+      renderMapMarkers();
+    }
   }
 
   setTimeout(() => {
@@ -1961,6 +1966,7 @@ function renderMapMarkers() {
 
     mapMarkers.push(marker);
   });
+  mapMarkersRenderedOnce = true;
 }
 
 function openMapFacilityFloorList(facility) {
@@ -2674,4 +2680,15 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 </script>
-</div></body></html>
+</div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (typeof ensureNaverMapReady === 'function') {
+      ensureNaverMapReady();
+    }
+  }, 300);
+});
+</script>
+
+</body></html>
