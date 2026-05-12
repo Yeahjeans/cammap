@@ -570,148 +570,6 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 
 
 
-
-/* MAP FLOOR POPUP MODAL */
-.map-floor-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.42);
-  z-index: 9998;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.map-floor-modal-backdrop.show {
-  display: flex;
-}
-.map-floor-modal {
-  width: min(560px, calc(100vw - 40px));
-  max-height: min(76vh, 720px);
-  overflow-y: auto;
-  background: var(--surface);
-  border-radius: 22px;
-  box-shadow: 0 18px 60px rgba(0,0,0,0.28);
-  border: 1px solid var(--border);
-  padding: 22px;
-  animation: mapModalUp 0.18s ease-out;
-}
-@keyframes mapModalUp {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.map-floor-modal-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.map-floor-modal-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.map-floor-modal-title-wrap {
-  flex: 1;
-  min-width: 0;
-}
-.map-floor-modal-title {
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--text-primary);
-  line-height: 1.35;
-}
-.map-floor-modal-sub {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-.map-floor-modal-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.map-floor-modal-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.map-floor-modal-item {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  border-radius: 16px;
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: transform 0.12s, border-color 0.12s, background 0.12s;
-}
-.map-floor-modal-item:hover {
-  transform: translateY(-1px);
-  border-color: var(--orange);
-  background: #fff;
-}
-.map-floor-modal-floor {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: var(--orange-light);
-  color: var(--orange);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 900;
-  flex-shrink: 0;
-}
-.map-floor-modal-info {
-  flex: 1;
-  min-width: 0;
-}
-.map-floor-modal-info strong {
-  display: block;
-  font-size: 14px;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-.map-floor-modal-info span {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-.map-floor-modal-arrow {
-  color: var(--text-muted);
-  font-size: 20px;
-  flex-shrink: 0;
-}
-@media (max-width: 520px) {
-  .map-floor-modal-backdrop {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .map-floor-modal {
-    width: 100%;
-    max-height: 78vh;
-    border-radius: 22px 22px 0 0;
-  }
-}
-
 /* COORDINATE CAPTURE MODE */
 .coord-tool {
   margin-top: 12px;
@@ -1094,20 +952,6 @@ window.__naverMapScriptLoaded = false;
   <div class="scroll-content">
     <div class="map-container">
       <div id="map"></div>
-      <div class="map-floor-modal-backdrop" id="map-floor-modal-backdrop" onclick="closeMapFloorModal()">
-        <div class="map-floor-modal" onclick="event.stopPropagation()">
-          <div class="map-floor-modal-head">
-            <div class="map-floor-modal-icon" id="map-floor-modal-icon">🚻</div>
-            <div class="map-floor-modal-title-wrap">
-              <div class="map-floor-modal-title" id="map-floor-modal-title">시설명</div>
-              <div class="map-floor-modal-sub" id="map-floor-modal-sub">층을 선택하세요</div>
-            </div>
-            <button class="map-floor-modal-close" onclick="closeMapFloorModal()">×</button>
-          </div>
-          <div class="map-floor-modal-list" id="map-floor-modal-list"></div>
-        </div>
-      </div>
-
 		<!-- 필터 버튼 -->
 <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
   <button id="filter-btn-toilet" onclick="toggleMapFilter('toilet')"
@@ -1140,7 +984,7 @@ window.__naverMapScriptLoaded = false;
 
       <div class="coord-tool">
         <div class="coord-tool-title">🧭 좌표 추출 모드</div>
-        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 화장실·편의점·흡연구역 모두 좌표 추출이 가능합니다.</div>
+        <div class="coord-tool-desc">편의점을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 편의점 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 현재 좌표 추출 대상은 편의점만입니다.</div>
         <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
         <div class="coord-actions">
           <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
@@ -1409,32 +1253,7 @@ const floorData = {
     '원흥관 앞': [{ floor: '외부', tags: '원흥관 앞 지정 흡연구역', loc: '원흥관 앞 외부 흡연구역입니다.', info: { 위치: ['원흥관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }]
   }
 };
-// 지도 핀으로만 존재하는 화장실도 층 선택 팝업에서 바로 상세페이지로 들어갈 수 있도록 기본 상세 데이터를 보강합니다.
-Object.assign(floorData.toilet, {
-  '학술문화관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '학술문화관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '법학만해관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '법학만해관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '중앙도서관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '중앙도서관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '정보문화관 P동': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '정보문화관 P동 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '정보문화관 Q동': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '정보문화관 Q동 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '신공학관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '신공학관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '과학관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '과학관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '다향관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '다향관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '본관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '본관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '명진관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '명진관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
-  '학림관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '학림관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }]
-});
 
-buildingData.toilet = [
-  ...buildingData.toilet,
-  ...['학술문화관','법학만해관','중앙도서관','정보문화관 P동','정보문화관 Q동','신공학관','과학관','다향관','본관','명진관','학림관'].filter(name => !buildingData.toilet.some(b => b.name === name)).map(name => ({
-    name,
-    walk: '위치 확인 필요',
-    floors: (floorData.toilet[name] || []).map(f => f.floor),
-    rating: 4.0,
-    comments: 0,
-    updated: '2026.05.12'
-  }))
-];
 
 
 // 지도 핀에서 바로 층 선택 화면으로 이동할 수 있도록,
@@ -1870,45 +1689,7 @@ function clearSearch() {
 
 // ============ MAP ============
 // 화장실과 편의점 핀을 지도에 표시한다.
-// 좌표 추출 모드는 화장실·편의점·흡연구역 전체 핀 좌표 보정용으로 사용한다.
-// 네이버 지도 전역 상태값입니다.
-// 지도 탭 재진입, 좌표 추출, 핀 팝업을 안정적으로 관리합니다.
-let naverMap = null;
-let mapMarkers = [];
-let buildingCoords = {};
-let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
-
-const pinColors = {
-  toilet: '#F4762A',
-  store: '#27AE60',
-  smoke: '#E91E8C'
-};
-
-function applySavedCoordinateOverrides() {
-  if (typeof facilityCoords === 'undefined') return;
-
-  facilityCoords.forEach(f => {
-    if (coordinateOverrides[f.id]) {
-      f.lat = coordinateOverrides[f.id].lat;
-      f.lng = coordinateOverrides[f.id].lng;
-      f.isCorrected = true;
-    }
-  });
-}
-
-function getBuildingCoordsMap() {
-  const map = {};
-  if (typeof facilityCoords === 'undefined') return map;
-
-  facilityCoords.forEach(f => {
-    if (!map[f.building]) {
-      map[f.building] = { lat: f.lat, lng: f.lng };
-    }
-  });
-
-  return map;
-}
-
+// 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -2080,87 +1861,6 @@ const facilityCoords = [
     "floor": "외부",
     "lat": 37.5587600,
     "lng": 126.9991800
-  },
-  {
-    "id": "store_law_coopsket",
-    "cat": "store",
-    "name": "법학관 쿱스켓 편의점",
-    "building": "법학관",
-    "floor": "1층",
-    "lat": 37.5580000,
-    "lng": 127.0010300
-  },
-  {
-    "id": "store_culture_coopsket",
-    "cat": "store",
-    "name": "문화관 쿱스켓 편의점",
-    "building": "문화관",
-    "floor": "1층",
-    "lat": 37.5579000,
-    "lng": 127.0030000
-  },
-  {
-    "id": "store_hakrim_coopsket",
-    "cat": "store",
-    "name": "학림관 쿱스켓 편의점",
-    "building": "학림관",
-    "floor": "1층",
-    "lat": 37.5602879,
-    "lng": 126.9997079
-  },
-  {
-    "id": "store_library_coopsket",
-    "cat": "store",
-    "name": "중앙도서관 쿱스켓 편의점",
-    "building": "중앙도서관",
-    "floor": "1층",
-    "lat": 37.5572148,
-    "lng": 127.0005127
-  },
-  {
-    "id": "store_sangrok_coopsket",
-    "cat": "store",
-    "name": "상록원 쿱스켓 편의점",
-    "building": "상록원",
-    "floor": "1층",
-    "lat": 37.5574200,
-    "lng": 127.0012300
-  },
-  {
-    "id": "store_hyehwa_coopsket",
-    "cat": "store",
-    "name": "혜화관 쿱스켓 편의점",
-    "building": "혜화관",
-    "floor": "1층",
-    "lat": 37.5575142,
-    "lng": 127.0017953
-  },
-  {
-    "id": "store_wonheung_coopsket",
-    "cat": "store",
-    "name": "원흥관 쿱스켓 편의점",
-    "building": "원흥관",
-    "floor": "1층",
-    "lat": 37.5588644,
-    "lng": 126.9989817
-  },
-  {
-    "id": "store_dorm_cu",
-    "cat": "store",
-    "name": "CU 동국대 기숙사점",
-    "building": "기숙사",
-    "floor": "1층",
-    "lat": 37.5591000,
-    "lng": 126.9985000
-  },
-  {
-    "id": "store_business_emart24",
-    "cat": "store",
-    "name": "경영관 이마트24 편의점",
-    "building": "경영관",
-    "floor": "1층",
-    "lat": 37.5569911,
-    "lng": 127.0029112
   }
 ];
 let activeFilter = { toilet: true, store: true, smoke: true };
@@ -2173,8 +1873,6 @@ let nearestToiletHighlightMarker = null;
 let coordinateModeOn = false;
 let selectedCoordinateFacilityId = '';
 let coordinateClickListener = null;
-let activeMapInfoWindow = null;
-let mapModalFacility = null;
 
 function setMapMessage(html) {
   const mapDiv = document.getElementById('map');
@@ -2237,9 +1935,6 @@ function initMap() {
   // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
   mapDiv.innerHTML = '';
 
-  applySavedCoordinateOverrides();
-  buildingCoords = getBuildingCoordsMap();
-
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
@@ -2257,7 +1952,6 @@ function initMap() {
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
-    renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   }
@@ -2300,107 +1994,58 @@ function renderMapMarkers() {
     });
 
     const detailExists = !!(floorData[facility.cat]?.[facility.building]);
-    const popupBg = facility.cat === 'toilet' ? '#FFF0E6' : facility.cat === 'store' ? '#E8F8EF' : '#FCE4F3';
-    const popupColor = pinColors[facility.cat];
     const infoWindow = new naver.maps.InfoWindow({
-      content: `<div style="padding:16px 18px;font-family:'Noto Sans KR',sans-serif;min-width:220px;max-width:260px;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,0.18)">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:12px;background:${popupBg};font-size:17px">${catInfo[facility.cat].icon}</span>
-          <div style="min-width:0">
-            <div style="font-size:14px;font-weight:900;color:#1A1A1A;line-height:1.35">${facility.name}</div>
-            <div style="font-size:11px;color:#888;margin-top:2px">${catInfo[facility.cat].label} · ${facility.floor || '위치 정보'}</div>
-          </div>
-        </div>
-        <div style="background:#F7F6F3;border:1px solid #EBEBEB;border-radius:14px;padding:10px 12px;margin-bottom:10px">
-          <div style="font-size:11px;color:#777;margin-bottom:4px">위치</div>
-          <div style="font-size:13px;font-weight:700;color:#333">${facility.building} ${facility.floor || ''}</div>
-        </div>
-        <button onclick="openMapFacilityFloorListById('${facility.id}')" style="width:100%;border:none;border-radius:12px;background:${popupColor};color:#fff;padding:11px 10px;font-size:13px;font-weight:800;font-family:'Noto Sans KR',sans-serif;cursor:pointer">
-          상세 정보 보기
-        </button>
+      content: `<div style="padding:10px 14px;font-family:'Noto Sans KR',sans-serif;min-width:160px">
+        <div style="font-size:13px;font-weight:700;color:#1A1A1A;margin-bottom:4px">${facility.name}</div>
+        <div style="font-size:11px;color:#888">${detailExists ? '상세 정보 보기' : '공식 캠퍼스맵 위치 기준'}</div>
       </div>`,
       borderWidth: 0,
+      borderRadius: '12px',
       disableAnchor: false,
-      backgroundColor: 'transparent',
-      pixelOffset: new naver.maps.Point(0, -14)
+      backgroundColor: '#fff',
+      pixelOffset: new naver.maps.Point(0, -10)
     });
 
     naver.maps.Event.addListener(marker, 'click', () => {
-      ensureFacilityDataForMapFacility(facility);
-      if (activeMapInfoWindow) activeMapInfoWindow.close();
       infoWindow.open(naverMap, marker);
-      activeMapInfoWindow = infoWindow;
+      setTimeout(() => infoWindow.close(), 1200);
+
+      ensureFacilityDataForMapFacility(facility);
+      openMapFacilityFloorList(facility);
     });
 
     mapMarkers.push(marker);
   });
 }
 
-function openMapFacilityFloorListById(id) {
-  const facility = facilityCoords.find(f => f.id === id);
-  if (!facility) return;
-  ensureFacilityDataForMapFacility(facility);
-  openMapFacilityFloorList(facility);
-}
-
 function openMapFacilityFloorList(facility) {
   if (!facility) return;
 
-  ensureFacilityDataForMapFacility(facility);
-  mapModalFacility = facility;
   currentCat = facility.cat;
   currentBuilding = facility.building;
 
-  const backdrop = document.getElementById('map-floor-modal-backdrop');
-  const iconEl = document.getElementById('map-floor-modal-icon');
-  const titleEl = document.getElementById('map-floor-modal-title');
-  const subEl = document.getElementById('map-floor-modal-sub');
-  const listEl = document.getElementById('map-floor-modal-list');
-  if (!backdrop || !iconEl || !titleEl || !subEl || !listEl) return;
+  document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-home').classList.add('active');
+  currentTabScreen = 'home';
 
-  const cat = facility.cat;
-  const floors = floorData[cat]?.[facility.building] || [];
-  const bg = cat === 'toilet' ? 'var(--orange-light)' : cat === 'store' ? 'var(--green-light)' : 'var(--pink-light)';
-  const color = cat === 'toilet' ? 'var(--orange)' : cat === 'store' ? 'var(--green)' : 'var(--pink)';
+  ['buildings','floors','detail'].forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (el) el.classList.remove('active','exit');
+  });
+  screenStack = [];
 
-  iconEl.textContent = catInfo[cat]?.icon || '📍';
-  iconEl.style.background = bg;
-  iconEl.style.color = color;
-  titleEl.textContent = facility.name || `${facility.building} ${catInfo[cat]?.label || '시설'}`;
-  subEl.textContent = `${catInfo[cat]?.label || '시설'} · 층/위치를 선택하세요`;
+  document.getElementById('floors-title').textContent = facility.building;
+  document.getElementById('floors-sub').textContent = catInfo[facility.cat].label + ' — 층 선택';
 
-  listEl.innerHTML = floors.length ? floors.map(f => {
-    const shortFloor = String(f.floor || '')
-      .replace('층','')
-      .replace('외부','외')
-      .replace('건물 외부 지정 구역','외')
-      .replace('외부 출입구 근처','외')
-      .replace('건물 뒤편 지정 구역','외');
-    return `
-      <button class="map-floor-modal-item" onclick="openMapFloorDetail('${escapeHTML(f.floor)}')">
-        <div class="map-floor-modal-floor" style="background:${bg};color:${color}">${escapeHTML(shortFloor || '위치')}</div>
-        <div class="map-floor-modal-info">
-          <strong>${escapeHTML(facility.building)} ${escapeHTML(f.floor)} ${escapeHTML(catInfo[cat]?.label || '시설')}</strong>
-          <span>${escapeHTML(f.tags || facility.name || '상세 정보 보기')}</span>
-        </div>
-        <span class="map-floor-modal-arrow">›</span>
-      </button>`;
-  }).join('') : `<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:14px">해당 시설 정보가 없습니다.</div>`;
+  const favKey = facility.cat + '_' + facility.building;
+  const favBtn = document.getElementById('fav-building-btn');
+  if (favBtn) {
+    favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
+    favBtn.classList.toggle('fav-active', favorites.has(favKey));
+  }
 
-  if (activeMapInfoWindow) activeMapInfoWindow.close();
-  backdrop.classList.add('show');
-}
-
-function closeMapFloorModal() {
-  const backdrop = document.getElementById('map-floor-modal-backdrop');
-  if (backdrop) backdrop.classList.remove('show');
-}
-
-function openMapFloorDetail(floor) {
-  if (!mapModalFacility) return;
-  const facility = mapModalFacility;
-  closeMapFloorModal();
-  goToDetail(facility.building, floor, facility.cat);
+  renderFloorList();
+  pushScreen('floors');
 }
 
 function toggleMapFilter(cat) {
@@ -2428,13 +2073,11 @@ function selectCategoryFromMap(cat, building) {
 
 // ============ COORDINATE CAPTURE TOOL ============
 function getCoordinateFacilityList() {
-  const order = { store: 0, toilet: 1, smoke: 2 };
   return facilityCoords
+    .filter(f => f.cat === 'store')
     .slice()
     .sort((a, b) => {
-      const ao = order[a.cat] ?? 99;
-      const bo = order[b.cat] ?? 99;
-      if (ao !== bo) return ao - bo;
+      if (a.cat !== b.cat) return a.cat === 'store' ? -1 : 1;
       return a.name.localeCompare(b.name, 'ko');
     });
 }
@@ -2568,7 +2211,7 @@ function copyFacilityCoordsCode() {
   })), null, 2) + ';';
 
   navigator.clipboard?.writeText(code).then(() => {
-    showToast('전체 시설 facilityCoords 코드가 복사되었습니다.');
+    showToast('편의점/화장실 facilityCoords 코드가 복사되었습니다.');
   }).catch(() => {
     const output = document.getElementById('coord-output');
     if (output) output.textContent = code;
