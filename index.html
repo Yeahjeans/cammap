@@ -2141,9 +2141,13 @@ function renderMapMarkers() {
 
     naver.maps.Event.addListener(marker, 'click', () => {
       ensureFacilityDataForMapFacility(facility);
-      if (activeMapInfoWindow) activeMapInfoWindow.close();
-      infoWindow.open(naverMap, marker);
-      activeMapInfoWindow = infoWindow;
+
+      if (activeMapInfoWindow) {
+        activeMapInfoWindow.close();
+        activeMapInfoWindow = null;
+      }
+
+      showMapFloorPopup(facility);
     });
 
     mapMarkers.push(marker);
