@@ -568,8 +568,6 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 
 
 
-
-
 /* LOCATION / NEAREST TOILET */
 .location-actions {
   display: grid;
@@ -1300,12 +1298,17 @@ function pushScreen(id) {
 
 function goBack(from) {
   const el = document.getElementById('screen-' + from);
-  el.classList.remove('active');
+  if (el) {
+    el.classList.remove('active');
+    if (from === 'detail') el.style.zIndex = '';
+  }
+
   screenStack.pop();
+
   if(screenStack.length > 0) {
     const prev = screenStack[screenStack.length - 1];
     const prevEl = document.getElementById('screen-' + prev);
-    prevEl.classList.remove('exit');
+    if (prevEl) prevEl.classList.remove('exit');
   } else {
     const tabEl = document.getElementById('screen-' + currentTabScreen);
     if(tabEl) tabEl.classList.remove('exit');
@@ -1374,18 +1377,35 @@ function selectFloor(floor) {
 }
 
 function goToDetail(building, floor, cat) {
+  closeMapFloorPopup();
+
   currentCat = cat;
   currentBuilding = building;
   currentFloor = floor;
+
+  const detailEl = document.getElementById('screen-detail');
+  const mapEl = document.getElementById('screen-map');
+
   renderDetail(cat, building, floor);
   addRecentView(building, floor, cat);
-  // from any tab screen, push screen
+
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
-    el.classList.remove('active','exit');
+    if (el) el.classList.remove('active','exit');
   });
+
   screenStack = [];
-  pushScreen('detail');
+
+  if (mapEl && currentTabScreen === 'map') {
+    mapEl.classList.add('exit');
+  }
+
+  if (detailEl) {
+    detailEl.classList.add('active');
+    detailEl.style.zIndex = '300';
+  }
+
+  screenStack.push('detail');
 }
 
 // ============ DETAIL ============
@@ -1598,13 +1618,12 @@ function clearSearch() {
 
 // ============ MAP ============
 // 화장실·편의점·흡연구역 핀을 지도에 표시한다.
-// 시설 좌표는 아래 facilityCoords 값으로 고정한다.
+// 좌표는 facilityCoords에 입력된 값으로 고정한다.
 
 let naverMap = null;
 let mapMarkers = [];
 let activeMapInfoWindow = null;
 let buildingCoords = {};
-
 const pinColors = {
   toilet: '#F4762A',
   store: '#27AE60',
@@ -1961,7 +1980,6 @@ function initMap() {
   }
 
   renderMapMarkers();
-
   setTimeout(() => {
     if (!naverMap || !window.naver || !naver.maps) return;
     naver.maps.Event.trigger(naverMap, 'resize');
@@ -2350,7 +2368,7 @@ function renderNearestToiletCard(item, openCard = true) {
   if (!card || !title || !desc) return;
 
   title.textContent = `🚻 가장 가까운 화장실: ${item.name || (item.building + " " + item.floor)}`;
-  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>고정된 화장실 좌표 기준 추천입니다.`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>저장된 화장실 좌표 기준 추천입니다.`;
   if (openCard) card.classList.add('show');
 }
 
