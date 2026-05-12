@@ -394,6 +394,31 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   border: 1px solid var(--border);
   display: block;
 }
+.media-img-wrap { position: relative; cursor: pointer; }
+.media-edit-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  pointer-events: none;
+}
+.photo-edit-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: rgba(0,0,0,0.72);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  pointer-events: none;
+}
 .hidden-file-input { display: none; }
 
 .img-placeholder {
@@ -1284,6 +1309,7 @@ let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학
 let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
 let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
+let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
@@ -1381,7 +1407,8 @@ function renderFloorList() {
   const floors = (floorData[currentCat][currentBuilding] || []);
   const list = document.getElementById('floor-list');
   list.innerHTML = floors.map(f => {
-    const shortFloor = f.floor.replace('층','').replace('외부','외').replace('건물 외부 지정 구역','외').replace('외부 출입구 근처','외').replace('건물 뒤편 지정 구역','외');
+    const floorMatch = String(f.floor).match(/^(\d+)층/);
+    const shortFloor = floorMatch ? floorMatch[1] : String(f.floor).replace('외부','외').replace('건물 외부 지정 구역','외').replace('외부 출입구 근처','외').replace('건물 뒤편 지정 구역','외');
     return `
     <div class="floor-card" onclick="selectFloor('${f.floor}')">
       <div class="floor-num">${shortFloor}</div>
@@ -1450,20 +1477,57 @@ function photoPlaceholderHTML(safeId, num, label) {
   </div>`;
 }
 
+function mediaStorageKey(type, safeId, num) {
+  return num ? `${type}_${safeId}_${num}` : `${type}_${safeId}`;
+}
+
+function getStoredMedia(type, safeId, num) {
+  return uploadedMedia[mediaStorageKey(type, safeId, num)] || '';
+}
+
+function saveUploadedMedia(type, safeId, num, dataUrl) {
+  uploadedMedia[mediaStorageKey(type, safeId, num)] = dataUrl;
+  try {
+    localStorage.setItem('cammapUploadedMedia', JSON.stringify(uploadedMedia));
+  } catch (e) {
+    showToast('이미지 용량이 커서 저장하지 못했습니다. 더 작은 사진으로 다시 시도해주세요.');
+    return false;
+  }
+  return true;
+}
+
+function readImageAsDataURL(file, callback) {
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')) {
+    showToast('이미지 파일만 업로드할 수 있습니다.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => callback(reader.result);
+  reader.onerror = () => showToast('이미지를 불러오지 못했습니다.');
+  reader.readAsDataURL(file);
+}
+
 function previewPlanImage(event, safeId) {
   const file = event.target.files && event.target.files[0];
-  if(!file) return;
-  const url = URL.createObjectURL(file);
-  const target = document.getElementById(`plan-box-${safeId}`);
-  if(target) target.outerHTML = `<img class="detail-img" src="${url}" alt="도면 미리보기">`;
+  readImageAsDataURL(file, (dataUrl) => {
+    if(!saveUploadedMedia('plan', safeId, '', dataUrl)) return;
+    const target = document.getElementById(`plan-box-${safeId}`);
+    const html = `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${dataUrl}" alt="도면 미리보기"><span class="media-edit-badge">수정</span></div>`;
+    if(target) target.outerHTML = html;
+    showToast('도면 이미지가 저장되었습니다.');
+  });
 }
 
 function previewPhotoImage(event, safeId, num) {
   const file = event.target.files && event.target.files[0];
-  if(!file) return;
-  const url = URL.createObjectURL(file);
-  const target = document.getElementById(`photo-box-${safeId}-${num}`);
-  if(target) target.outerHTML = `<img class="photo-img" src="${url}" alt="사진 미리보기 ${num}">`;
+  readImageAsDataURL(file, (dataUrl) => {
+    if(!saveUploadedMedia('photo', safeId, num, dataUrl)) return;
+    const target = document.getElementById(`photo-box-${safeId}-${num}`);
+    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}" onclick="document.getElementById('photo-input-${safeId}-${num}').click()"><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}"><span class="photo-edit-badge">수정</span></div>`;
+    if(target) target.outerHTML = html;
+    showToast('사진이 저장되었습니다.');
+  });
 }
 
 function renderDetail(cat, building, floor) {
@@ -1501,17 +1565,26 @@ function renderDetail(cat, building, floor) {
   `).join('');
 
   const safeId = `${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
-  const planHTML = fd.planImage
-    ? `<img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')">`
-    : planPlaceholderHTML(safeId, building, floor);
+  const savedPlan = getStoredMedia('plan', safeId, '');
+  const planHTML = savedPlan
+    ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${savedPlan}" alt="${building} ${floor} 저장된 도면"><span class="media-edit-badge">수정</span></div>`
+    : (fd.planImage
+      ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')"><span class="media-edit-badge">수정</span></div>`
+      : planPlaceholderHTML(safeId, building, floor));
 
   const photos = fd.photos || [];
-  const photo1HTML = photos[0]
-    ? `<img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')">`
-    : photoPlaceholderHTML(safeId, 1, '사진 1');
-  const photo2HTML = photos[1]
-    ? `<img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')">`
-    : photoPlaceholderHTML(safeId, 2, '사진 추가');
+  const savedPhoto1 = getStoredMedia('photo', safeId, 1);
+  const savedPhoto2 = getStoredMedia('photo', safeId, 2);
+  const photo1HTML = savedPhoto1
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="document.getElementById('photo-input-${safeId}-1').click()"><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1"><span class="photo-edit-badge">수정</span></div>`
+    : (photos[0]
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="document.getElementById('photo-input-${safeId}-1').click()"><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')"><span class="photo-edit-badge">수정</span></div>`
+      : photoPlaceholderHTML(safeId, 1, '사진 1'));
+  const photo2HTML = savedPhoto2
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="document.getElementById('photo-input-${safeId}-2').click()"><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2"><span class="photo-edit-badge">수정</span></div>`
+    : (photos[1]
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="document.getElementById('photo-input-${safeId}-2').click()"><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')"><span class="photo-edit-badge">수정</span></div>`
+      : photoPlaceholderHTML(safeId, 2, '사진 추가'));
 
   document.getElementById('detail-content').innerHTML = `
     <div class="media-block">
