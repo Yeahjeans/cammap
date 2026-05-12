@@ -1364,8 +1364,13 @@ function switchTab(tab) {
         if (!mapMarkers || mapMarkers.length === 0) {
           renderMapMarkers();
         }
+
+        setTimeout(() => {
+          naver.maps.Event.trigger(naverMap, 'resize');
+          naverMap.setCenter(new naver.maps.LatLng(37.55805, 126.99995));
+        }, 350);
       }
-    }, 150);
+    }, 250);
   }
 }
 
@@ -1389,6 +1394,16 @@ function goBack(from) {
   } else {
     const tabEl = document.getElementById('screen-' + currentTabScreen);
     if(tabEl) tabEl.classList.remove('exit');
+
+    if (currentTabScreen === 'map') {
+      setTimeout(() => {
+        ensureNaverMapReady();
+        if (naverMap && window.naver && window.naver.maps) {
+          naver.maps.Event.trigger(naverMap, 'resize');
+          naverMap.setCenter(new naver.maps.LatLng(37.55805, 126.99995));
+        }
+      }, 120);
+    }
   }
 }
 
@@ -2010,12 +2025,14 @@ function initMap() {
     return;
   }
 
-  // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
-  mapDiv.innerHTML = '';
-
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
+  // 이미 만들어진 지도 DOM을 innerHTML=''로 지우면,
+  // 지도 객체는 살아 있는데 화면만 빈칸이 되는 문제가 생긴다.
+  // 그래서 지도 객체가 없을 때만 안내 문구를 지우고 새로 만든다.
   if (!naverMap) {
+    mapDiv.innerHTML = '';
+
     naverMap = new naver.maps.Map('map', {
       center: center,
       zoom: 17,
@@ -2026,27 +2043,38 @@ function initMap() {
         position: naver.maps.Position.TOP_RIGHT
       }
     });
+
     renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
+
     if (!mapMarkersRenderedOnce || mapMarkers.length === 0) {
       renderMapMarkers();
     }
   }
 
   setTimeout(() => {
+    if (!naverMap) return;
+
     naver.maps.Event.trigger(naverMap, 'resize');
 
-    // 이미 내 위치를 켠 상태라면 캠퍼스 중심으로 되돌리지 않는다.
     if (myLocation && myLocationWatchId !== null) {
       naverMap.setCenter(new naver.maps.LatLng(myLocation.lat, myLocation.lng));
     } else if (!myLocation) {
       naverMap.setCenter(center);
     }
-  }, 100);
+
+    // 화면 전환 직후 타일이 늦게 붙는 경우를 대비해 한 번 더 resize
+    setTimeout(() => {
+      if (naverMap && window.naver && window.naver.maps) {
+        naver.maps.Event.trigger(naverMap, 'resize');
+        if (!myLocation) naverMap.setCenter(center);
+      }
+    }, 350);
+  }, 120);
 }
 
 function renderMapMarkers() {
@@ -2106,9 +2134,10 @@ function openMapFacilityFloorList(facility) {
   currentCat = facility.cat;
   currentBuilding = facility.building;
 
+  // 지도 핀에서 상세/층 화면으로 들어간 경우, 뒤로가기의 기준 화면은 지도여야 한다.
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-home').classList.add('active');
-  currentTabScreen = 'home';
+  document.getElementById('screen-map').classList.add('active');
+  currentTabScreen = 'map';
 
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
