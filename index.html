@@ -1140,7 +1140,7 @@ window.__naverMapScriptLoaded = false;
 
       <div class="coord-tool">
         <div class="coord-tool-title">🧭 좌표 추출 모드</div>
-        <div class="coord-tool-desc">편의점을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 편의점 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 현재 좌표 추출 대상은 편의점만입니다.</div>
+        <div class="coord-tool-desc">시설을 선택한 뒤 <b>좌표 찍기 ON</b>을 누르고, 지도에서 실제 위치를 클릭하세요. 클릭한 좌표가 저장되고 마커가 바로 이동합니다. 화장실·편의점·흡연구역 모두 좌표 추출이 가능합니다.</div>
         <select class="coord-select" id="coord-facility-select" onchange="selectCoordinateFacility(this.value)"></select>
         <div class="coord-actions">
           <button class="coord-btn on" id="coord-mode-btn" onclick="toggleCoordinateMode()">좌표 찍기 ON</button>
@@ -1409,7 +1409,32 @@ const floorData = {
     '원흥관 앞': [{ floor: '외부', tags: '원흥관 앞 지정 흡연구역', loc: '원흥관 앞 외부 흡연구역입니다.', info: { 위치: ['원흥관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }]
   }
 };
+// 지도 핀으로만 존재하는 화장실도 층 선택 팝업에서 바로 상세페이지로 들어갈 수 있도록 기본 상세 데이터를 보강합니다.
+Object.assign(floorData.toilet, {
+  '학술문화관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '학술문화관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '법학만해관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '법학만해관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '중앙도서관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '중앙도서관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '정보문화관 P동': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '정보문화관 P동 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '정보문화관 Q동': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '정보문화관 Q동 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '신공학관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '신공학관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '과학관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '과학관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '다향관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '다향관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '본관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '본관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '명진관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '명진관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }],
+  '학림관': [{ floor: '1층', tags: '지도 위치 기준 / 상세 정보 준비 중', loc: '학림관 1층 화장실 위치입니다.', info: { 파우더룸: ['정보 없음','none'], 청결도: ['정보 없음','none'], 휴지비치: ['정보 없음','none'], 비데: ['정보 없음','none'], 혼잡도: ['정보 없음','none'], 장애인화장실: ['정보 없음','none'] } }]
+});
 
+buildingData.toilet = [
+  ...buildingData.toilet,
+  ...['학술문화관','법학만해관','중앙도서관','정보문화관 P동','정보문화관 Q동','신공학관','과학관','다향관','본관','명진관','학림관'].filter(name => !buildingData.toilet.some(b => b.name === name)).map(name => ({
+    name,
+    walk: '위치 확인 필요',
+    floors: (floorData.toilet[name] || []).map(f => f.floor),
+    rating: 4.0,
+    comments: 0,
+    updated: '2026.05.12'
+  }))
+];
 
 
 // 지도 핀에서 바로 층 선택 화면으로 이동할 수 있도록,
@@ -1845,7 +1870,45 @@ function clearSearch() {
 
 // ============ MAP ============
 // 화장실과 편의점 핀을 지도에 표시한다.
-// 좌표 추출 모드는 편의점 좌표 보정용으로 사용한다.
+// 좌표 추출 모드는 화장실·편의점·흡연구역 전체 핀 좌표 보정용으로 사용한다.
+// 네이버 지도 전역 상태값입니다.
+// 지도 탭 재진입, 좌표 추출, 핀 팝업을 안정적으로 관리합니다.
+let naverMap = null;
+let mapMarkers = [];
+let buildingCoords = {};
+let coordinateOverrides = JSON.parse(localStorage.getItem('cammapFacilityCoordOverrides') || '{}');
+
+const pinColors = {
+  toilet: '#F4762A',
+  store: '#27AE60',
+  smoke: '#E91E8C'
+};
+
+function applySavedCoordinateOverrides() {
+  if (typeof facilityCoords === 'undefined') return;
+
+  facilityCoords.forEach(f => {
+    if (coordinateOverrides[f.id]) {
+      f.lat = coordinateOverrides[f.id].lat;
+      f.lng = coordinateOverrides[f.id].lng;
+      f.isCorrected = true;
+    }
+  });
+}
+
+function getBuildingCoordsMap() {
+  const map = {};
+  if (typeof facilityCoords === 'undefined') return map;
+
+  facilityCoords.forEach(f => {
+    if (!map[f.building]) {
+      map[f.building] = { lat: f.lat, lng: f.lng };
+    }
+  });
+
+  return map;
+}
+
 const facilityCoords = [
   {
     "id": "toilet_academic_culture",
@@ -2017,6 +2080,87 @@ const facilityCoords = [
     "floor": "외부",
     "lat": 37.5587600,
     "lng": 126.9991800
+  },
+  {
+    "id": "store_law_coopsket",
+    "cat": "store",
+    "name": "법학관 쿱스켓 편의점",
+    "building": "법학관",
+    "floor": "1층",
+    "lat": 37.5580000,
+    "lng": 127.0010300
+  },
+  {
+    "id": "store_culture_coopsket",
+    "cat": "store",
+    "name": "문화관 쿱스켓 편의점",
+    "building": "문화관",
+    "floor": "1층",
+    "lat": 37.5579000,
+    "lng": 127.0030000
+  },
+  {
+    "id": "store_hakrim_coopsket",
+    "cat": "store",
+    "name": "학림관 쿱스켓 편의점",
+    "building": "학림관",
+    "floor": "1층",
+    "lat": 37.5602879,
+    "lng": 126.9997079
+  },
+  {
+    "id": "store_library_coopsket",
+    "cat": "store",
+    "name": "중앙도서관 쿱스켓 편의점",
+    "building": "중앙도서관",
+    "floor": "1층",
+    "lat": 37.5572148,
+    "lng": 127.0005127
+  },
+  {
+    "id": "store_sangrok_coopsket",
+    "cat": "store",
+    "name": "상록원 쿱스켓 편의점",
+    "building": "상록원",
+    "floor": "1층",
+    "lat": 37.5574200,
+    "lng": 127.0012300
+  },
+  {
+    "id": "store_hyehwa_coopsket",
+    "cat": "store",
+    "name": "혜화관 쿱스켓 편의점",
+    "building": "혜화관",
+    "floor": "1층",
+    "lat": 37.5575142,
+    "lng": 127.0017953
+  },
+  {
+    "id": "store_wonheung_coopsket",
+    "cat": "store",
+    "name": "원흥관 쿱스켓 편의점",
+    "building": "원흥관",
+    "floor": "1층",
+    "lat": 37.5588644,
+    "lng": 126.9989817
+  },
+  {
+    "id": "store_dorm_cu",
+    "cat": "store",
+    "name": "CU 동국대 기숙사점",
+    "building": "기숙사",
+    "floor": "1층",
+    "lat": 37.5591000,
+    "lng": 126.9985000
+  },
+  {
+    "id": "store_business_emart24",
+    "cat": "store",
+    "name": "경영관 이마트24 편의점",
+    "building": "경영관",
+    "floor": "1층",
+    "lat": 37.5569911,
+    "lng": 127.0029112
   }
 ];
 let activeFilter = { toilet: true, store: true, smoke: true };
@@ -2093,6 +2237,9 @@ function initMap() {
   // 지도 객체가 들어갈 div 안의 안내 문구를 제거한다.
   mapDiv.innerHTML = '';
 
+  applySavedCoordinateOverrides();
+  buildingCoords = getBuildingCoordsMap();
+
   const center = new naver.maps.LatLng(37.55805, 126.99995);
 
   if (!naverMap) {
@@ -2110,6 +2257,7 @@ function initMap() {
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   } else {
+    renderMapMarkers();
     setupCoordinateCaptureTool();
     attachCoordinateClickListener();
   }
@@ -2280,11 +2428,13 @@ function selectCategoryFromMap(cat, building) {
 
 // ============ COORDINATE CAPTURE TOOL ============
 function getCoordinateFacilityList() {
+  const order = { store: 0, toilet: 1, smoke: 2 };
   return facilityCoords
-    .filter(f => f.cat === 'store')
     .slice()
     .sort((a, b) => {
-      if (a.cat !== b.cat) return a.cat === 'store' ? -1 : 1;
+      const ao = order[a.cat] ?? 99;
+      const bo = order[b.cat] ?? 99;
+      if (ao !== bo) return ao - bo;
       return a.name.localeCompare(b.name, 'ko');
     });
 }
@@ -2418,7 +2568,7 @@ function copyFacilityCoordsCode() {
   })), null, 2) + ';';
 
   navigator.clipboard?.writeText(code).then(() => {
-    showToast('편의점/화장실 facilityCoords 코드가 복사되었습니다.');
+    showToast('전체 시설 facilityCoords 코드가 복사되었습니다.');
   }).catch(() => {
     const output = document.getElementById('coord-output');
     if (output) output.textContent = code;
