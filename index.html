@@ -2239,6 +2239,19 @@ function showMapFloorPopupById(id) {
   showMapFloorPopup(facility);
 }
 
+function getFloorBadgeText(floor) {
+  const text = String(floor || '');
+  if (text.includes('외부')) return '외';
+
+  const matched = text.match(/(\d+)층/);
+  if (matched) return matched[1];
+
+  const numberOnly = text.match(/\d+/);
+  if (numberOnly) return numberOnly[0];
+
+  return text.slice(0, 1);
+}
+
 function showMapFloorPopup(facility) {
   const old = document.getElementById('map-floor-popup-backdrop');
   if (old) old.remove();
@@ -2258,16 +2271,19 @@ function showMapFloorPopup(facility) {
   const card = document.createElement('div');
   card.style.cssText = `width:min(520px,92vw);max-height:78vh;overflow:auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,0.28);font-family:'Noto Sans KR',sans-serif;`;
 
-  const items = floors.map(f => `
-    <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
-      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${String(f.floor).replace('층','').replace('외부','외')}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:900;color:#1A1A1A">${facility.building} ${f.floor} ${catInfo[facility.cat].label}</div>
-        <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
+  const items = floors.map(f => {
+    const badgeText = getFloorBadgeText(f.floor);
+    return `
+      <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:16px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
+        <div style="width:46px;height:46px;border-radius:12px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;line-height:1;color:${pinColors[facility.cat]}">${badgeText}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:900;color:#1A1A1A">${facility.building} ${f.floor} ${catInfo[facility.cat].label}</div>
+          <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
+        </div>
+        <div style="font-size:20px;color:#AAA">›</div>
       </div>
-      <div style="font-size:20px;color:#AAA">›</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   card.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
