@@ -1350,14 +1350,14 @@ const buildingData = {
     { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실','4층 화장실','5층 화장실'], rating: 0, comments: 0,  updated: '2026.05.13' }
   ],
   store: [
-    { name: '법학관 쿱스켓 편의점', walk: '도보 3분', floors: ['만해관 2층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '문화관 쿱스켓 편의점', walk: '도보 2분', floors: ['문화관 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '학림관 쿱스켓 편의점', walk: '도보 5분', floors: ['학림관 B1층 (계산관 옆)'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '상록원 쿱스켓 편의점', walk: '도보 4분', floors: ['상록원 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '혜화관 쿱스켓 편의점', walk: '도보 2분', floors: ['혜화관 4층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '원흥관 쿱스켓 편의점', walk: '도보 4분', floors: ['원흥관 3층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: 'CU 동국대 기숙사점', walk: '도보 6분', floors: ['기숙사 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '경영관 이마트 24 편의점', walk: '도보 1분', floors: ['경영관 지하 1층'], rating: 0, comments: 0, updated: '2026.05.13' }
+    { name: '법학관 쿱스켓 편의점',     walk: '도보 3분', floors: ['만해관 2층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '문화관 쿱스켓 편의점',     walk: '도보 2분', floors: ['문화관 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '학림관 쿱스켓 편의점',     walk: '도보 5분', floors: ['학림관 B1층 (계산관 옆)'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '상록원 쿱스켓 편의점',     walk: '도보 4분', floors: ['상록원 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '혜화관 쿱스켓 편의점',     walk: '도보 2분', floors: ['혜화관 4층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '원흥관 쿱스켓 편의점',     walk: '도보 4분', floors: ['원흥관 3층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: 'CU 동국대 기숙사점',       walk: '도보 6분', floors: ['기숙사 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '경영관 이마트 24 편의점',  walk: '도보 1분', floors: ['경영관 지하 1층'], rating: 0, comments: 0, updated: '2026.05.13' }
   ],
   smoke: [
     { name: '혜화관 옆',   walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
@@ -1417,54 +1417,14 @@ const floorData = {
     ]
   },
   store: {
-    '법학관 쿱스켓 편의점': [{
-      floor: '만해관 2층',
-      tags: '만해관 2층',
-      loc: '법학관 쿱스켓 편의점은 만해관 2층에 위치해 있습니다.',
-      info: { 매장명: ['법학관 쿱스켓 편의점',''], 위치: ['만해관 2층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '문화관 쿱스켓 편의점': [{
-      floor: '문화관 1층',
-      tags: '문화관 1층',
-      loc: '문화관 쿱스켓 편의점은 문화관 1층에 위치해 있습니다.',
-      info: { 매장명: ['문화관 쿱스켓 편의점',''], 위치: ['문화관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '학림관 쿱스켓 편의점': [{
-      floor: '학림관 B1층 (계산관 옆)',
-      tags: '학림관 B1층 (계산관 옆)',
-      loc: '학림관 쿱스켓 편의점은 학림관 B1층, 계산관 옆에 위치해 있습니다.',
-      info: { 매장명: ['학림관 쿱스켓 편의점',''], 위치: ['학림관 B1층 (계산관 옆)',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '상록원 쿱스켓 편의점': [{
-      floor: '상록원 1층',
-      tags: '상록원 1층',
-      loc: '상록원 쿱스켓 편의점은 상록원 1층에 위치해 있습니다.',
-      info: { 매장명: ['상록원 쿱스켓 편의점',''], 위치: ['상록원 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '혜화관 쿱스켓 편의점': [{
-      floor: '혜화관 4층',
-      tags: '혜화관 4층',
-      loc: '혜화관 쿱스켓 편의점은 혜화관 4층에 위치해 있습니다.',
-      info: { 매장명: ['혜화관 쿱스켓 편의점',''], 위치: ['혜화관 4층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '원흥관 쿱스켓 편의점': [{
-      floor: '원흥관 3층',
-      tags: '원흥관 3층',
-      loc: '원흥관 쿱스켓 편의점은 원흥관 3층에 위치해 있습니다.',
-      info: { 매장명: ['원흥관 쿱스켓 편의점',''], 위치: ['원흥관 3층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    'CU 동국대 기숙사점': [{
-      floor: '기숙사 1층',
-      tags: '기숙사 1층',
-      loc: 'CU 동국대 기숙사점은 기숙사 1층에 위치해 있습니다.',
-      info: { 매장명: ['CU 동국대 기숙사점',''], 위치: ['기숙사 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }],
-    '경영관 이마트 24 편의점': [{
-      floor: '경영관 지하 1층',
-      tags: '경영관 지하 1층',
-      loc: '경영관 이마트 24 편의점은 경영관 지하 1층에 위치해 있습니다.',
-      info: { 매장명: ['경영관 이마트 24 편의점',''], 위치: ['경영관 지하 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] }
-    }]
+    '법학관 쿱스켓 편의점':     [{ floor: '만해관 2층', tags: '만해관 2층', loc: '만해관 2층에 위치한 법학관 쿱스켓 편의점입니다.', info: { 매장명: ['법학관 쿱스켓 편의점',''], 위치: ['만해관 2층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '문화관 쿱스켓 편의점':     [{ floor: '문화관 1층', tags: '문화관 1층', loc: '문화관 1층에 위치한 문화관 쿱스켓 편의점입니다.', info: { 매장명: ['문화관 쿱스켓 편의점',''], 위치: ['문화관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '학림관 쿱스켓 편의점':     [{ floor: '학림관 B1층 (계산관 옆)', tags: '학림관 B1층 (계산관 옆)', loc: '학림관 B1층, 계산관 옆에 위치한 학림관 쿱스켓 편의점입니다.', info: { 매장명: ['학림관 쿱스켓 편의점',''], 위치: ['학림관 B1층 (계산관 옆)',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '상록원 쿱스켓 편의점':     [{ floor: '상록원 1층', tags: '상록원 1층', loc: '상록원 1층에 위치한 상록원 쿱스켓 편의점입니다.', info: { 매장명: ['상록원 쿱스켓 편의점',''], 위치: ['상록원 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '혜화관 쿱스켓 편의점':     [{ floor: '혜화관 4층', tags: '혜화관 4층', loc: '혜화관 4층에 위치한 혜화관 쿱스켓 편의점입니다.', info: { 매장명: ['혜화관 쿱스켓 편의점',''], 위치: ['혜화관 4층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '원흥관 쿱스켓 편의점':     [{ floor: '원흥관 3층', tags: '원흥관 3층', loc: '원흥관 3층에 위치한 원흥관 쿱스켓 편의점입니다.', info: { 매장명: ['원흥관 쿱스켓 편의점',''], 위치: ['원흥관 3층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['점심시간 혼잡','warn'], 결제방식: ['카드/페이','good'] } }],
+    'CU 동국대 기숙사점':       [{ floor: '기숙사 1층', tags: '기숙사 1층', loc: '기숙사 1층에 위치한 CU 동국대 기숙사점입니다.', info: { 매장명: ['CU 동국대 기숙사점',''], 위치: ['기숙사 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '경영관 이마트 24 편의점':  [{ floor: '경영관 지하 1층', tags: '경영관 지하 1층', loc: '경영관 지하 1층에 위치한 경영관 이마트 24 편의점입니다.', info: { 매장명: ['경영관 이마트 24 편의점',''], 위치: ['경영관 지하 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }]
   },
   smoke: {
     '혜화관 옆': [{ floor: '외부', tags: '혜화관 옆 지정 흡연구역', loc: '혜화관 옆 외부 흡연구역입니다.', info: { 위치: ['혜화관 옆',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
@@ -1615,16 +1575,83 @@ let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') |
 
 
 function getReviewComments(key) {
-  return (userComments[key] || []).map((c, index) => ({ ...c, _index: index, _isUserComment: true }));
+  return (userComments[key] || []).map((c, index) => ({ ...c, _key: key, _index: index, _isUserComment: true }));
+}
+
+function normalizeReviewBuilding(cat, building) {
+  const b = String(building || '').trim();
+  if (cat !== 'store') return b;
+  if (b.includes('법학관') || b.includes('만해관')) return '법학관 쿱스켓 편의점';
+  if (b.includes('문화관')) return '문화관 쿱스켓 편의점';
+  if (b.includes('학림관')) return '학림관 쿱스켓 편의점';
+  if (b.includes('상록원')) return '상록원 쿱스켓 편의점';
+  if (b.includes('혜화관')) return '혜화관 쿱스켓 편의점';
+  if (b.includes('원흥관')) return '원흥관 쿱스켓 편의점';
+  if (b.includes('CU') || b.includes('기숙사')) return 'CU 동국대 기숙사점';
+  if (b.includes('경영관') || b.includes('이마트')) return '경영관 이마트 24 편의점';
+  return b;
+}
+
+function getCanonicalStoreFloor(building) {
+  const b = normalizeReviewBuilding('store', building);
+  const first = floorData.store?.[b]?.[0];
+  return first?.floor || '1층';
+}
+
+function getReviewAliasKeys(cat, building, floor) {
+  const keys = new Set([`${cat}_${building}_${floor}`]);
+  if (cat === 'store') {
+    const canonical = normalizeReviewBuilding(cat, building);
+    const oldNames = {
+      '법학관 쿱스켓 편의점': ['법학관 쿱스켓 편의점', '법학관', '만해관'],
+      '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
+      '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
+      '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
+      '혜화관 쿱스켓 편의점': ['혜화관 쿱스켓 편의점', '혜화관'],
+      '원흥관 쿱스켓 편의점': ['원흥관 쿱스켓 편의점', '원흥관'],
+      'CU 동국대 기숙사점': ['CU 동국대 기숙사점', '기숙사'],
+      '경영관 이마트 24 편의점': ['경영관 이마트 24 편의점', '경영관']
+    };
+    const currentFloor = getCanonicalStoreFloor(canonical);
+    const oldFloors = ['1층', currentFloor, floor].filter(Boolean);
+    (oldNames[canonical] || [building]).forEach(name => {
+      oldFloors.forEach(f => keys.add(`${cat}_${name}_${f}`));
+    });
+  }
+  return Array.from(keys);
+}
+
+function getReviewCommentsForFacility(cat, building, floor) {
+  const aliasKeys = new Set(getReviewAliasKeys(cat, building, floor));
+  const canonicalBuilding = normalizeReviewBuilding(cat, building);
+  const comments = [];
+  const seen = new Set();
+
+  Object.entries(userComments).forEach(([key, arr]) => {
+    (arr || []).forEach((c, index) => {
+      const objectBuilding = normalizeReviewBuilding(c.cat || cat, c.building || '');
+      const sameFacilityByObject = (c.cat || cat) === cat && objectBuilding === canonicalBuilding && (cat === 'store' || !floor || c.floor === floor);
+      const sameFacilityByKey = aliasKeys.has(key);
+      if (!sameFacilityByObject && !sameFacilityByKey) return;
+      const seenKey = `${key}_${index}`;
+      if (seen.has(seenKey)) return;
+      seen.add(seenKey);
+      comments.push({ ...c, _key: key, _index: index, _isUserComment: true });
+    });
+  });
+
+  return comments;
 }
 
 function getReviewStats(cat, building, floor) {
-  const prefix = `${cat}_${building}_`;
-  const comments = [];
+  let comments = [];
 
   if (floor) {
-    comments.push(...getReviewComments(`${cat}_${building}_${floor}`));
+    comments = getReviewCommentsForFacility(cat, building, floor);
+  } else if (cat === 'store') {
+    comments = getReviewCommentsForFacility(cat, building, getCanonicalStoreFloor(building));
   } else {
+    const prefix = `${cat}_${building}_`;
     Object.entries(userComments).forEach(([key, arr]) => {
       if (key.startsWith(prefix)) comments.push(...(arr || []));
     });
@@ -1842,9 +1869,9 @@ function renderBuildingList(cat) {
     const ratingLabel = reviewStats.label;
     const commentCount = reviewStats.count;
 
-    // 편의점처럼 한 건물에 등록된 시설이 1개뿐이면
+    // 편의점·흡연구역처럼 등록된 시설이 1개뿐이면
     // 건물 → 층 선택을 한 번 더 거치지 않고 바로 상세페이지로 이동
-    if (cat === 'store' && floors.length === 1) {
+    if ((cat === 'store' || cat === 'smoke') && floors.length === 1) {
       const f = floors[0];
       const title = b.name;
 
@@ -1898,7 +1925,7 @@ function selectBuilding(bname) {
 function getShortFloorLabel(floor) {
   const text = String(floor || '');
   if (/지하\s*1층|지하1층|B1/i.test(text)) return 'B1';
-  const floorMatch = text.match(/(\d+)층/);
+  const floorMatch = text.match(/^(\d+)층/);
   if (floorMatch) return floorMatch[1];
   return text
     .replace('외부','외')
@@ -2077,7 +2104,7 @@ function renderDetail(cat, building, floor) {
   favBtn.classList.toggle('fav-active', favorites.has(favKey));
 
   const commentKey = `${cat}_${building}_${floor}`;
-  const allCmts = getReviewComments(commentKey);
+  const allCmts = getReviewCommentsForFacility(cat, building, floor);
   const stats = getReviewStats(cat, building, floor);
   const avgRating = stats.label;
 
@@ -2098,8 +2125,8 @@ function renderDetail(cat, building, floor) {
       <div class="cc-stars">${'⭐'.repeat(Number(c.rating || 0))}${'☆'.repeat(5 - Number(c.rating || 0))}</div>
       <p class="cc-text">${escapeHTML(c.text || '')}</p>
       <div class="comment-actions">
-        <button class="comment-action-btn" onclick="editReview('${commentKey}', ${c._index}, '${cat}', '${building}', '${floor}')">수정</button>
-        ${isAdmin ? `<button class="comment-action-btn danger" onclick="deleteReviewAsAdmin('${commentKey}', ${c._index}, '${cat}', '${building}', '${floor}')">관리자 삭제</button>` : ''}
+        <button class="comment-action-btn" onclick="editReview('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">수정</button>
+        ${isAdmin ? `<button class="comment-action-btn danger" onclick="deleteReviewAsAdmin('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">관리자 삭제</button>` : ''}
       </div>
     </div>
   `).join('') : '<div class="empty-review">아직 등록된 댓글과 평점이 없습니다.<br>첫 리뷰를 남겨주세요.</div>';
@@ -2556,7 +2583,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "법학관 쿱스켓 편의점",
     "building": "법학관 쿱스켓 편의점",
-    "floor": "만해관 2층",
+    "floor": "1층",
     "lat": 37.55794,
     "lng": 127.00105
   },
@@ -2565,7 +2592,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "문화관 쿱스켓 편의점",
     "building": "문화관 쿱스켓 편의점",
-    "floor": "문화관 1층",
+    "floor": "1층",
     "lat": 37.5576885,
     "lng": 127.0030345
   },
@@ -2574,7 +2601,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "학림관 쿱스켓 편의점",
     "building": "학림관 쿱스켓 편의점",
-    "floor": "학림관 B1층 (계산관 옆)",
+    "floor": "1층",
     "lat": 37.5604739,
     "lng": 126.9992258
   },
@@ -2583,7 +2610,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "상록원 쿱스켓 편의점",
     "building": "상록원 쿱스켓 편의점",
-    "floor": "상록원 1층",
+    "floor": "1층",
     "lat": 37.5570187,
     "lng": 126.9998239
   },
@@ -2592,7 +2619,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "혜화관 쿱스켓 편의점",
     "building": "혜화관 쿱스켓 편의점",
-    "floor": "혜화관 4층",
+    "floor": "1층",
     "lat": 37.5576896,
     "lng": 127.0017042
   },
@@ -2601,7 +2628,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "원흥관 쿱스켓 편의점",
     "building": "원흥관 쿱스켓 편의점",
-    "floor": "원흥관 3층",
+    "floor": "1층",
     "lat": 37.5589494,
     "lng": 126.9988315
   },
@@ -2610,7 +2637,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "CU 동국대 기숙사점",
     "building": "CU 동국대 기숙사점",
-    "floor": "기숙사 1층",
+    "floor": "1층",
     "lat": 37.5584019,
     "lng": 126.9978391
   },
@@ -2619,7 +2646,7 @@ const facilityCoords = [
     "cat": "store",
     "name": "경영관 이마트 24 편의점",
     "building": "경영관 이마트 24 편의점",
-    "floor": "경영관 지하 1층",
+    "floor": "1층",
     "lat": 37.5569858,
     "lng": 127.0029366
   },
@@ -2936,7 +2963,7 @@ function selectCategoryFromMap(cat, building) {
   const floors = floorData[cat]?.[building] || [];
 
   // 편의점은 보통 한 층만 있으므로, 지도/카드에서 바로 상세페이지로 연결
-  if (cat === 'store' && floors.length === 1) {
+  if ((cat === 'store' || cat === 'smoke') && floors.length === 1) {
     goToDetail(building, floors[0].floor, cat);
     return;
   }
@@ -3254,12 +3281,19 @@ function getMyCommentsArray() {
   Object.entries(userComments).forEach(([key, comments]) => {
     comments.forEach(comment => {
       const parts = key.split('_');
+      const rawCat = comment.cat || parts[0];
+      const rawBuilding = comment.building || parts[1];
+      const canonicalBuilding = normalizeReviewBuilding(rawCat, rawBuilding);
+      const canonicalFloor = rawCat === 'store' ? getCanonicalStoreFloor(canonicalBuilding) : (comment.floor || parts.slice(2).join('_'));
       arr.push({
         key,
-        cat: comment.cat || parts[0],
-        building: comment.building || parts[1],
-        floor: comment.floor || parts.slice(2).join('_'),
-        ...comment
+        cat: rawCat,
+        building: canonicalBuilding,
+        floor: canonicalFloor,
+        ...comment,
+        cat: rawCat,
+        building: canonicalBuilding,
+        floor: canonicalFloor
       });
     });
   });
