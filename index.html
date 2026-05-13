@@ -1226,6 +1226,76 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   background: var(--orange);
 }
 
+
+/* CAMMAP ID / 익명 닉네임 설정 */
+.profile-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,0.48);
+}
+.profile-modal-backdrop.show { display: flex; }
+.profile-modal {
+  width: min(430px, 94vw);
+  background: var(--surface);
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.28);
+  padding: 22px;
+}
+.profile-modal-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.profile-modal-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.profile-modal .form-group { margin-bottom: 13px; }
+.profile-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.profile-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+.profile-modal-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-size: 14px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+.profile-modal-btn.primary { background: var(--orange); color: #fff; }
+.profile-modal-btn.secondary { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
+.profile-id-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.86);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+
 </style>
 <script>
 // 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
@@ -1241,6 +1311,32 @@ window.__naverMapScriptLoaded = false;
 <body>
 
 <div class="device-frame">
+
+<!-- ===== CAMMAP ID / NICKNAME MODAL ===== -->
+<div class="profile-modal-backdrop" id="profile-modal-backdrop">
+  <div class="profile-modal">
+    <div class="profile-modal-title">CAMMAP ID 설정</div>
+    <div class="profile-modal-sub">
+      댓글은 닉네임으로 익명 표시되고, MY·즐겨찾기·제보 관리는 ID 기준으로 연결됩니다.<br>
+      같은 ID를 다른 기기에서 입력하면 같은 사용자로 인식됩니다.
+    </div>
+    <div class="form-group">
+      <label class="form-label">개인 ID</label>
+      <input class="form-input" id="profile-id-input" placeholder="예: dgu_24_user" autocomplete="off">
+      <div class="profile-hint">영문 소문자·숫자·_·- 조합 3~20자 권장. 화면에는 공개하지 않습니다.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">익명 닉네임</label>
+      <input class="form-input" id="profile-nickname-input" placeholder="예: 동국대생" maxlength="12" autocomplete="off">
+      <div class="profile-hint">댓글과 제보에는 이 닉네임만 표시됩니다.</div>
+    </div>
+    <div class="profile-modal-actions">
+      <button type="button" class="profile-modal-btn primary" onclick="saveCammapProfile()">시작하기</button>
+      <button type="button" class="profile-modal-btn secondary" id="profile-modal-cancel" onclick="closeProfileModal()">취소</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ===== HOME TAB ===== -->
 <div class="screen tab-screen active" id="screen-home">
@@ -1558,9 +1654,9 @@ window.__naverMapScriptLoaded = false;
     </div>
     <div class="my-section">
       <div class="my-section-title">프로필 설정</div>
-      <div class="my-item" onclick="setUserName()">
+      <div class="my-item" onclick="openProfileModal(false)">
         <div class="my-item-icon o">👤</div>
-        <div class="my-item-text"><strong>닉네임 설정</strong><span id="profile-setting-desc">댓글에 표시될 이름을 바꿀 수 있어요</span></div>
+        <div class="my-item-text"><strong>ID / 익명 닉네임 설정</strong><span id="profile-setting-desc">댓글 표시 닉네임과 개인화 ID를 설정할 수 있어요</span></div>
         <span class="my-item-arrow">›</span>
       </div>
     </div>
@@ -1984,12 +2080,10 @@ let reviewSubmitLock = false;
 let lastReviewSubmitKey = '';
 let lastReviewSubmitAt = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
-let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
-let currentUserId = localStorage.getItem('cammapUserId');
-if (!currentUserId) {
-  currentUserId = 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
-  localStorage.setItem('cammapUserId', currentUserId);
-}
+let currentUser = localStorage.getItem('cammapNickname') || localStorage.getItem('cammapUserName') || '익명';
+let currentUserId = localStorage.getItem('cammapUserId') || '';
+let cammapProfileReady = localStorage.getItem('cammapProfileReady') === 'true' && !!currentUserId;
+let previousAutoUserId = (!cammapProfileReady && currentUserId && String(currentUserId).startsWith('user_')) ? currentUserId : '';
 let myCommentIds = new Set(JSON.parse(localStorage.getItem('cammapMyCommentIds') || '[]'));
 let myReportIds = new Set(JSON.parse(localStorage.getItem('cammapMyReportIds') || '[]'));
 function saveMyOwnership() {
@@ -3454,6 +3548,7 @@ function submitReview(key, cat, building, floor, safeId = '') {
   if(!input) { showToast('리뷰 입력창을 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
   if(!text) { showToast('리뷰 내용을 입력해주세요.'); return; }
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
+  if(!ensureCammapProfile()) return;
 
   const submitBtn = safeId ? document.getElementById('review-submit-' + safeId) : null;
   if (submitBtn && submitBtn.disabled) return;
@@ -4654,14 +4749,107 @@ function openNearestToilet() { return openNearestFacility(); }
 
 
 // ============ USER PERSONALIZATION / MYPAGE ============
-function setUserName() {
-  const name = prompt('댓글에 표시할 닉네임을 입력하세요.', currentUser);
-  if (!name || !name.trim()) return;
+function normalizeCammapId(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
 
-  currentUser = name.trim();
+function isValidCammapId(value) {
+  return /^[a-z0-9_-]{3,20}$/.test(normalizeCammapId(value));
+}
+
+function openProfileModal(force = false) {
+  const backdrop = document.getElementById('profile-modal-backdrop');
+  const idInput = document.getElementById('profile-id-input');
+  const nickInput = document.getElementById('profile-nickname-input');
+  const cancelBtn = document.getElementById('profile-modal-cancel');
+  if (!backdrop) return;
+
+  if (idInput) idInput.value = currentUserId && !String(currentUserId).startsWith('user_') ? currentUserId : '';
+  if (nickInput) nickInput.value = currentUser && currentUser !== '동국대학교 학생' ? currentUser : '';
+  if (cancelBtn) cancelBtn.style.display = force ? 'none' : 'block';
+  backdrop.classList.add('show');
+  setTimeout(() => { (idInput || nickInput)?.focus(); }, 50);
+}
+
+function closeProfileModal() {
+  const backdrop = document.getElementById('profile-modal-backdrop');
+  if (!backdrop) return;
+  if (!cammapProfileReady) {
+    showToast('CAMMAP ID와 닉네임을 먼저 설정해주세요.');
+    return;
+  }
+  backdrop.classList.remove('show');
+}
+
+function migrateLocalOwnershipToProfile(oldId, newId, nickname) {
+  if (!oldId || !newId || oldId === newId) return;
+
+  Object.keys(userComments || {}).forEach(key => {
+    userComments[key] = (userComments[key] || []).map(comment => {
+      const ownedByOldId = comment.authorId === oldId || comment.userId === oldId || (comment.id && myCommentIds.has(String(comment.id)));
+      return ownedByOldId ? { ...comment, authorId: newId, name: nickname } : comment;
+    });
+  });
+
+  userReports = (userReports || []).map(report => {
+    const ownedByOldId = report.authorId === oldId || report.userId === oldId || (report.id && myReportIds.has(String(report.id)));
+    return ownedByOldId ? { ...report, authorId: newId, authorName: nickname } : report;
+  });
+
+  saveLocalOnly('cammapUserComments', userComments);
+  saveLocalOnly('cammapUserReports', userReports);
+  saveCommentsShared();
+  saveReportsShared();
+}
+
+function saveCammapProfile() {
+  const idInput = document.getElementById('profile-id-input');
+  const nickInput = document.getElementById('profile-nickname-input');
+  const newId = normalizeCammapId(idInput ? idInput.value : '');
+  const nickname = String(nickInput ? nickInput.value : '').trim();
+
+  if (!isValidCammapId(newId)) {
+    showToast('ID는 영문 소문자·숫자·_·- 조합 3~20자로 입력해주세요.');
+    return;
+  }
+  if (!nickname) {
+    showToast('익명 닉네임을 입력해주세요.');
+    return;
+  }
+  if (nickname.length > 12) {
+    showToast('닉네임은 12자 이하로 입력해주세요.');
+    return;
+  }
+
+  const oldId = currentUserId;
+  currentUserId = newId;
+  currentUser = nickname;
+  cammapProfileReady = true;
+
+  localStorage.setItem('cammapUserId', currentUserId);
+  localStorage.setItem('cammapNickname', currentUser);
   localStorage.setItem('cammapUserName', currentUser);
+  localStorage.setItem('cammapProfileReady', 'true');
+
+  migrateLocalOwnershipToProfile(previousAutoUserId || oldId, currentUserId, currentUser);
+  previousAutoUserId = '';
+
+  const backdrop = document.getElementById('profile-modal-backdrop');
+  if (backdrop) backdrop.classList.remove('show');
   renderMyPage();
   showToast(`${currentUser}님으로 설정되었습니다.`);
+}
+
+function ensureCammapProfile() {
+  if (cammapProfileReady && currentUserId) return true;
+  openProfileModal(true);
+  showToast('먼저 CAMMAP ID와 익명 닉네임을 설정해주세요.');
+  return false;
+}
+
+// 이전 함수명 호환 유지
+function setUserName() {
+  openProfileModal(false);
 }
 
 function getCatIconClass(cat) {
@@ -5097,7 +5285,7 @@ function renderMyPage() {
 
   if (profileName) profileName.textContent = currentUser;
   if (profileAvatar) profileAvatar.textContent = currentUser.trim().charAt(0) || '동';
-  if (profileDesc) profileDesc.textContent = `현재 댓글 표시 이름: ${currentUser}`;
+  if (profileDesc) profileDesc.textContent = currentUserId ? `ID: ${currentUserId} · 댓글 표시 닉네임: ${currentUser}` : 'CAMMAP ID와 익명 닉네임을 설정해주세요';
 
   renderAdminStatus();
   renderMyComments();
@@ -5109,7 +5297,7 @@ function renderMyPage() {
 }
 
 // 최초 로딩 시 프로필 이름과 개인화 목록을 반영한다.
-setTimeout(() => { renderMyPage(); renderHomeRecentViews(); }, 0);
+setTimeout(() => { renderMyPage(); renderHomeRecentViews(); if (!cammapProfileReady) openProfileModal(true); }, 0);
 
 // ============ REPORT ============
 let isSubmittingReport = false;
@@ -5124,6 +5312,7 @@ async function submitReport() {
   if(!floor) { showToast('층을 선택해주세요.'); return; }
   if(!cat) { showToast('편의시설 종류를 선택해주세요.'); return; }
   if(!text) { showToast('제보 내용을 입력해주세요.'); return; }
+  if(!ensureCammapProfile()) return;
   if (isSubmittingReport) { showToast('제보를 저장하는 중입니다. 잠시만 기다려주세요.'); return; }
 
   const normalizedFloor = (cat === 'toilet' && building === '신공학관' && floor === '9층') ? '9층 화장실' : floor;
@@ -5158,13 +5347,14 @@ async function submitReport() {
   userReports = dedupeReportsArray([...(Array.isArray(userReports) ? userReports : []), report]);
   myReportIds.add(String(report.id));
   saveMyOwnership();
-  saveReportsShared();
+  await saveReportsShared();
 
   textInput.value = '';
   document.getElementById('report-building').value = '';
   document.getElementById('report-floor').value = '';
   document.getElementById('report-cat').value = '';
 
+  isSubmittingReport = false;
   renderMyPage();
   showToast('제보가 접수되었습니다. 검토 후 반영됩니다. 🙏');
 }
