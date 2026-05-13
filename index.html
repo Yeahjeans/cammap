@@ -1414,7 +1414,7 @@ window.__naverMapScriptLoaded = false;
     </div>
   </div>
   <div class="scroll-content">
-    <div class="cloud-status-box" id="cloud-status-box"><strong>공유 저장 준비:</strong> 아래 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 댓글·실시간 혼잡도·사진·도면이 여러 사람에게 공유됩니다. 입력 전에는 이 기기에서만 저장됩니다.</div>
+    <div class="cloud-status-box" id="cloud-status-box"><strong>공유 저장 준비:</strong> 아래 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 댓글·도면·사진·혼잡도·관리자 수정정보·제보함이 여러 사람에게 공유됩니다. 입력 전에는 이 기기에서만 저장됩니다.</div>
     <div class="report-container">
       <div class="example-box">
         <p>제보 예시</p>
@@ -1906,8 +1906,11 @@ let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}'
    1) Supabase 프로젝트를 만든다.
    2) 이 파일 맨 아래 주석의 SQL을 Supabase SQL Editor에서 실행한다.
    3) 아래 두 값에 내 Supabase Project URL / anon public key를 넣는다.
-   4) 컴퓨터에서 사이트를 한 번 열면, 기존 localStorage의 리뷰·사진·도면이 공용 DB로 자동 업로드된다.
+   4) 컴퓨터에서 사이트를 한 번 열면, 기존 localStorage의 리뷰·도면·사진·혼잡도·관리자 수정정보·제보함이 공용 DB로 자동 업로드된다.
 */
+// ⚠️ 여기 두 줄을 반드시 본인 Supabase 값으로 바꿔야 모든 기기에서 같은 데이터가 보입니다.
+// 예시: const SUPABASE_URL = 'https://xxxx.supabase.co';
+// 예시: const SUPABASE_ANON_KEY = 'eyJ...';
 const SUPABASE_URL = '';
 const SUPABASE_ANON_KEY = '';
 
@@ -1939,9 +1942,9 @@ function updateCloudStatusBox() {
 
   if (cloudReady) {
     el.innerHTML = `
-      <strong>공유 저장 ON:</strong> 댓글·사진·도면·실시간 혼잡도가 모든 사용자에게 공유됩니다.
+      <strong>공유 저장 ON:</strong> 댓글·도면·사진·혼잡도·관리자 수정정보·제보함이 모든 사용자에게 공유됩니다.
       <br>이 컴퓨터에 이미 저장돼 있던 리뷰/사진/도면도 공용 DB와 자동 병합됩니다.
-      <br><button class="cloud-migration-btn" onclick="manualSyncLocalToCloud()">내 기기 저장자료 다시 공유 저장</button>
+      <br><button class="cloud-migration-btn" onclick="manualSyncLocalToCloud()">내 기기 저장자료 전체 공유 저장</button>
     `;
   } else {
     el.innerHTML = `
@@ -1966,7 +1969,7 @@ function showCloudSetupGuide() {
 5. 다시 배포
 
 그 다음 컴퓨터에서 사이트를 한 번 열면
-컴퓨터에 저장되어 있던 기존 리뷰·사진·도면이 공용 DB로 자동 업로드됩니다.`
+컴퓨터에 저장되어 있던 기존 리뷰·도면·사진·혼잡도·관리자 수정정보·제보함이 공용 DB로 자동 업로드됩니다.`
   );
 }
 
@@ -2108,7 +2111,7 @@ async function manualSyncLocalToCloud() {
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
   await cloudSaveJson('reports', userReports);
 
-  showToast('이 기기에 저장된 리뷰·사진·도면을 공유 저장했습니다.');
+  showToast('이 기기에 저장된 리뷰·도면·사진·혼잡도·관리자 수정정보·제보함을 공유 저장했습니다.');
 }
 
 function startSharedRealtimeSync() {
@@ -3039,7 +3042,7 @@ function renderDetail(cat, building, floor) {
       </div>
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-1" onchange="previewPhotoImage(event, '${safeId}', 1)">
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-2" onchange="previewPhotoImage(event, '${safeId}', 2)">
-      <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다. 등록된 사진은 일반 사용자에게도 보입니다.' : '등록된 도면·실사진은 누구나 볼 수 있고, 등록과 수정만 관리자에게 열려 있습니다.'}</div>
+      <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다. 등록된 사진은 일반 사용자에게도 보이고, Supabase 연결 시 모든 기기에 공유됩니다.' : '등록된 도면·실사진은 누구나 볼 수 있고, 등록과 수정만 관리자에게 열려 있습니다.'}</div>
     </div>
     <div class="loc-box">
       <span class="loc-icon">📍</span>
