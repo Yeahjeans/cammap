@@ -1883,23 +1883,31 @@ let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') |
 let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}');
 
 /* ===== 공유 저장 설정 =====
-   여러 사람이 댓글·사진·도면·혼잡도를 같이 보려면 Supabase 프로젝트를 만든 뒤
-   아래 두 값을 본인 프로젝트 값으로 바꾸면 됩니다.
-   값이 비어 있으면 기존처럼 localStorage에만 저장됩니다.
+   중요:
+   localStorage는 '내 컴퓨터/내 브라우저'에만 저장됩니다.
+   여러 사람이 같은 리뷰·사진·도면·실시간 혼잡도를 보려면 공용 DB가 필요합니다.
+   아래 SUPABASE_URL / SUPABASE_ANON_KEY에 본인 Supabase 값을 넣으면
+   지금까지 내 브라우저에 저장된 리뷰/사진/도면도 공용 DB로 병합 저장됩니다.
 */
 const SUPABASE_URL = '';
 const SUPABASE_ANON_KEY = '';
+
 let cammapDb = null;
 let cloudReady = false;
+let cloudSyncStarted = false;
 
 function initCloudStore() {
   try {
     if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
       cammapDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       cloudReady = true;
+    } else {
+      cammapDb = null;
+      cloudReady = false;
     }
   } catch (e) {
     console.warn('공유 저장소 연결 실패:', e);
+    cammapDb = null;
     cloudReady = false;
   }
   updateCloudStatusBox();
@@ -1908,65 +1916,123 @@ function initCloudStore() {
 function updateCloudStatusBox() {
   const el = document.getElementById('cloud-status-box');
   if (!el) return;
+
   if (cloudReady) {
-    el.innerHTML = '<strong>공유 저장 ON:</strong> 댓글·실시간 혼잡도·사진·도면이 여러 사용자에게 공유됩니다.';
+    el.innerHTML = '<strong>공유 저장 ON:</strong> 댓글·사진·도면·실시간 혼잡도가 모든 사용자에게 공유됩니다.';
   } else {
-    el.innerHTML = '<strong>공유 저장 OFF:</strong> 현재는 이 기기 브라우저에만 저장됩니다. SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 여러 사람이 함께 볼 수 있습니다.';
+    el.innerHTML = '<strong>공유 저장 OFF:</strong> 지금은 이 기기 브라우저에만 저장됩니다. 코드 상단의 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 모든 사용자가 같은 리뷰·사진·도면을 볼 수 있습니다.';
   }
+}
+
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mergeObjectPreserveLocal(remoteValue, localValue) {
+  if (!isPlainObject(remoteValue)) remoteValue = {};
+  if (!isPlainObject(localValue)) localValue = {};
+
+  const merged = { ...remoteValue };
+
+  Object.entries(localValue).forEach(([key, localItem]) => {
+    const remoteItem = merged[key];
+
+    if (Array.isArray(localItem) || Array.isArray(remoteItem)) {
+      const combined = [];
+      const seen = new Set();
+
+      [...(Array.isArray(remoteItem) ? remoteItem : []), ...(Array.isArray(localItem) ? localItem : [])].forEach(item => {
+        const id = JSON.stringify(item);
+        if (seen.has(id)) return;
+        seen.add(id);
+        combined.push(item);
+      });
+
+      merged[key] = combined;
+    } else if (isPlainObject(localItem) && isPlainObject(remoteItem)) {
+      merged[key] = mergeObjectPreserveLocal(remoteItem, localItem);
+    } else {
+      merged[key] = localItem !== undefined && localItem !== null && localItem !== '' ? localItem : remoteItem;
+    }
+  });
+
+  return merged;
 }
 
 async function cloudLoadJson(key, fallbackValue) {
   if (!cloudReady || !cammapDb) return fallbackValue;
+
   try {
     const { data, error } = await cammapDb
       .from('cammap_store')
       .select('value')
       .eq('key', key)
       .maybeSingle();
+
     if (error) throw error;
     return data && data.value ? data.value : fallbackValue;
   } catch (e) {
-    console.warn('cloudLoadJson 실패:', key, e);
+    console.warn('공유 데이터 불러오기 실패:', key, e);
     return fallbackValue;
   }
 }
 
 async function cloudSaveJson(key, value) {
   if (!cloudReady || !cammapDb) return false;
+
   try {
     const { error } = await cammapDb
       .from('cammap_store')
-      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      .upsert(
+        { key, value, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+
     if (error) throw error;
     return true;
   } catch (e) {
-    console.warn('cloudSaveJson 실패:', key, e);
-    showToast('공유 저장에 실패했습니다. 네트워크나 Supabase 설정을 확인해주세요.');
+    console.warn('공유 데이터 저장 실패:', key, e);
+    showToast('공유 저장에 실패했습니다. Supabase 설정을 확인해주세요.');
     return false;
   }
 }
 
 async function loadSharedData() {
-  if (!cloudReady) return;
+  if (!cloudReady) {
+    updateCloudStatusBox();
+    return;
+  }
 
-  userComments = await cloudLoadJson('comments', userComments || {});
-  uploadedMedia = await cloudLoadJson('media', uploadedMedia || {});
-  crowdReports = await cloudLoadJson('crowd', crowdReports || {});
-  detailInfoEdits = await cloudLoadJson('detailInfoEdits', detailInfoEdits || {});
+  const remoteComments = await cloudLoadJson('comments', {});
+  const remoteMedia = await cloudLoadJson('media', {});
+  const remoteCrowd = await cloudLoadJson('crowd', {});
+  const remoteDetailInfo = await cloudLoadJson('detailInfoEdits', {});
+
+  userComments = mergeObjectPreserveLocal(remoteComments, userComments);
+  uploadedMedia = mergeObjectPreserveLocal(remoteMedia, uploadedMedia);
+  crowdReports = mergeObjectPreserveLocal(remoteCrowd, crowdReports);
+  detailInfoEdits = mergeObjectPreserveLocal(remoteDetailInfo, detailInfoEdits);
 
   saveCommentsShared();
   saveMediaShared();
   saveCrowdShared();
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
-  cloudSaveJson('detailInfoEdits', detailInfoEdits);
+
+  await cloudSaveJson('comments', userComments);
+  await cloudSaveJson('media', uploadedMedia);
+  await cloudSaveJson('crowd', crowdReports);
+  await cloudSaveJson('detailInfoEdits', detailInfoEdits);
 
   if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
   if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
   if (currentTabScreen === 'mypage') renderMyPage();
+
+  updateCloudStatusBox();
 }
 
 function startSharedRealtimeSync() {
-  if (!cloudReady || !cammapDb) return;
+  if (!cloudReady || !cammapDb || cloudSyncStarted) return;
+  cloudSyncStarted = true;
 
   cammapDb.channel('cammap-shared-store')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cammap_store' }, (payload) => {
@@ -1977,14 +2043,17 @@ function startSharedRealtimeSync() {
         userComments = row.value || {};
         saveCommentsShared();
       }
+
       if (row.key === 'media') {
         uploadedMedia = row.value || {};
         saveMediaShared();
       }
+
       if (row.key === 'crowd') {
         crowdReports = row.value || {};
         saveCrowdShared();
       }
+
       if (row.key === 'detailInfoEdits') {
         detailInfoEdits = row.value || {};
         localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
@@ -1998,17 +2067,17 @@ function startSharedRealtimeSync() {
 }
 
 async function saveCommentsShared() {
-  saveCommentsShared();
+  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
   await cloudSaveJson('comments', userComments);
 }
 
 async function saveMediaShared() {
-  saveMediaShared();
+  localStorage.setItem('cammapUploadedMedia', JSON.stringify(uploadedMedia));
   await cloudSaveJson('media', uploadedMedia);
 }
 
 async function saveCrowdShared() {
-  saveCrowdShared();
+  localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
   await cloudSaveJson('crowd', crowdReports);
 }
 
@@ -2016,7 +2085,6 @@ async function saveDetailInfoShared() {
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
 }
-
 
 
 function getReviewComments(key) {
@@ -2152,7 +2220,7 @@ function setFacilityUpdatedNow(cat, building, floor) {
     tags: saved.tags || fd?.tags || '',
     updated: today
   };
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  saveDetailInfoShared();
 
   const target = (buildingData[cat] || []).find(b => b.name === building);
   if (target) target.updated = today;
