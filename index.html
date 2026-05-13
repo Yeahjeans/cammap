@@ -1530,7 +1530,7 @@ window.__naverMapScriptLoaded = false;
           <span class="up-sub">최대 3장 · JPG, PNG 지원</span>
         </div>
       </div>
-      <button class="submit-btn" onclick="submitReport()">제보 제출하기</button>
+      <button type="button" class="submit-btn" onclick="submitReport()">제보 제출하기</button>
     </div>
   </div>
   <div class="tab-bar">
@@ -2200,6 +2200,43 @@ async function cloudSaveJson(key, value) {
   }
 }
 
+
+function getReportUniqueKey(item) {
+  if (!item) return '';
+  const author = String(item.authorId || item.authorName || '익명').trim();
+  const building = String(item.building || '').trim();
+  const floor = String(item.floor || '').trim();
+  const cat = String(item.cat || '').trim();
+  const body = String(item.text || '').trim();
+  const date = String(item.date || '').trim();
+  return [author, building, floor, cat, body, date].join('|');
+}
+
+function dedupeReportsArray(arr) {
+  const map = new Map();
+  (Array.isArray(arr) ? arr : []).forEach((item) => {
+    if (!item) return;
+    const key = getReportUniqueKey(item) || String(item.id || JSON.stringify(item));
+    const prev = map.get(key);
+    if (!prev) {
+      map.set(key, { ...item, id: item.id || (Date.now() + '_' + Math.random().toString(36).slice(2, 8)) });
+      return;
+    }
+    const prevTime = String(prev.updatedAt || prev.date || '');
+    const nextTime = String(item.updatedAt || item.date || '');
+    const nextStatus = item.status || '검토중';
+    const prevStatus = prev.status || '검토중';
+    map.set(key, {
+      ...prev,
+      ...item,
+      id: prev.id || item.id,
+      status: nextStatus !== '검토중' || prevStatus === '검토중' ? nextStatus : prevStatus,
+      updatedAt: nextTime >= prevTime ? (item.updatedAt || prev.updatedAt) : (prev.updatedAt || item.updatedAt)
+    });
+  });
+  return Array.from(map.values());
+}
+
 async function loadSharedData() {
   if (!cloudReady) {
     updateCloudStatusBox();
@@ -2217,17 +2254,10 @@ async function loadSharedData() {
   crowdReports = mergeObjectPreserveLocal(remoteCrowd, crowdReports);
   detailInfoEdits = mergeObjectPreserveLocal(remoteDetailInfo, detailInfoEdits);
 
-  if (Array.isArray(remoteReports) || Array.isArray(userReports)) {
-    const combinedReports = [];
-    const seenReports = new Set();
-    [...(Array.isArray(remoteReports) ? remoteReports : []), ...(Array.isArray(userReports) ? userReports : [])].forEach(item => {
-      const id = JSON.stringify(item);
-      if (seenReports.has(id)) return;
-      seenReports.add(id);
-      combinedReports.push(item);
-    });
-    userReports = combinedReports;
-  }
+  userReports = dedupeReportsArray([
+    ...(Array.isArray(remoteReports) ? remoteReports : []),
+    ...(Array.isArray(userReports) ? userReports : [])
+  ]);
 
   saveLocalOnly('cammapUserComments', userComments);
   saveLocalOnly('cammapUploadedMedia', uploadedMedia);
@@ -2296,7 +2326,7 @@ function startSharedRealtimeSync() {
       }
 
       if (row.key === 'reports') {
-        userReports = row.value || [];
+        userReports = dedupeReportsArray(row.value || []);
         saveLocalOnly('cammapUserReports', userReports);
       }
 
@@ -2331,6 +2361,7 @@ async function saveDetailInfoShared() {
 }
 
 async function saveReportsShared() {
+  userReports = dedupeReportsArray(userReports);
   saveLocalOnly('cammapUserReports', userReports);
   await cloudSaveJson('reports', userReports);
 }
@@ -4803,7 +4834,7 @@ function renderMyReports() {
       <div class="my-item" onclick="openMyReportTarget('${String(r.id)}')">
         <div class="my-item-icon ${iconClass}">✏️</div>
         <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date || ''} · 누르면 상세정보로 이동</span></div>
-        <span style="font-size:11px;color:var(--orange);font-weight:600">${status}</span>
+        <span class="admin-status-badge ${getReportStatusClass(r.status || '검토중')}">${status}</span>
       </div>`;
   }).join('');
 }
@@ -4871,6 +4902,35 @@ function getReportTargetFloor(r) {
   return normalized || (floors[0]?.floor || '1층');
 }
 
+function stopAdminButtonEvent(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
+function openAdminReportTarget(reportId, event) {
+  stopAdminButtonEvent(event);
+  const r = (userReports || []).find(item => String(item.id) === String(reportId));
+  if (!r) { showToast('제보 내용을 찾지 못했습니다.'); return; }
+  const target = getReportOpenTarget(r);
+  if (!target.building || !target.floor) {
+    openMyReportDetailById(reportId);
+    return;
+  }
+  goToDetail(target.building, target.floor, target.cat);
+}
+
+function setAdminReportStatus(reportId, status, event) {
+  stopAdminButtonEvent(event);
+  updateReportStatus(reportId, status);
+}
+
+function removeAdminReport(reportId, event) {
+  stopAdminButtonEvent(event);
+  deleteReport(reportId);
+}
+
 function renderAdminReports() {
   const section = document.getElementById('admin-reports-section');
   const listEl = document.getElementById('admin-reports-list');
@@ -4882,6 +4942,7 @@ function renderAdminReports() {
     return;
   }
 
+  userReports = dedupeReportsArray(userReports);
   section.classList.add('show');
   const titleEl = section.querySelector('.admin-reports-title');
   if (titleEl) titleEl.textContent = `전체 제보함 · ${userReports.length}건`;
@@ -4896,13 +4957,11 @@ function renderAdminReports() {
   }
 
   listEl.innerHTML = userReports.slice().reverse().map(r => {
+    const reportId = escapeHTML(String(r.id));
     const title = escapeHTML(getReportTitle(r));
     const text = escapeHTML(r.text || '제보 내용 없음');
     const status = r.status || '검토중';
     const statusClass = getReportStatusClass(status);
-    const floor = escapeHTML(getReportTargetFloor(r));
-    const cat = r.cat || 'toilet';
-    const building = escapeHTML(r.building || '');
     return `
       <div class="admin-report-card">
         <div class="admin-report-top">
@@ -4911,29 +4970,35 @@ function renderAdminReports() {
         </div>
         <div class="admin-report-text"><span class="admin-status-badge ${statusClass}">${status}</span>${text}</div>
         <div class="admin-report-actions">
-          <button class="comment-action-btn" onclick="goToDetail('${building}','${floor}','${cat}')">상세 열기</button>
-          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '검토중')">검토중</button>
-          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '반영완료')">반영완료</button>
-          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '보류')">보류</button>
-          <button class="comment-action-btn danger" onclick="deleteReport(${r.id})">삭제</button>
+          <button type="button" class="comment-action-btn" onclick="openAdminReportTarget('${reportId}', event)">상세 열기</button>
+          <button type="button" class="comment-action-btn" onclick="setAdminReportStatus('${reportId}', '검토중', event)">검토중</button>
+          <button type="button" class="comment-action-btn" onclick="setAdminReportStatus('${reportId}', '반영완료', event)">반영완료</button>
+          <button type="button" class="comment-action-btn" onclick="setAdminReportStatus('${reportId}', '보류', event)">보류</button>
+          <button type="button" class="comment-action-btn danger" onclick="removeAdminReport('${reportId}', event)">삭제</button>
         </div>
       </div>`;
   }).join('');
 }
 
-function updateReportStatus(reportId, status) {
+async function updateReportStatus(reportId, status) {
   if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
-  userReports = userReports.map(r => r.id === reportId ? { ...r, status } : r);
-  saveReportsShared();
+  let changed = false;
+  userReports = dedupeReportsArray(userReports).map(r => {
+    if (String(r.id) !== String(reportId)) return r;
+    changed = true;
+    return { ...r, status, updatedAt: new Date().toISOString() };
+  });
+  if (!changed) { showToast('제보 내용을 찾지 못했습니다.'); return; }
+  await saveReportsShared();
   renderMyPage();
   showToast(`제보 상태를 ${status}(으)로 변경했습니다.`);
 }
 
-function deleteReport(reportId) {
+async function deleteReport(reportId) {
   if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
   if (!confirm('이 제보를 삭제할까요?')) return;
-  userReports = userReports.filter(r => r.id !== reportId);
-  saveReportsShared();
+  userReports = dedupeReportsArray(userReports).filter(r => String(r.id) !== String(reportId));
+  await saveReportsShared();
   renderMyPage();
   showToast('제보를 삭제했습니다.');
 }
@@ -5047,7 +5112,8 @@ function renderMyPage() {
 setTimeout(() => { renderMyPage(); renderHomeRecentViews(); }, 0);
 
 // ============ REPORT ============
-function submitReport() {
+let isSubmittingReport = false;
+async function submitReport() {
   const building = document.getElementById('report-building').value;
   const floor = document.getElementById('report-floor').value;
   const cat = document.getElementById('report-cat').value;
@@ -5058,8 +5124,23 @@ function submitReport() {
   if(!floor) { showToast('층을 선택해주세요.'); return; }
   if(!cat) { showToast('편의시설 종류를 선택해주세요.'); return; }
   if(!text) { showToast('제보 내용을 입력해주세요.'); return; }
+  if (isSubmittingReport) { showToast('제보를 저장하는 중입니다. 잠시만 기다려주세요.'); return; }
 
   const normalizedFloor = (cat === 'toilet' && building === '신공학관' && floor === '9층') ? '9층 화장실' : floor;
+  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  const alreadyExists = dedupeReportsArray(userReports).some(r =>
+    String(r.authorId || '') === String(currentUserId || '') &&
+    String(r.building || '') === String(building || '') &&
+    String(r.floor || '') === String(normalizedFloor || '') &&
+    String(r.cat || '') === String(cat || '') &&
+    String(r.text || '').trim() === text &&
+    String(r.date || '') === today
+  );
+  if (alreadyExists) {
+    showToast('이미 같은 제보가 접수되어 있습니다.');
+    return;
+  }
+  isSubmittingReport = true;
 
   const report = {
     id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -5070,10 +5151,11 @@ function submitReport() {
     cat,
     text,
     status: '검토중',
-    date: new Date().toISOString().slice(0, 10).replaceAll('-', '.')
+    date: today,
+    updatedAt: new Date().toISOString()
   };
 
-  userReports.push(report);
+  userReports = dedupeReportsArray([...(Array.isArray(userReports) ? userReports : []), report]);
   myReportIds.add(String(report.id));
   saveMyOwnership();
   saveReportsShared();
