@@ -626,6 +626,57 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   line-height: 1.5;
 }
 
+.admin-reports-section { display: none; }
+.admin-reports-section.show { display: block; }
+.admin-report-card {
+  background: var(--surface);
+  border-bottom: 1px solid var(--bg);
+  padding: 14px 20px;
+}
+.admin-report-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.admin-report-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+.admin-report-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.admin-report-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  margin-right: 6px;
+  background: var(--orange-light);
+  color: var(--orange);
+}
+.admin-status-badge.done { background: var(--green-light); color: var(--green); }
+.admin-status-badge.hold { background: var(--bg); color: var(--text-muted); }
+.admin-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+
 /* MAP SCREEN */
 #map {
   width: 100%;
@@ -1175,9 +1226,13 @@ window.__naverMapScriptLoaded = false;
       <div id="admin-status-box">
         <div class="my-item" onclick="loginAdmin()">
           <div class="my-item-icon o">🔐</div>
-          <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+          <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 제보 정리, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
           <span class="my-item-arrow">›</span>
         </div>
+      </div>
+      <div class="admin-reports-section" id="admin-reports-section">
+        <div class="my-section-title" style="padding-left:0;border-bottom:none">전체 제보함</div>
+        <div id="admin-reports-list"></div>
       </div>
     </div>
     <div class="my-section">
@@ -3388,6 +3443,88 @@ function renderMyReports() {
   }).join('');
 }
 
+
+function getReportStatusClass(status) {
+  if (status === '반영완료') return 'done';
+  if (status === '보류') return 'hold';
+  return '';
+}
+
+function getReportTitle(r) {
+  const catLabel = catInfo[r.cat]?.label || '시설';
+  return `${r.building} ${r.floor || ''} ${catLabel} 제보`.trim();
+}
+
+function getReportTargetFloor(r) {
+  if (r.cat === 'store') return getCanonicalStoreFloor(r.building) || r.floor || '1층';
+  return r.floor || (floorData[r.cat]?.[r.building]?.[0]?.floor || '1층');
+}
+
+function renderAdminReports() {
+  const section = document.getElementById('admin-reports-section');
+  const listEl = document.getElementById('admin-reports-list');
+  if (!section || !listEl) return;
+
+  if (!isAdmin) {
+    section.classList.remove('show');
+    listEl.innerHTML = '';
+    return;
+  }
+
+  section.classList.add('show');
+
+  if (!userReports.length) {
+    listEl.innerHTML = `
+      <div class="my-item">
+        <div class="my-item-icon o">📭</div>
+        <div class="my-item-text"><strong>접수된 제보가 없습니다</strong><span>제보 탭에서 들어온 내용이 여기에 모입니다.</span></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = userReports.slice().reverse().map(r => {
+    const title = escapeHTML(getReportTitle(r));
+    const text = escapeHTML(r.text || '제보 내용 없음');
+    const status = r.status || '검토중';
+    const statusClass = getReportStatusClass(status);
+    const floor = escapeHTML(getReportTargetFloor(r));
+    const cat = r.cat || 'toilet';
+    const building = escapeHTML(r.building || '');
+    return `
+      <div class="admin-report-card">
+        <div class="admin-report-top">
+          <div class="admin-report-title">${title}</div>
+          <div class="admin-report-date">${r.date || ''}</div>
+        </div>
+        <div class="admin-report-text"><span class="admin-status-badge ${statusClass}">${status}</span>${text}</div>
+        <div class="admin-report-actions">
+          <button class="comment-action-btn" onclick="goToDetail('${building}','${floor}','${cat}')">상세 열기</button>
+          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '검토중')">검토중</button>
+          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '반영완료')">반영완료</button>
+          <button class="comment-action-btn" onclick="updateReportStatus(${r.id}, '보류')">보류</button>
+          <button class="comment-action-btn danger" onclick="deleteReport(${r.id})">삭제</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateReportStatus(reportId, status) {
+  if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
+  userReports = userReports.map(r => r.id === reportId ? { ...r, status } : r);
+  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+  renderMyPage();
+  showToast(`제보 상태를 ${status}(으)로 변경했습니다.`);
+}
+
+function deleteReport(reportId) {
+  if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
+  if (!confirm('이 제보를 삭제할까요?')) return;
+  userReports = userReports.filter(r => r.id !== reportId);
+  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+  renderMyPage();
+  showToast('제보를 삭제했습니다.');
+}
+
 function getRecentViewDescription(v) {
   const fd = floorData[v.cat]?.[v.building]?.find(f => f.floor === v.floor);
   const base = fd?.tags || catInfo[v.cat]?.label || '시설 정보';
@@ -3454,12 +3591,12 @@ function renderAdminStatus() {
   box.innerHTML = isAdmin ? `
     <div class="my-item">
       <div class="my-item-icon o">🛠️</div>
-      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
+      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 제보 정리, 위치·상세정보·도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
       <button class="comment-action-btn danger" onclick="event.stopPropagation(); logoutAdmin();">로그아웃</button>
     </div>` : `
     <div class="my-item" onclick="loginAdmin()">
       <div class="my-item-icon o">🔐</div>
-      <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+      <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 제보 정리, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
       <span class="my-item-arrow">›</span>
     </div>`;
 }
@@ -3477,6 +3614,7 @@ function renderMyPage() {
   renderMyComments();
   renderMyFavorites();
   renderMyReports();
+  renderAdminReports();
   renderRecentViews();
 }
 
