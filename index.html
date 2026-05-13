@@ -140,7 +140,7 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   font-size: 18px;
   transition: all 0.15s;
 }
-.icon-btn.fav-active { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
+.icon-btn.fav-active { background: #FFECEC; border-color: #E53935; color: #E53935; }
 
 /* SCROLLABLE CONTENT */
 .scroll-content {
@@ -2004,7 +2004,8 @@ function isMineByAuthor(item) {
 // 자동 초기화 코드는 사용하지 않습니다.
 let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
 const ADMIN_PASSWORD = 'cammap2026';
-let isAdmin = localStorage.getItem('cammapIsAdmin') === 'true';
+// 관리자 모드는 새로고침/재접속 때 자동 유지하지 않고, 직접 로그인했을 때만 켜집니다.
+let isAdmin = sessionStorage.getItem('cammapIsAdmin') === 'true';
 let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
@@ -2948,9 +2949,7 @@ function selectBuilding(bname) {
   currentBuilding = bname;
   document.getElementById('floors-title').textContent = bname;
   document.getElementById('floors-sub').textContent = catInfo[currentCat].label + ' — 층 선택';
-  const favKey = currentCat + '_' + bname;
-  document.getElementById('fav-building-btn').textContent = favorites.has(favKey) ? '❤️' : '🤍';
-  document.getElementById('fav-building-btn').classList.toggle('fav-active', favorites.has(favKey));
+  syncFavoriteButtons();
   renderFloorList();
   pushScreen('floors');
 }
@@ -3225,10 +3224,7 @@ function renderDetail(cat, building, floor) {
   if(!fd) return;
   const title = getFacilityDisplayTitle(cat, building, floor);
   document.getElementById('detail-title').textContent = title;
-  const favKey = cat + '_' + building + '_' + floor;
-  const favBtn = document.getElementById('fav-detail-btn');
-  favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
-  favBtn.classList.toggle('fav-active', favorites.has(favKey));
+  syncFavoriteButtons();
 
   const commentKey = getPrimaryReviewKey(cat, building, floor);
   const reviewSafeId = makeReviewSafeId(cat, building, floor);
@@ -3528,7 +3524,7 @@ function loginAdmin() {
   if (pw === null) return;
   if (pw !== ADMIN_PASSWORD) { showToast('관리자 비밀번호가 올바르지 않습니다.'); return; }
   isAdmin = true;
-  localStorage.setItem('cammapIsAdmin', 'true');
+  sessionStorage.setItem('cammapIsAdmin', 'true');
   renderMyPage();
   if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
   if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
@@ -3537,7 +3533,7 @@ function loginAdmin() {
 
 function logoutAdmin() {
   isAdmin = false;
-  localStorage.removeItem('cammapIsAdmin');
+  sessionStorage.removeItem('cammapIsAdmin');
   renderMyPage();
   if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
   if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
@@ -3547,6 +3543,44 @@ function logoutAdmin() {
 // ============ FAVORITES ============
 function saveFavorites() {
   localStorage.setItem('cammapFavorites', JSON.stringify([...favorites]));
+}
+
+function getBuildingFavKey(cat, building) {
+  return `${cat}_${building}`;
+}
+
+function getDetailFavKey(cat, building, floor) {
+  return `${cat}_${building}_${floor}`;
+}
+
+function isDetailFavorited(cat, building, floor) {
+  return favorites.has(getDetailFavKey(cat, building, floor)) || favorites.has(getBuildingFavKey(cat, building));
+}
+
+function isBuildingFavorited(cat, building) {
+  const buildingKey = getBuildingFavKey(cat, building);
+  const detailPrefix = `${cat}_${building}_`;
+  return favorites.has(buildingKey) || [...favorites].some(key => key.startsWith(detailPrefix));
+}
+
+function syncFavoriteButtons() {
+  const detailBtn = document.getElementById('fav-detail-btn');
+  if (detailBtn && currentCat && currentBuilding && currentFloor) {
+    const active = isDetailFavorited(currentCat, currentBuilding, currentFloor);
+    detailBtn.textContent = active ? '❤️' : '🤍';
+    detailBtn.classList.toggle('fav-active', active);
+    detailBtn.setAttribute('aria-label', active ? '즐겨찾기 취소' : '즐겨찾기 추가');
+    detailBtn.title = active ? '즐겨찾기 취소' : '즐겨찾기 추가';
+  }
+
+  const buildingBtn = document.getElementById('fav-building-btn');
+  if (buildingBtn && currentCat && currentBuilding) {
+    const active = isBuildingFavorited(currentCat, currentBuilding);
+    buildingBtn.textContent = active ? '❤️' : '🤍';
+    buildingBtn.classList.toggle('fav-active', active);
+    buildingBtn.setAttribute('aria-label', active ? '즐겨찾기 취소' : '즐겨찾기 추가');
+    buildingBtn.title = active ? '즐겨찾기 취소' : '즐겨찾기 추가';
+  }
 }
 
 function getFavoriteItems() {
@@ -3559,30 +3593,58 @@ function getFavoriteItems() {
   }).filter(item => item.cat && item.building && item.floor);
 }
 
-function toggleBuildingFav() {
-  const key = currentCat + '_' + currentBuilding;
-  if(favorites.has(key)) favorites.delete(key); else favorites.add(key);
+function removeFavoriteByKey(key, event) {
+  if (event) event.stopPropagation();
+  if (!favorites.has(key)) {
+    showToast('이미 즐겨찾기에서 제거된 항목입니다.');
+    renderMyPage();
+    syncFavoriteButtons();
+    return;
+  }
+  favorites.delete(key);
   saveFavorites();
-
-  const btn = document.getElementById('fav-building-btn');
-  btn.textContent = favorites.has(key) ? '❤️' : '🤍';
-  btn.classList.toggle('fav-active', favorites.has(key));
   updateFavCount();
   renderMyPage();
-  showToast(favorites.has(key) ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.');
+  syncFavoriteButtons();
+  showToast('즐겨찾기에서 제거되었습니다.');
+}
+
+function toggleBuildingFav() {
+  const buildingKey = getBuildingFavKey(currentCat, currentBuilding);
+  const detailPrefix = `${currentCat}_${currentBuilding}_`;
+  const active = isBuildingFavorited(currentCat, currentBuilding);
+
+  if (active) {
+    favorites.delete(buildingKey);
+    [...favorites].forEach(key => { if (key.startsWith(detailPrefix)) favorites.delete(key); });
+  } else {
+    favorites.add(buildingKey);
+  }
+
+  saveFavorites();
+  syncFavoriteButtons();
+  updateFavCount();
+  renderMyPage();
+  showToast(active ? '즐겨찾기에서 제거되었습니다.' : '즐겨찾기에 추가되었습니다.');
 }
 
 function toggleDetailFav() {
-  const key = currentCat + '_' + currentBuilding + '_' + currentFloor;
-  if(favorites.has(key)) favorites.delete(key); else favorites.add(key);
-  saveFavorites();
+  const detailKey = getDetailFavKey(currentCat, currentBuilding, currentFloor);
+  const buildingKey = getBuildingFavKey(currentCat, currentBuilding);
+  const active = isDetailFavorited(currentCat, currentBuilding, currentFloor);
 
-  const btn = document.getElementById('fav-detail-btn');
-  btn.textContent = favorites.has(key) ? '❤️' : '🤍';
-  btn.classList.toggle('fav-active', favorites.has(key));
+  if (active) {
+    favorites.delete(detailKey);
+    favorites.delete(buildingKey);
+  } else {
+    favorites.add(detailKey);
+  }
+
+  saveFavorites();
+  syncFavoriteButtons();
   updateFavCount();
   renderMyPage();
-  showToast(favorites.has(key) ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.');
+  showToast(active ? '즐겨찾기에서 제거되었습니다.' : '즐겨찾기에 추가되었습니다.');
 }
 
 function updateFavCount() {
@@ -4231,12 +4293,7 @@ function openMapFacilityFloorList(facility) {
   document.getElementById('floors-title').textContent = facility.building;
   document.getElementById('floors-sub').textContent = catInfo[facility.cat].label + ' — 층 선택';
 
-  const favKey = facility.cat + '_' + facility.building;
-  const favBtn = document.getElementById('fav-building-btn');
-  if (favBtn) {
-    favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
-    favBtn.classList.toggle('fav-active', favorites.has(favKey));
-  }
+  syncFavoriteButtons();
 
   renderFloorList();
   pushScreen('floors');
@@ -4688,9 +4745,9 @@ function renderMyFavorites() {
     const desc = favFloorData ? getSavedFloorTags(item.cat, item.building, item.floor, favFloorData.tags) : '상세 정보와 리뷰 확인';
     return `
       <div class="my-item" onclick="goToDetail('${item.building}','${item.floor}','${item.cat}')">
-        <div class="my-item-icon ${iconClass}">⭐</div>
-        <div class="my-item-text"><strong>${title}</strong><span>${escapeHTML(desc)} · 댓글 보기 가능</span></div>
-        <span class="my-item-arrow">›</span>
+        <div class="my-item-icon ${iconClass}">❤️</div>
+        <div class="my-item-text"><strong>${title}</strong><span>${escapeHTML(desc)} · 누르면 상세정보로 이동</span></div>
+        <button class="comment-action-btn danger" onclick="removeFavoriteByKey('${item.key}', event)">취소</button>
       </div>`;
   }).join('');
 }
@@ -4942,6 +4999,11 @@ function renderRecentViews() {
 
 
 function scrollToAdminReports() {
+  if (!isAdmin) {
+    showToast('관리자 로그인 후 전체 제보함을 볼 수 있습니다.');
+    return;
+  }
+  renderAdminReports();
   const section = document.getElementById('admin-reports-section');
   if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -4978,6 +5040,7 @@ function renderMyPage() {
   renderMyReports();
   renderAdminReports();
   renderRecentViews();
+  syncFavoriteButtons();
 }
 
 // 최초 로딩 시 프로필 이름과 개인화 목록을 반영한다.
