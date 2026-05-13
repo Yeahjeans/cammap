@@ -496,6 +496,22 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .info-val.good { color: var(--green); }
 .info-val.warn { color: var(--orange); }
 .info-val.none { color: var(--text-muted); }
+.info-row.admin-editable { gap: 10px; }
+.info-main { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.info-edit-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--orange);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.info-edit-btn:hover { border-color: var(--orange); background: var(--orange-light); }
+
 
 /* REVIEWS */
 .review-section { padding: 0 20px 20px; }
@@ -1786,25 +1802,33 @@ function getMergedFacilityInfo(cat, building, floor, fd) {
   };
 }
 
-function editDetailInfo(cat, building, floor) {
+function getDetailInfoFieldList(cat, building, floor) {
+  const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
+  const merged = fd ? getMergedFacilityInfo(cat, building, floor, fd) : { info: {} };
+  const defaultKeysByCat = {
+    toilet: ['파우더룸', '청결도', '휴지비치', '비데', '혼잡도', '장애인화장실'],
+    store: ['매장명', '위치', '운영시간', '주요판매품목', '혼잡도', '결제방식'],
+    smoke: ['위치', '지붕/가림막', '의자', '혼잡도', '비고']
+  };
+  return [...new Set([...Object.keys(merged.info || {}), ...(defaultKeysByCat[cat] || [])])];
+}
+
+function editDetailInfoField(cat, building, floor, fieldKey) {
   if (!adminOnlyAction()) return;
-  const fd = (floorData[cat][building] || []).find(f => f.floor === floor) || (floorData[cat][building] || [])[0];
+  const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
   if (!fd) { showToast('수정할 상세 정보를 찾지 못했습니다.'); return; }
 
   const merged = getMergedFacilityInfo(cat, building, floor, fd);
-  const defaultKeys = ['구분', '파우더룸', '청결도', '휴지비치', '비데', '혼잡도', '장애인화장실'];
-  const keys = [...new Set([...Object.keys(merged.info || {}), ...defaultKeys])];
-  const nextInfo = {};
+  const currentPair = (merged.info || {})[fieldKey];
+  const current = Array.isArray(currentPair) ? currentPair[0] : '정보 없음';
+  const next = prompt(`${fieldKey} 정보만 수정합니다.\n비워두면 '정보 없음'으로 저장됩니다.`, current || '');
+  if (next === null) return;
 
-  for (const key of keys) {
-    const current = Array.isArray(merged.info[key]) ? merged.info[key][0] : '정보 없음';
-    const next = prompt(`${key} 정보를 입력하세요.\n비워두면 '정보 없음'으로 저장됩니다.`, current || '');
-    if (next === null) return;
-    const value = next.trim() || '정보 없음';
-    nextInfo[key] = [value, getInfoClassFromValue(value)];
-  }
-
+  const value = next.trim() || '정보 없음';
   const storageKey = getDetailInfoKey(cat, building, floor);
+  const nextInfo = { ...(merged.info || {}) };
+  nextInfo[fieldKey] = [value, getInfoClassFromValue(value)];
+
   detailInfoEdits[storageKey] = {
     ...(detailInfoEdits[storageKey] || {}),
     info: nextInfo,
@@ -1814,7 +1838,12 @@ function editDetailInfo(cat, building, floor) {
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
-  showToast('상세 정보가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
+  showToast(`${fieldKey} 항목만 수정했습니다.`);
+}
+
+function editDetailInfo(cat, building, floor) {
+  if (!adminOnlyAction()) return;
+  showToast('수정할 항목 오른쪽의 수정 버튼을 눌러주세요.');
 }
 
 function editLocationInfo(cat, building, floor) {
@@ -2164,9 +2193,12 @@ function renderDetail(cat, building, floor) {
   const avgRating = stats.label;
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
-  const infoRowsHTML = Object.entries(mergedInfo.info).map(([k,[v,cls]]) =>
-    `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val ${cls}">${escapeHTML(v)}</span></div>`
-  ).join('');
+  const infoRowsHTML = Object.entries(mergedInfo.info).map(([k,[v,cls]]) => {
+    const editButton = isAdmin
+      ? `<button class="info-edit-btn" onclick="editDetailInfoField('${escapeJSArg(cat)}','${escapeJSArg(building)}','${escapeJSArg(floor)}','${escapeJSArg(k)}')">수정</button>`
+      : '';
+    return `<div class="info-row ${isAdmin ? 'admin-editable' : ''}"><div class="info-main"><span class="info-key">${escapeHTML(k)}</span><span class="info-val ${cls}">${escapeHTML(v)}</span></div>${editButton}</div>`;
+  }).join('');
 
   const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
 
@@ -2231,7 +2263,7 @@ function renderDetail(cat, building, floor) {
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn" onclick="editDetailInfo('${cat}','${building}','${floor}')">상세 정보 수정</button></div>` : ''}
+    ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn" onclick="editDetailInfo('${cat}','${building}','${floor}')">항목별 수정 안내</button></div>` : ''}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
@@ -3312,6 +3344,16 @@ function escapeHTML(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function escapeJSArg(value) {
+  return String(value || '')
+    .replace(/\/g, '\\')
+    .replace(/'/g, "\'")
+    .replace(/
+/g, '\n')
+    .replace(/
+/g, '');
 }
 
 function addRecentView(building, floor, cat) {
