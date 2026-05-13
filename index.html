@@ -511,78 +511,6 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .info-row .info-edit-btn:hover { border-color: var(--orange); color: var(--orange); }
 .info-val-wrap { display: flex; align-items: center; gap: 6px; justify-content: flex-end; text-align: right; }
 
-
-/* REALTIME CROWD STATUS */
-.crowd-card {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  margin: 0 20px 16px;
-  border: 1px solid var(--border);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-}
-.crowd-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.crowd-title {
-  font-size: 15px;
-  font-weight: 900;
-  color: var(--text-primary);
-}
-.crowd-sub {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  line-height: 1.45;
-}
-.crowd-badge {
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-.crowd-badge.low { background: var(--green-light); color: var(--green); }
-.crowd-badge.mid { background: var(--orange-light); color: var(--orange); }
-.crowd-badge.high { background: var(--pink-light); color: var(--pink); }
-.crowd-badge.none { background: var(--bg); color: var(--text-muted); }
-.crowd-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-}
-.crowd-btn {
-  border: 1px solid var(--border);
-  background: var(--bg);
-  border-radius: 13px;
-  padding: 11px 8px;
-  font-size: 12px;
-  font-weight: 900;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.1s, border-color 0.15s, background 0.15s;
-}
-.crowd-btn:active { transform: scale(0.97); }
-.crowd-btn.low { color: var(--green); }
-.crowd-btn.mid { color: var(--orange); }
-.crowd-btn.high { color: var(--pink); }
-.crowd-btn.low.active { background: var(--green-light); border-color: var(--green); }
-.crowd-btn.mid.active { background: var(--orange-light); border-color: var(--orange); }
-.crowd-btn.high.active { background: var(--pink-light); border-color: var(--pink); }
-.crowd-note {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-@media (min-width: 768px) {
-  .crowd-card { margin: 0 40px 16px; }
-}
-
 /* REVIEWS */
 .review-section { padding: 0 20px 20px; }
 .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -1841,7 +1769,6 @@ let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
-let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}');
 
 
 function getReviewComments(key) {
@@ -2083,101 +2010,6 @@ function editLocationInfo(cat, building, floor) {
   showToast('위치 안내가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
 }
 
-
-// ============ REALTIME CROWD STATUS ============
-function getCrowdKey(cat, building, floor) {
-  return `${cat}_${building}_${floor}`;
-}
-
-function getCrowdMeta(status) {
-  const map = {
-    low: { label: '한산', cls: 'low', icon: '🟢' },
-    mid: { label: '보통', cls: 'mid', icon: '🟠' },
-    high: { label: '혼잡', cls: 'high', icon: '🔴' }
-  };
-  return map[status] || { label: '아직 제보 없음', cls: 'none', icon: '⚪' };
-}
-
-function getCrowdSummary(cat, building, floor) {
-  const key = getCrowdKey(cat, building, floor);
-  const reports = (crowdReports[key] || [])
-    .filter(r => Date.now() - Number(r.time || 0) < 2 * 60 * 60 * 1000);
-
-  // 2시간 지난 제보는 자동 정리
-  if ((crowdReports[key] || []).length !== reports.length) {
-    crowdReports[key] = reports;
-    localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
-  }
-
-  if (!reports.length) {
-    return { status: 'none', count: 0, label: '아직 제보 없음', updatedText: '최근 2시간 내 학생 제보가 없습니다.' };
-  }
-
-  const score = { low: 0, mid: 1, high: 2 };
-  const avg = reports.reduce((sum, r) => sum + score[r.status], 0) / reports.length;
-  const status = avg < 0.67 ? 'low' : avg < 1.34 ? 'mid' : 'high';
-  const latest = reports.reduce((max, r) => Math.max(max, Number(r.time || 0)), 0);
-  const minutesAgo = Math.max(0, Math.round((Date.now() - latest) / 60000));
-  const meta = getCrowdMeta(status);
-
-  return {
-    status,
-    count: reports.length,
-    label: meta.label,
-    updatedText: minutesAgo === 0 ? '방금 전 업데이트' : `${minutesAgo}분 전 업데이트`
-  };
-}
-
-function submitCrowdStatus(cat, building, floor, status) {
-  if (!(cat === 'toilet' || cat === 'store')) {
-    showToast('실시간 혼잡도는 화장실과 편의점에서만 사용할 수 있어요.');
-    return;
-  }
-
-  const key = getCrowdKey(cat, building, floor);
-  const userKey = currentUser || '익명';
-  const reports = (crowdReports[key] || [])
-    .filter(r => Date.now() - Number(r.time || 0) < 2 * 60 * 60 * 1000)
-    .filter(r => r.user !== userKey);
-
-  reports.push({
-    status,
-    user: userKey,
-    time: Date.now()
-  });
-
-  crowdReports[key] = reports;
-  localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
-
-  renderDetail(cat, building, floor);
-  showToast(`실시간 혼잡도를 '${getCrowdMeta(status).label}'으로 반영했습니다.`);
-}
-
-function renderCrowdStatusSection(cat, building, floor) {
-  if (!(cat === 'toilet' || cat === 'store')) return '';
-
-  const summary = getCrowdSummary(cat, building, floor);
-  const meta = getCrowdMeta(summary.status);
-
-  return `
-    <div class="crowd-card">
-      <div class="crowd-top">
-        <div>
-          <div class="crowd-title">실시간 혼잡도</div>
-          <div class="crowd-sub">학생들이 직접 선택한 최근 2시간 기준 혼잡도입니다.</div>
-        </div>
-        <div class="crowd-badge ${meta.cls}">${meta.icon} ${summary.label}</div>
-      </div>
-      <div class="crowd-buttons">
-        <button class="crowd-btn low ${summary.status === 'low' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','low')">🟢 한산</button>
-        <button class="crowd-btn mid ${summary.status === 'mid' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','mid')">🟠 보통</button>
-        <button class="crowd-btn high ${summary.status === 'high' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','high')">🔴 혼잡</button>
-      </div>
-      <div class="crowd-note">${summary.updatedText} · 참여 ${summary.count}명</div>
-    </div>
-  `;
-}
-
 // ============ NAVIGATION ============
 function switchTab(tab) {
   document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
@@ -2386,30 +2218,82 @@ function goToDetail(building, floor, cat) {
 // ============ DETAIL ============
 
 function planPlaceholderHTML(safeId, building, floor) {
-  return `<div class="img-placeholder" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')">
+  const clickAttr = isAdmin ? ` onclick="requestAdminMediaUpload('plan-input-${safeId}')"` : '';
+  return `<div class="img-placeholder" id="plan-box-${safeId}"${clickAttr}>
     <span class="ph-icon">🗂️</span>
-    <span class="ph-text">도면 이미지 추가</span>
+    <span class="ph-text">${isAdmin ? '도면 이미지 추가' : '등록된 도면이 없습니다'}</span>
     <span class="ph-sub">${building} ${floor} 평면도</span>
   </div>`;
 }
 
 function photoPlaceholderHTML(safeId, num, label) {
   const icon = num === 1 ? '📷' : '➕';
-  return `<div class="photo-ph" id="photo-box-${safeId}-${num}" onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')">
-    <span class="ph-icon">${icon}</span><span class="ph-text">${label}</span>
+  const clickAttr = isAdmin ? ` onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')"` : '';
+  return `<div class="photo-ph" id="photo-box-${safeId}-${num}"${clickAttr}>
+    <span class="ph-icon">${icon}</span><span class="ph-text">${isAdmin ? label : '등록된 사진 없음'}</span>
   </div>`;
+}
+
+function makeMediaSafeId(cat, building, floor) {
+  const normalizedBuilding = cat === 'store' ? normalizeReviewBuilding(cat, building) : building;
+  const normalizedFloor = cat === 'store' ? getCanonicalStoreFloor(normalizedBuilding) : floor;
+  return `${cat}_${normalizedBuilding}_${normalizedFloor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
+}
+
+function legacyMediaSafeIds(cat, building, floor) {
+  const ids = new Set();
+  ids.add(makeMediaSafeId(cat, building, floor));
+  ids.add(`${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
+
+  // 예전에 편의점을 1층으로 저장했거나, 건물명만 다르게 저장한 사진도 계속 보이게 함
+  if (cat === 'store') {
+    const canonical = normalizeReviewBuilding(cat, building);
+    const canonicalFloor = getCanonicalStoreFloor(canonical);
+    const oldNames = {
+      '법학관 쿱스켓 편의점': ['법학관 쿱스켓 편의점', '법학관', '만해관'],
+      '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
+      '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
+      '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
+      '혜화관 쿱스켓 편의점': ['혜화관 쿱스켓 편의점', '혜화관'],
+      '원흥관 쿱스켓 편의점': ['원흥관 쿱스켓 편의점', '원흥관'],
+      'CU 동국대 기숙사점': ['CU 동국대 기숙사점', '기숙사'],
+      '경영관 이마트 24 편의점': ['경영관 이마트 24 편의점', '경영관']
+    };
+    const oldFloors = ['1층', canonicalFloor, floor].filter(Boolean);
+    (oldNames[canonical] || [building]).forEach(name => {
+      oldFloors.forEach(f => {
+        ids.add(`${cat}_${name}_${f}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
+      });
+    });
+  }
+
+  return Array.from(ids);
 }
 
 function mediaStorageKey(type, safeId, num) {
   return num ? `${type}_${safeId}_${num}` : `${type}_${safeId}`;
 }
 
-function getStoredMedia(type, safeId, num) {
-  return uploadedMedia[mediaStorageKey(type, safeId, num)] || '';
+function getStoredMedia(type, safeId, num, cat = currentCat, building = currentBuilding, floor = currentFloor) {
+  const safeIds = legacyMediaSafeIds(cat, building, floor);
+  if (!safeIds.includes(safeId)) safeIds.unshift(safeId);
+
+  for (const id of safeIds) {
+    const value = uploadedMedia[mediaStorageKey(type, id, num)];
+    if (value) return value;
+  }
+  return '';
 }
 
-function saveUploadedMedia(type, safeId, num, dataUrl) {
-  uploadedMedia[mediaStorageKey(type, safeId, num)] = dataUrl;
+function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, building = currentBuilding, floor = currentFloor) {
+  const safeIds = legacyMediaSafeIds(cat, building, floor);
+  if (!safeIds.includes(safeId)) safeIds.unshift(safeId);
+
+  // 대표 키와 과거 호환 키에 함께 저장해서, 이후 코드를 수정해도 기존 사진이 계속 보이게 함
+  safeIds.forEach(id => {
+    uploadedMedia[mediaStorageKey(type, id, num)] = dataUrl;
+  });
+
   try {
     localStorage.setItem('cammapUploadedMedia', JSON.stringify(uploadedMedia));
   } catch (e) {
@@ -2417,6 +2301,18 @@ function saveUploadedMedia(type, safeId, num, dataUrl) {
     return false;
   }
   return true;
+}
+
+function mediaUploadAttr(inputId) {
+  return isAdmin ? ` onclick="requestAdminMediaUpload('${inputId}')"` : '';
+}
+
+function mediaEditBadgeHTML(label = '수정') {
+  return isAdmin ? `<span class="media-edit-badge">${label}</span>` : '';
+}
+
+function photoEditBadgeHTML(label = '수정') {
+  return isAdmin ? `<span class="photo-edit-badge">${label}</span>` : '';
 }
 
 function readImageAsDataURL(file, callback) {
@@ -2464,9 +2360,9 @@ function previewPlanImage(event, safeId) {
   if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, (dataUrl) => {
-    if(!saveUploadedMedia('plan', safeId, '', dataUrl)) return;
+    if(!saveUploadedMedia('plan', safeId, '', dataUrl, currentCat, currentBuilding, currentFloor)) return;
     const target = document.getElementById(`plan-box-${safeId}`);
-    const html = `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`;
+    const html = `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${mediaEditBadgeHTML()}</div>`;
     if(target) target.outerHTML = html;
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     showToast('도면 이미지가 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
@@ -2477,9 +2373,9 @@ function previewPhotoImage(event, safeId, num) {
   if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, (dataUrl) => {
-    if(!saveUploadedMedia('photo', safeId, num, dataUrl)) return;
+    if(!saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor)) return;
     const target = document.getElementById(`photo-box-${safeId}-${num}`);
-    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}" onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')"><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`;
+    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}"${mediaUploadAttr(`photo-input-${safeId}-${num}`)}><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${photoEditBadgeHTML()}</div>`;
     if(target) target.outerHTML = html;
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     showToast('사진이 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
@@ -2503,14 +2399,12 @@ function renderDetail(cat, building, floor) {
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
   const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {});
-  const infoRowsHTML = Object.entries(displayInfo)
-    .filter(([k]) => !((cat === 'toilet' || cat === 'store') && k === '혼잡도'))
-    .map(([k, arr]) => {
-      const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
-      const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
-      const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}')">수정</button>` : '';
-      return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
-    }).join('');
+  const infoRowsHTML = Object.entries(displayInfo).map(([k, arr]) => {
+    const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
+    const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
+    const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}')">수정</button>` : '';
+    return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
+  }).join('');
 
   const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
 
@@ -2530,26 +2424,26 @@ function renderDetail(cat, building, floor) {
     </div>
   `).join('') : '<div class="empty-review">아직 등록된 댓글과 평점이 없습니다.<br>첫 리뷰를 남겨주세요.</div>';
 
-  const safeId = `${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
-  const savedPlan = getStoredMedia('plan', safeId, '');
+  const safeId = makeMediaSafeId(cat, building, floor);
+  const savedPlan = getStoredMedia('plan', safeId, '', cat, building, floor);
   const planHTML = savedPlan
-    ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${savedPlan}" alt="${building} ${floor} 저장된 도면">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`
+    ? `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${savedPlan}" alt="${building} ${floor} 저장된 도면">${mediaEditBadgeHTML()}</div>`
     : (fd.planImage
-      ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`
+      ? `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')">${mediaEditBadgeHTML()}</div>`
       : planPlaceholderHTML(safeId, building, floor));
 
   const photos = fd.photos || [];
-  const savedPhoto1 = getStoredMedia('photo', safeId, 1);
-  const savedPhoto2 = getStoredMedia('photo', safeId, 2);
+  const savedPhoto1 = getStoredMedia('photo', safeId, 1, cat, building, floor);
+  const savedPhoto2 = getStoredMedia('photo', safeId, 2, cat, building, floor);
   const photo1HTML = savedPhoto1
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="requestAdminMediaUpload('photo-input-${safeId}-1')"><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1"${mediaUploadAttr(`photo-input-${safeId}-1`)}><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1">${photoEditBadgeHTML()}</div>`
     : (photos[0]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="requestAdminMediaUpload('photo-input-${safeId}-1')"><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1"${mediaUploadAttr(`photo-input-${safeId}-1`)}><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')">${photoEditBadgeHTML()}</div>`
       : photoPlaceholderHTML(safeId, 1, '사진 1'));
   const photo2HTML = savedPhoto2
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="requestAdminMediaUpload('photo-input-${safeId}-2')"><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2"${mediaUploadAttr(`photo-input-${safeId}-2`)}><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2">${photoEditBadgeHTML()}</div>`
     : (photos[1]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="requestAdminMediaUpload('photo-input-${safeId}-2')"><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2"${mediaUploadAttr(`photo-input-${safeId}-2`)}><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')">${photoEditBadgeHTML()}</div>`
       : photoPlaceholderHTML(safeId, 2, '사진 추가'));
 
   document.getElementById('detail-content').innerHTML = `
@@ -2566,14 +2460,13 @@ function renderDetail(cat, building, floor) {
       </div>
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-1" onchange="previewPhotoImage(event, '${safeId}', 1)">
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-2" onchange="previewPhotoImage(event, '${safeId}', 2)">
-      <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다.' : '도면·실사진 등록과 수정은 관리자만 할 수 있습니다.'}</div>
+      <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다. 등록된 사진은 일반 사용자에게도 보입니다.' : '등록된 도면·실사진은 누구나 볼 수 있고, 등록과 수정만 관리자에게 열려 있습니다.'}</div>
     </div>
     <div class="loc-box">
       <span class="loc-icon">📍</span>
       <span class="loc-text">${escapeHTML(mergedInfo.loc)}</span>
     </div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
-    ${renderCrowdStatusSection(cat, building, floor)}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
     ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다.</div>` : ''}
@@ -3265,6 +3158,26 @@ function showMapFloorPopupById(id) {
   showMapFloorPopup(facility);
 }
 
+
+function getPopupFloorBadgeLabel(floor) {
+  const text = String(floor || '').trim();
+
+  // 지하층은 B1처럼 표시
+  if (/B\s*1|B1|지하\s*1층|지하1층/i.test(text)) return 'B1';
+
+  // "혜화관 4층", "만해관 2층", "문화관 1층"처럼 앞에 건물명이 붙어도 숫자만 추출
+  const floorMatch = text.match(/(\d+)\s*층/);
+  if (floorMatch) return floorMatch[1];
+
+  // 흡연구역처럼 외부인 경우
+  if (text.includes('외부')) return '외';
+
+  return text
+    .replace('건물 외부 지정 구역','외')
+    .replace('외부 출입구 근처','외')
+    .replace('건물 뒤편 지정 구역','외');
+}
+
 function showMapFloorPopup(facility) {
   const old = document.getElementById('map-floor-popup-backdrop');
   if (old) old.remove();
@@ -3286,7 +3199,7 @@ function showMapFloorPopup(facility) {
 
   const items = floors.map(f => `
     <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
-      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${(String(f.floor).match(/^(\d+)층/) ? String(f.floor).match(/^(\d+)층/)[1] : String(f.floor).replace('외부','외'))}</div>
+      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${getPopupFloorBadgeLabel(f.floor)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:900;color:#1A1A1A">${getFacilityDisplayTitle(facility.cat, facility.building, f.floor)}</div>
         <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
