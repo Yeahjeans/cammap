@@ -1885,6 +1885,9 @@ let currentFloor = '';
 let currentTabScreen = 'home';
 let screenStack = [];
 let userRating = 0;
+let reviewSubmitLock = false;
+let lastReviewSubmitKey = '';
+let lastReviewSubmitAt = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
 let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
 // 리뷰/평점은 localStorage에 저장됩니다.
@@ -1977,6 +1980,43 @@ function saveLocalOnly(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function getCommentFingerprint(comment) {
+  const c = comment || {};
+  if (c.id) return 'id:' + String(c.id);
+  return [
+    c.name || '',
+    c.rating || '',
+    String(c.text || '').trim(),
+    c.date || '',
+    c.cat || '',
+    normalizeReviewBuilding(c.cat || '', c.building || ''),
+    c.floor || ''
+  ].join('|');
+}
+
+function dedupeCommentsObject(commentsObj) {
+  if (!isPlainObject(commentsObj)) return {};
+
+  const cleaned = {};
+  Object.entries(commentsObj).forEach(([key, arr]) => {
+    if (!Array.isArray(arr)) return;
+
+    const seen = new Set();
+    const list = [];
+    arr.forEach(item => {
+      if (!item) return;
+      const id = getCommentFingerprint(item);
+      if (seen.has(id)) return;
+      seen.add(id);
+      list.push(item);
+    });
+
+    if (list.length) cleaned[key] = list;
+  });
+
+  return cleaned;
+}
+
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -1995,7 +2035,7 @@ function mergeObjectPreserveLocal(remoteValue, localValue) {
       const seen = new Set();
 
       [...(Array.isArray(remoteItem) ? remoteItem : []), ...(Array.isArray(localItem) ? localItem : [])].forEach(item => {
-        const id = JSON.stringify(item);
+        const id = (item && typeof item === 'object' && ('text' in item || 'rating' in item)) ? getCommentFingerprint(item) : JSON.stringify(item);
         if (seen.has(id)) return;
         seen.add(id);
         combined.push(item);
@@ -2062,7 +2102,7 @@ async function loadSharedData() {
   const remoteDetailInfo = await cloudLoadJson('detailInfoEdits', {});
   const remoteReports = await cloudLoadJson('reports', []);
 
-  userComments = mergeObjectPreserveLocal(remoteComments, userComments);
+  userComments = dedupeCommentsObject(mergeObjectPreserveLocal(remoteComments, userComments));
   uploadedMedia = mergeObjectPreserveLocal(remoteMedia, uploadedMedia);
   crowdReports = mergeObjectPreserveLocal(remoteCrowd, crowdReports);
   detailInfoEdits = mergeObjectPreserveLocal(remoteDetailInfo, detailInfoEdits);
@@ -2126,7 +2166,7 @@ function startSharedRealtimeSync() {
       isApplyingRemoteUpdate = true;
 
       if (row.key === 'comments') {
-        userComments = row.value || {};
+        userComments = dedupeCommentsObject(row.value || {});
         saveLocalOnly('cammapUserComments', userComments);
       }
 
@@ -2160,6 +2200,7 @@ function startSharedRealtimeSync() {
 }
 
 async function saveCommentsShared() {
+  userComments = dedupeCommentsObject(userComments);
   saveLocalOnly('cammapUserComments', userComments);
   await cloudSaveJson('comments', userComments);
 }
@@ -2244,7 +2285,7 @@ function getReviewCommentsForFacility(cat, building, floor) {
       const sameFacilityByObject = (c.cat || cat) === cat && objectBuilding === canonicalBuilding && (cat === 'store' || !floor || c.floor === floor);
       const sameFacilityByKey = aliasKeys.has(key);
       if (!sameFacilityByObject && !sameFacilityByKey) return;
-      const seenKey = `${key}_${index}`;
+      const seenKey = getCommentFingerprint(c);
       if (seen.has(seenKey)) return;
       seen.add(seenKey);
       comments.push({ ...c, _key: key, _index: index, _isUserComment: true });
@@ -3098,11 +3139,28 @@ function submitReview(key, cat, building, floor, safeId = '') {
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
 
   const submitBtn = safeId ? document.getElementById('review-submit-' + safeId) : null;
-  if (submitBtn) submitBtn.disabled = true;
+  if (submitBtn && submitBtn.disabled) return;
+
+  const now = Date.now();
+  const reviewGuardKey = [key, currentUser, Number(userRating), text].join('|');
+  if (reviewSubmitLock || (lastReviewSubmitKey === reviewGuardKey && now - lastReviewSubmitAt < 5000)) {
+    showToast('리뷰 등록 중입니다. 잠시만 기다려주세요.');
+    return;
+  }
+
+  reviewSubmitLock = true;
+  lastReviewSubmitKey = reviewGuardKey;
+  lastReviewSubmitAt = now;
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '등록 중...';
+  }
 
   if(!userComments[key]) userComments[key] = [];
   const today = getTodayText();
-  userComments[key].push({
+  const newComment = {
+    id: `${now}_${Math.random().toString(36).slice(2, 10)}`,
     name: currentUser,
     rating: Number(userRating),
     text,
@@ -3110,8 +3168,12 @@ function submitReview(key, cat, building, floor, safeId = '') {
     cat,
     building,
     floor,
-    createdAt: Date.now()
-  });
+    createdAt: now
+  };
+
+  const newFingerprint = getCommentFingerprint(newComment);
+  const alreadyExists = (userComments[key] || []).some(item => getCommentFingerprint(item) === newFingerprint);
+  if (!alreadyExists) userComments[key].push(newComment);
 
   saveCommentsShared();
   setFacilityUpdatedNow(cat, building, floor);
@@ -3119,8 +3181,9 @@ function submitReview(key, cat, building, floor, safeId = '') {
   renderDetail(cat, building, floor);
   renderMyPage();
   showToast(cloudReady ? '리뷰가 공유 저장되었습니다! 🎉' : '리뷰가 이 기기에 저장되었습니다. 공유 저장은 Supabase 설정 후 가능합니다.');
-}
 
+  setTimeout(() => { reviewSubmitLock = false; }, 1500);
+}
 
 function editReview(key, index, cat, building, floor) {
   const list = userComments[key] || [];
