@@ -2376,17 +2376,64 @@ function setFacilityUpdatedNow(cat, building, floor) {
 
 
 function getDefaultInfoKeys(cat) {
-  if (cat === 'toilet') return ['파우더룸', '청결도', '휴지비치', '비데', '화장실 칸 수', '장애인화장실'];
+  if (cat === 'toilet') return ['여자화장실', '남자화장실', '파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
   if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '결제방식'];
   if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통'];
   return [];
 }
 
-function normalizeInfoForCat(cat, info) {
+function getToiletGenderInfo(info, building = '', floor = '', fd = {}) {
+  const sourceText = [
+    floor,
+    fd?.floor,
+    fd?.tags,
+    fd?.loc,
+    Array.isArray(info?.['구분']) ? info['구분'][0] : info?.['구분']
+  ].filter(Boolean).join(' ');
+
+  const hasWomen = /여자|여성|여학생/.test(sourceText);
+  const hasMen = /남자|남성|남학생/.test(sourceText);
+  const hasBoth = /남녀|공용|남자.*여자|여자.*남자/.test(sourceText) || (!hasWomen && !hasMen && String(floor || '').includes('화장실'));
+
+  if (hasBoth) {
+    return {
+      women: ['있음', 'good'],
+      men: ['있음', 'good']
+    };
+  }
+
+  if (hasWomen && !hasMen) {
+    return {
+      women: ['있음', 'good'],
+      men: ['해당 없음', 'none']
+    };
+  }
+
+  if (hasMen && !hasWomen) {
+    return {
+      women: ['해당 없음', 'none'],
+      men: ['있음', 'good']
+    };
+  }
+
+  return {
+    women: ['정보 업데이트 예정', 'none'],
+    men: ['정보 업데이트 예정', 'none']
+  };
+}
+
+function normalizeInfoForCat(cat, info, context = {}) {
   const next = { ...(info || {}) };
 
   delete next['혼잡도'];
-  if (cat === 'toilet') delete next['구분'];
+
+  if (cat === 'toilet') {
+    const gender = getToiletGenderInfo(next, context.building, context.floor, context.fd);
+    delete next['구분'];
+
+    if (!next['여자화장실']) next['여자화장실'] = gender.women;
+    if (!next['남자화장실']) next['남자화장실'] = gender.men;
+  }
 
   getDefaultInfoKeys(cat).forEach(key => {
     if (!next[key]) next[key] = ['정보 업데이트 예정', 'none'];
@@ -2407,7 +2454,7 @@ function getMergedFacilityInfo(cat, building, floor, fd) {
   const key = getDetailInfoKey(cat, building, floor);
   const saved = detailInfoEdits[key] || {};
   return {
-    info: normalizeInfoForCat(cat, saved.info || fd.info || {}),
+    info: normalizeInfoForCat(cat, saved.info || fd.info || {}, { building, floor, fd }),
     loc: saved.loc || fd.loc || '정확한 내부 위치 정보는 추후 업데이트 예정입니다.',
     tags: saved.tags || fd.tags || '상세 정보 보기',
     updated: saved.updated || fd.updated || '2026.05.07'
@@ -3021,7 +3068,7 @@ function renderDetail(cat, building, floor) {
   const avgRating = stats.label;
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
-  const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {});
+  const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {}, { building, floor, fd });
   const infoRowsHTML = Object.entries(displayInfo).map(([k, arr]) => {
     const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
     const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
