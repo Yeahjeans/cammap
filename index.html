@@ -1421,6 +1421,9 @@ window.__naverMapScriptLoaded = false;
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','중앙도서관')">
           <div class="map-pin-name">📍 중앙도서관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','신공학관')">
+          <div class="map-pin-name">📍 신공학관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
+        </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','법학만해관')">
           <div class="map-pin-name">📍 법학만해관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
@@ -1498,14 +1501,14 @@ window.__naverMapScriptLoaded = false;
         <label class="form-label">건물 선택</label>
         <select class="form-select" id="report-building">
           <option value="">건물을 선택하세요</option>
-          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>과학관</option><option>법학만해관</option><option>중앙도서관</option><option>본관</option><option>혜화관</option><option>명진관</option><option>문화관</option><option>학림관</option><option>상록원</option><option>기숙사</option><option>다향관</option>
+          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>과학관</option><option>신공학관</option><option>법학만해관</option><option>중앙도서관</option><option>본관</option><option>혜화관</option><option>명진관</option><option>문화관</option><option>학림관</option><option>상록원</option><option>기숙사</option><option>다향관</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">층 선택</label>
         <select class="form-select" id="report-floor">
           <option value="">층을 선택하세요</option>
-          <option>1층</option><option>2층</option><option>3층</option><option>4층</option><option>5층</option><option>외부</option>
+          <option>1층</option><option>2층</option><option>3층</option><option>4층</option><option>5층</option><option>6층</option><option>7층</option><option>8층</option><option>9층</option><option>외부</option>
         </select>
       </div>
       <div class="form-group">
@@ -1746,6 +1749,7 @@ const buildingData = {
   toilet: [
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '신공학관',   walk: '도보 4분', floors: ['9층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '중앙도서관',   walk: '도보 4분', floors: ['2층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '법학만해관',   walk: '도보 5분', floors: ['1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
@@ -1787,6 +1791,9 @@ const floorData = {
       { floor: '3층', tags: '경영관 3층 화장실', loc: '경영관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-3f-map.png', photos: ['business-3f-photo1.jpg', 'business-3f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '4층', tags: '경영관 4층 화장실', loc: '경영관 4층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-4f-map.png', photos: ['business-4f-photo1.jpg', 'business-4f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '5층', tags: '경영관 5층 화장실', loc: '경영관 5층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-5f-map.png', photos: ['business-5f-photo1.jpg', 'business-5f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
+    ],
+    '신공학관': [
+      { floor: '9층 화장실', tags: '신공학관 9층 화장실', loc: '신공학관 9층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'engineering-9f-map.png', photos: ['engineering-9f-photo1.jpg', 'engineering-9f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
     ],
     '과학관': [
       { floor: '1층 남자화장실', tags: '남자화장실 / 홀수층', loc: '과학관 1층 남자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-1f-men-map.png', photos: ['science-1f-men-photo1.jpg', 'science-1f-men-photo2.jpg'], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
@@ -3566,7 +3573,7 @@ function handleSearch(q) {
   mainContent.style.display = 'none';
 
   const keywords = { '화장실': 'toilet', '편의점': 'store', '흡연': 'smoke', '흡연구역': 'smoke' };
-  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','과학관','중앙도서관','법학만해관','법학만해관 앞','법학만해관 다리','문화관','학림관','상록원','본관','혜화관','혜화관 옆','명진관','다향관','기숙사'];
+  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','신공학관','과학관','중앙도서관','법학만해관','법학만해관 앞','법학만해관 다리','문화관','학림관','상록원','본관','혜화관','혜화관 옆','명진관','다향관','기숙사'];
   let results = [];
 
   for(const [kw, cat] of Object.entries(keywords)) {
@@ -3705,6 +3712,15 @@ const facilityCoords = [
     "name": "신공학관 화장실",
     "building": "신공학관",
     "floor": "1층",
+    "lat": 37.5581734,
+    "lng": 126.9980282
+  },
+  {
+    "id": "toilet_engineering_9f",
+    "cat": "toilet",
+    "name": "신공학관 9층 화장실",
+    "building": "신공학관",
+    "floor": "9층 화장실",
     "lat": 37.5581734,
     "lng": 126.9980282
   },
@@ -4549,7 +4565,7 @@ function addRecentView(building, floor, cat) {
   if (!building || !floor || !cat) return;
   const item = {
     building,
-    floor,
+    floor: normalizedFloor,
     cat,
     viewedAt: Date.now(),
     date: new Date().toISOString().slice(0, 10).replaceAll('-', '.')
@@ -4661,19 +4677,43 @@ function renderMyReports() {
     return;
   }
 
-  listEl.innerHTML = userReports.slice().reverse().map(r => {
+  listEl.innerHTML = userReports.slice().reverse().map((r, reverseIndex) => {
+    const originalIndex = userReports.length - 1 - reverseIndex;
     const iconClass = getCatIconClass(r.cat);
     const title = escapeHTML(`${r.building} ${r.floor || ''} ${catInfo[r.cat]?.label || '시설'} 제보`);
     const text = escapeHTML(r.text || '제보 내용 없음');
-    const floor = r.floor || (floorData[r.cat]?.[r.building]?.[0]?.floor || '1층');
+    const status = escapeHTML(r.status || '검토중');
     return `
-      <div class="my-item" onclick="goToDetail('${r.building}','${floor}','${r.cat}')">
+      <div class="my-item" onclick="openMyReportDetail(${originalIndex})">
         <div class="my-item-icon ${iconClass}">✏️</div>
-        <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date}</span></div>
-        <span style="font-size:11px;color:var(--orange);font-weight:600">검토중</span>
+        <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date || ''}</span></div>
+        <span style="font-size:11px;color:var(--orange);font-weight:600">${status}</span>
       </div>`;
   }).join('');
 }
+
+function openMyReportDetail(index) {
+  const r = userReports[index];
+  if (!r) {
+    showToast('제보 내용을 찾지 못했습니다.');
+    return;
+  }
+
+  const catLabel = catInfo[r.cat]?.label || '시설';
+  const message = [
+    `건물: ${r.building || '-'}`,
+    `층: ${r.floor || '-'}`,
+    `종류: ${catLabel}`,
+    `상태: ${r.status || '검토중'}`,
+    `날짜: ${r.date || '-'}`,
+    '',
+    `제보 내용:`,
+    r.text || '제보 내용 없음'
+  ].join('\n');
+
+  alert(message);
+}
+
 
 
 function getReportStatusClass(status) {
@@ -4689,7 +4729,22 @@ function getReportTitle(r) {
 
 function getReportTargetFloor(r) {
   if (r.cat === 'store') return getCanonicalStoreFloor(r.building) || r.floor || '1층';
-  return r.floor || (floorData[r.cat]?.[r.building]?.[0]?.floor || '1층');
+
+  const building = r.building || '';
+  const floor = r.floor || '';
+  const floors = floorData[r.cat]?.[building] || [];
+
+  const exact = floors.find(item => item.floor === floor);
+  if (exact) return exact.floor;
+
+  const normalized = (r.cat === 'toilet' && building === '신공학관' && floor === '9층') ? '9층 화장실' : floor;
+  const normalizedExact = floors.find(item => item.floor === normalized);
+  if (normalizedExact) return normalizedExact.floor;
+
+  const partial = floors.find(item => String(item.floor || '').includes(String(floor || '').replace(' 화장실', '')));
+  if (partial) return partial.floor;
+
+  return normalized || (floors[0]?.floor || '1층');
 }
 
 function renderAdminReports() {
@@ -4704,6 +4759,8 @@ function renderAdminReports() {
   }
 
   section.classList.add('show');
+  const titleEl = section.querySelector('.admin-reports-title');
+  if (titleEl) titleEl.textContent = `전체 제보함 · ${userReports.length}건`;
 
   if (!userReports.length) {
     listEl.innerHTML = `
@@ -4817,13 +4874,19 @@ function renderRecentViews() {
 }
 
 
+function scrollToAdminReports() {
+  const section = document.getElementById('admin-reports-section');
+  if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderAdminStatus() {
   const box = document.getElementById('admin-status-box');
   if (!box) return;
   box.innerHTML = isAdmin ? `
     <div class="my-item">
       <div class="my-item-icon o">🛠️</div>
-      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 제보 정리, 위치·상세정보·도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
+      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>아래 전체 제보함에서 모든 사용자 제보를 확인하고 상태를 정리할 수 있습니다.</span></div>
+      <button class="comment-action-btn" onclick="event.stopPropagation(); scrollToAdminReports();">전체 제보 보기</button>
       <button class="comment-action-btn danger" onclick="event.stopPropagation(); logoutAdmin();">로그아웃</button>
     </div>` : `
     <div class="my-item" onclick="loginAdmin()">
@@ -4866,10 +4929,12 @@ function submitReport() {
   if(!cat) { showToast('편의시설 종류를 선택해주세요.'); return; }
   if(!text) { showToast('제보 내용을 입력해주세요.'); return; }
 
+  const normalizedFloor = (cat === 'toilet' && building === '신공학관' && floor === '9층') ? '9층 화장실' : floor;
+
   const report = {
     id: Date.now(),
     building,
-    floor,
+    floor: normalizedFloor,
     cat,
     text,
     status: '검토중',
