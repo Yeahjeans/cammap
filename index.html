@@ -1,4 +1,4 @@
-ㅁ<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -1127,6 +1127,28 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   .crowd-card { margin: 0 40px 16px; }
 }
 
+
+.review-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cloud-status-box {
+  margin: 10px 20px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #FFF8F3;
+  border: 1px solid var(--orange-mid);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.cloud-status-box strong {
+  color: var(--orange);
+}
+@media (min-width: 768px) {
+  .cloud-status-box { margin: 10px 40px 0; }
+}
+
 </style>
 <script>
 // 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
@@ -1135,6 +1157,9 @@ window.__naverMapScriptFailed = false;
 window.__naverMapScriptLoading = false;
 window.__naverMapScriptLoaded = false;
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body>
 
@@ -1372,6 +1397,7 @@ window.__naverMapScriptLoaded = false;
     </div>
   </div>
   <div class="scroll-content">
+    <div class="cloud-status-box" id="cloud-status-box"><strong>공유 저장 준비:</strong> 아래 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 댓글·실시간 혼잡도·사진·도면이 여러 사람에게 공유됩니다. 입력 전에는 이 기기에서만 저장됩니다.</div>
     <div class="report-container">
       <div class="example-box">
         <p>제보 예시</p>
@@ -1735,7 +1761,6 @@ function ensureFacilityDataForMapFacility(facility) {
           위치: [`${facility.building} ${facility.floor || '1층'}`, ''],
           운영시간: ['정보 업데이트 예정', 'none'],
           주요판매품목: ['음료·간식·간편식', ''],
-          혼잡도: ['정보 없음', 'none'],
           결제방식: ['카드/페이', 'good']
         }
       : {
@@ -1743,7 +1768,6 @@ function ensureFacilityDataForMapFacility(facility) {
           청결도: ['정보 없음','none'],
           휴지비치: ['정보 없음','none'],
           비데: ['정보 없음','none'],
-          혼잡도: ['정보 없음','none'],
           장애인화장실: ['정보 없음','none']
         };
 
@@ -1857,6 +1881,142 @@ let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
 let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}');
+
+/* ===== 공유 저장 설정 =====
+   여러 사람이 댓글·사진·도면·혼잡도를 같이 보려면 Supabase 프로젝트를 만든 뒤
+   아래 두 값을 본인 프로젝트 값으로 바꾸면 됩니다.
+   값이 비어 있으면 기존처럼 localStorage에만 저장됩니다.
+*/
+const SUPABASE_URL = '';
+const SUPABASE_ANON_KEY = '';
+let cammapDb = null;
+let cloudReady = false;
+
+function initCloudStore() {
+  try {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+      cammapDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      cloudReady = true;
+    }
+  } catch (e) {
+    console.warn('공유 저장소 연결 실패:', e);
+    cloudReady = false;
+  }
+  updateCloudStatusBox();
+}
+
+function updateCloudStatusBox() {
+  const el = document.getElementById('cloud-status-box');
+  if (!el) return;
+  if (cloudReady) {
+    el.innerHTML = '<strong>공유 저장 ON:</strong> 댓글·실시간 혼잡도·사진·도면이 여러 사용자에게 공유됩니다.';
+  } else {
+    el.innerHTML = '<strong>공유 저장 OFF:</strong> 현재는 이 기기 브라우저에만 저장됩니다. SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 여러 사람이 함께 볼 수 있습니다.';
+  }
+}
+
+async function cloudLoadJson(key, fallbackValue) {
+  if (!cloudReady || !cammapDb) return fallbackValue;
+  try {
+    const { data, error } = await cammapDb
+      .from('cammap_store')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) throw error;
+    return data && data.value ? data.value : fallbackValue;
+  } catch (e) {
+    console.warn('cloudLoadJson 실패:', key, e);
+    return fallbackValue;
+  }
+}
+
+async function cloudSaveJson(key, value) {
+  if (!cloudReady || !cammapDb) return false;
+  try {
+    const { error } = await cammapDb
+      .from('cammap_store')
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn('cloudSaveJson 실패:', key, e);
+    showToast('공유 저장에 실패했습니다. 네트워크나 Supabase 설정을 확인해주세요.');
+    return false;
+  }
+}
+
+async function loadSharedData() {
+  if (!cloudReady) return;
+
+  userComments = await cloudLoadJson('comments', userComments || {});
+  uploadedMedia = await cloudLoadJson('media', uploadedMedia || {});
+  crowdReports = await cloudLoadJson('crowd', crowdReports || {});
+  detailInfoEdits = await cloudLoadJson('detailInfoEdits', detailInfoEdits || {});
+
+  saveCommentsShared();
+  saveMediaShared();
+  saveCrowdShared();
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  cloudSaveJson('detailInfoEdits', detailInfoEdits);
+
+  if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
+  if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
+  if (currentTabScreen === 'mypage') renderMyPage();
+}
+
+function startSharedRealtimeSync() {
+  if (!cloudReady || !cammapDb) return;
+
+  cammapDb.channel('cammap-shared-store')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cammap_store' }, (payload) => {
+      const row = payload.new;
+      if (!row || !row.key) return;
+
+      if (row.key === 'comments') {
+        userComments = row.value || {};
+        saveCommentsShared();
+      }
+      if (row.key === 'media') {
+        uploadedMedia = row.value || {};
+        saveMediaShared();
+      }
+      if (row.key === 'crowd') {
+        crowdReports = row.value || {};
+        saveCrowdShared();
+      }
+      if (row.key === 'detailInfoEdits') {
+        detailInfoEdits = row.value || {};
+        localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+      }
+
+      if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
+      if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
+      if (currentTabScreen === 'mypage') renderMyPage();
+    })
+    .subscribe();
+}
+
+async function saveCommentsShared() {
+  saveCommentsShared();
+  await cloudSaveJson('comments', userComments);
+}
+
+async function saveMediaShared() {
+  saveMediaShared();
+  await cloudSaveJson('media', uploadedMedia);
+}
+
+async function saveCrowdShared() {
+  saveCrowdShared();
+  await cloudSaveJson('crowd', crowdReports);
+}
+
+async function saveDetailInfoShared() {
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  await cloudSaveJson('detailInfoEdits', detailInfoEdits);
+}
+
 
 
 function getReviewComments(key) {
@@ -2009,17 +2169,26 @@ function setFacilityUpdatedNow(cat, building, floor) {
 
 
 function getDefaultInfoKeys(cat) {
-  if (cat === 'toilet') return ['구분', '파우더룸', '청결도', '휴지비치', '비데', '화장실 칸 수', '혼잡도', '장애인화장실'];
-  if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '혼잡도', '결제방식'];
-  if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통', '혼잡도'];
+  if (cat === 'toilet') return ['파우더룸', '청결도', '휴지비치', '비데', '화장실 칸 수', '장애인화장실'];
+  if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '결제방식'];
+  if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통'];
   return [];
 }
 
 function normalizeInfoForCat(cat, info) {
   const next = { ...(info || {}) };
+
+  delete next['혼잡도'];
+  if (cat === 'toilet') delete next['구분'];
+
   getDefaultInfoKeys(cat).forEach(key => {
     if (!next[key]) next[key] = ['정보 업데이트 예정', 'none'];
   });
+
+  Object.keys(next).forEach(key => {
+    if (!getDefaultInfoKeys(cat).includes(key)) delete next[key];
+  });
+
   return next;
 }
 
@@ -2074,7 +2243,7 @@ function editFloorTags(catEnc, buildingEnc, floorEnc) {
     updated: getTodayText()
   };
 
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  saveDetailInfoShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderFloorList();
   showToast('층 설명이 수정되었습니다.');
@@ -2100,7 +2269,7 @@ function getCrowdSummary(cat, building, floor) {
 
   if ((crowdReports[key] || []).length !== reports.length) {
     crowdReports[key] = reports;
-    localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
+    saveCrowdShared();
   }
 
   if (!reports.length) {
@@ -2141,7 +2310,7 @@ function submitCrowdStatus(cat, building, floor, status) {
   });
 
   crowdReports[key] = reports;
-  localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
+  saveCrowdShared();
 
   renderDetail(cat, building, floor);
   showToast(`실시간 혼잡도를 '${getCrowdMeta(status).label}'으로 반영했습니다.`);
@@ -2180,6 +2349,11 @@ function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
   const floor = decodeInfoArg(floorEnc);
   const key = decodeInfoArg(keyEnc);
 
+  if (key === '혼잡도' || (cat === 'toilet' && key === '구분')) {
+    showToast('이 항목은 상세정보에서 사용하지 않습니다. 혼잡도는 실시간 혼잡도만 사용합니다.');
+    return;
+  }
+
   const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
   if (!fd) { showToast('수정할 상세 정보를 찾지 못했습니다.'); return; }
 
@@ -2200,7 +2374,7 @@ function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
     loc: merged.loc || fd.loc || '',
     updated: getTodayText()
   };
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  saveDetailInfoShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   showToast(`${key} 정보가 수정되었습니다.`);
@@ -2228,7 +2402,7 @@ function editLocationInfo(cat, building, floor) {
     loc: cleanLoc,
     updated: getTodayText()
   };
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  saveDetailInfoShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   showToast('위치 안내가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
@@ -2522,7 +2696,7 @@ function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, buildin
   });
 
   try {
-    localStorage.setItem('cammapUploadedMedia', JSON.stringify(uploadedMedia));
+    saveMediaShared();
   } catch (e) {
     showToast('이미지 용량이 커서 저장하지 못했습니다. 더 작은 사진으로 다시 시도해주세요.');
     return false;
@@ -2609,6 +2783,20 @@ function previewPhotoImage(event, safeId, num) {
   });
 }
 
+
+function makeReviewSafeId(cat, building, floor) {
+  return `${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
+}
+
+function getPrimaryReviewKey(cat, building, floor) {
+  if (cat === 'store') {
+    const canonicalBuilding = normalizeReviewBuilding(cat, building);
+    const canonicalFloor = getCanonicalStoreFloor(canonicalBuilding);
+    return `${cat}_${canonicalBuilding}_${canonicalFloor}`;
+  }
+  return `${cat}_${building}_${floor}`;
+}
+
 function renderDetail(cat, building, floor) {
   const fd = (floorData[cat][building] || []).find(f => f.floor === floor) || (floorData[cat][building] || [])[0];
   if(!fd) return;
@@ -2619,7 +2807,8 @@ function renderDetail(cat, building, floor) {
   favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
   favBtn.classList.toggle('fav-active', favorites.has(favKey));
 
-  const commentKey = `${cat}_${building}_${floor}`;
+  const commentKey = getPrimaryReviewKey(cat, building, floor);
+  const reviewSafeId = makeReviewSafeId(cat, building, floor);
   const allCmts = getReviewCommentsForFacility(cat, building, floor);
   const stats = getReviewStats(cat, building, floor);
   const avgRating = stats.label;
@@ -2697,7 +2886,7 @@ function renderDetail(cat, building, floor) {
     ${renderCrowdStatusSection(cat, building, floor)}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다.</div>` : ''}
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
@@ -2712,11 +2901,11 @@ function renderDetail(cat, building, floor) {
       ${cmtsHTML}
       <div class="write-box">
         <h4>리뷰 작성</h4>
-        <div class="star-picker" id="star-picker-${commentKey}">
-          ${[1,2,3,4,5].map(i => `<button class="star-pick-btn" data-val="${i}" onclick="setRating(${i},'${commentKey}')">☆</button>`).join('')}
+        <div class="star-picker" id="star-picker-${reviewSafeId}">
+          ${[1,2,3,4,5].map(i => `<button type="button" class="star-pick-btn" data-val="${i}" onclick="setRating(${i},'${reviewSafeId}')">☆</button>`).join('')}
         </div>
-        <textarea class="review-textarea" id="review-input-${commentKey}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
-        <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}')">리뷰 등록하기</button>
+        <textarea class="review-textarea" id="review-input-${reviewSafeId}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
+        <button type="button" class="submit-btn review-submit-btn" id="review-submit-${reviewSafeId}" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}','${reviewSafeId}')">리뷰 등록하기</button>
       </div>
     </div>
   `;
@@ -2724,32 +2913,46 @@ function renderDetail(cat, building, floor) {
 }
 
 function setRating(val, key) {
-  userRating = val;
-  const btns = document.querySelectorAll(`#star-picker-${key} .star-pick-btn`);
-  btns.forEach((btn, i) => { btn.textContent = i < val ? '⭐' : '☆'; });
+  userRating = Number(val);
+  const picker = document.getElementById('star-picker-' + key);
+  if (!picker) {
+    showToast('별점 선택 영역을 찾지 못했습니다.');
+    return;
+  }
+  const btns = picker.querySelectorAll('.star-pick-btn');
+  btns.forEach((btn, i) => { btn.textContent = i < userRating ? '⭐' : '☆'; });
 }
 
-function submitReview(key, cat, building, floor) {
-  const input = document.getElementById('review-input-' + key);
+function submitReview(key, cat, building, floor, safeId = '') {
+  const inputId = safeId ? 'review-input-' + safeId : 'review-input-' + key;
+  const input = document.getElementById(inputId);
   const text = input ? input.value.trim() : '';
+  if(!input) { showToast('리뷰 입력창을 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
   if(!text) { showToast('리뷰 내용을 입력해주세요.'); return; }
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
+
+  const submitBtn = safeId ? document.getElementById('review-submit-' + safeId) : null;
+  if (submitBtn) submitBtn.disabled = true;
+
   if(!userComments[key]) userComments[key] = [];
   const today = getTodayText();
   userComments[key].push({
     name: currentUser,
-    rating: userRating,
+    rating: Number(userRating),
     text,
     date: today,
     cat,
     building,
-    floor
+    floor,
+    createdAt: Date.now()
   });
-  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+
+  saveCommentsShared();
   setFacilityUpdatedNow(cat, building, floor);
+  userRating = 0;
   renderDetail(cat, building, floor);
   renderMyPage();
-  showToast('리뷰가 등록되었습니다! 🎉');
+  showToast(cloudReady ? '리뷰가 공유 저장되었습니다! 🎉' : '리뷰가 이 기기에 저장되었습니다. 공유 저장은 Supabase 설정 후 가능합니다.');
 }
 
 
@@ -2775,7 +2978,7 @@ function editReview(key, index, cat, building, floor) {
   item.rating = nextRating;
   item.edited = true;
   item.editedDate = getTodayText();
-  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  saveCommentsShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   renderMyPage();
@@ -2789,7 +2992,7 @@ function deleteReviewAsAdmin(key, index, cat, building, floor) {
   if (!confirm('이 댓글을 삭제할까요?')) return;
   list.splice(index, 1);
   if (!list.length) delete userComments[key];
-  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  saveCommentsShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   renderMyPage();
@@ -4191,4 +4394,40 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 </script>
-</div></body></html>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  initCloudStore();
+  await loadSharedData();
+  startSharedRealtimeSync();
+});
+</script>
+
+</body>
+<!--
+[Supabase 공유 저장용 테이블 SQL]
+Supabase SQL Editor에서 아래를 한 번 실행하세요.
+
+create table if not exists public.cammap_store (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+
+alter table public.cammap_store enable row level security;
+
+create policy "cammap_store_select_all"
+on public.cammap_store for select
+using (true);
+
+create policy "cammap_store_insert_all"
+on public.cammap_store for insert
+with check (true);
+
+create policy "cammap_store_update_all"
+on public.cammap_store for update
+using (true)
+with check (true);
+-->
+
+</html>
