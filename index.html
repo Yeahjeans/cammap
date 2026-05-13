@@ -2143,6 +2143,10 @@ function editLocationInfo(cat, building, floor) {
 }
 
 
+function getCrowdKey(cat, building, floor) {
+  return `${cat}_${building}_${floor}`;
+}
+
 function getCrowdMeta(status) {
   const map = {
     low: { label: '한산', cls: 'low', icon: '🟢' },
@@ -2713,7 +2717,7 @@ function renderDetail(cat, building, floor) {
       <div class="write-box">
         <h4>리뷰 작성</h4>
         <div class="star-picker" id="star-picker-${reviewSafeId}">
-          ${[1,2,3,4,5].map(i => `<button type="button" type="button" class="star-pick-btn" data-val="${i}" data-key="${reviewSafeId}">☆</button>`).join('')}
+          ${[1,2,3,4,5].map(i => `<button type="button" class="star-pick-btn" data-val="${i}" data-key="${reviewSafeId}">☆</button>`).join('')}
         </div>
         <textarea class="review-textarea" id="review-input-${reviewSafeId}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
         <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}','${reviewSafeId}')">리뷰 등록하기</button>
@@ -2739,11 +2743,9 @@ document.addEventListener('click', function(e) {
   if (!btn) return;
 
   e.preventDefault();
-  
 
   const val = Number(btn.dataset.val || 0);
   const key = btn.dataset.key;
-
   if (!val || !key) return;
 
   setRating(val, key);
@@ -4209,4 +4211,263 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 </script>
-</div></body></html>
+</div>
+<script id="cammap-navigation-restore">
+(function(){
+  function qs(id){ return document.getElementById(id); }
+
+  window.__cammapShowScreen = function(id){
+    var el = qs('screen-' + id);
+    if (!el) return;
+    el.classList.add('active');
+  };
+
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.tab-screen').forEach(function(s){
+      s.classList.remove('active','exit');
+    });
+
+    var target = qs('screen-' + tab);
+    if (target) target.classList.add('active');
+
+    window.currentTabScreen = tab;
+
+    ['buildings','floors','detail'].forEach(function(s){
+      var el = qs('screen-' + s);
+      if (el) {
+        el.classList.remove('active','exit');
+        if (s === 'detail') el.style.zIndex = '';
+      }
+    });
+
+    window.screenStack = [];
+
+    if (tab === 'home' && typeof renderHomeRecentViews === 'function') renderHomeRecentViews();
+    if (tab === 'mypage' && typeof renderMyPage === 'function') renderMyPage();
+    if (tab === 'map') {
+      setTimeout(function(){
+        if (typeof ensureNaverMapReady === 'function') ensureNaverMapReady();
+      }, 120);
+    }
+  };
+
+  window.pushScreen = function(id) {
+    var prev = (window.screenStack && window.screenStack.length > 0) ? window.screenStack[window.screenStack.length - 1] : window.currentTabScreen;
+    var prevEl = qs('screen-' + prev);
+    if (prevEl) prevEl.classList.add('exit');
+
+    var el = qs('screen-' + id);
+    if (el) {
+      el.classList.add('active');
+      if (id === 'detail') el.style.zIndex = '300';
+    }
+
+    if (!window.screenStack) window.screenStack = [];
+    window.screenStack.push(id);
+  };
+
+  window.goBack = function(from) {
+    var el = qs('screen-' + from);
+    if (el) {
+      el.classList.remove('active');
+      if (from === 'detail') el.style.zIndex = '';
+    }
+
+    if (!window.screenStack) window.screenStack = [];
+    window.screenStack.pop();
+
+    if (window.screenStack.length > 0) {
+      var prev = window.screenStack[window.screenStack.length - 1];
+      var prevEl = qs('screen-' + prev);
+      if (prevEl) prevEl.classList.remove('exit');
+    } else {
+      var tabEl = qs('screen-' + window.currentTabScreen);
+      if (tabEl) tabEl.classList.remove('exit');
+    }
+  };
+
+  window.selectCategory = function(cat) {
+    window.currentCat = cat;
+
+    if (typeof ensureAllMapFacilityData === 'function') ensureAllMapFacilityData();
+    if (typeof syncMapFacilitiesIntoCategory === 'function') syncMapFacilitiesIntoCategory(cat);
+
+    var title = qs('buildings-title');
+    if (title) title.textContent = (window.catInfo && catInfo[cat]) ? catInfo[cat].label : '';
+
+    if (typeof renderBuildingList === 'function') renderBuildingList(cat);
+    window.pushScreen('buildings');
+
+    if (!window.myLocation && typeof requestUserLocationForCategorySort === 'function') {
+      requestUserLocationForCategorySort(cat);
+    }
+  };
+
+  window.selectBuilding = function(bname) {
+    window.currentBuilding = bname;
+
+    var title = qs('floors-title');
+    var sub = qs('floors-sub');
+    if (title) title.textContent = bname;
+    if (sub) sub.textContent = ((window.catInfo && catInfo[window.currentCat]) ? catInfo[window.currentCat].label : '') + ' — 층 선택';
+
+    var favKey = window.currentCat + '_' + bname;
+    var favBtn = qs('fav-building-btn');
+    if (favBtn && window.favorites) {
+      favBtn.textContent = favorites.has(favKey) ? '❤️' : '🤍';
+      favBtn.classList.toggle('fav-active', favorites.has(favKey));
+    }
+
+    if (typeof renderFloorList === 'function') renderFloorList();
+    window.pushScreen('floors');
+  };
+
+  window.selectFloor = function(floor) {
+    window.currentFloor = floor;
+    if (typeof addRecentView === 'function') addRecentView(window.currentBuilding, floor, window.currentCat);
+    if (typeof renderDetail === 'function') renderDetail(window.currentCat, window.currentBuilding, floor);
+    window.pushScreen('detail');
+  };
+
+  window.goToDetail = function(building, floor, cat) {
+    if (typeof closeMapFloorPopup === 'function') closeMapFloorPopup();
+
+    window.currentCat = cat;
+    window.currentBuilding = building;
+    window.currentFloor = floor;
+
+    if (typeof renderDetail === 'function') renderDetail(cat, building, floor);
+    if (typeof addRecentView === 'function') addRecentView(building, floor, cat);
+
+    ['buildings','floors','detail'].forEach(function(s){
+      var el = qs('screen-' + s);
+      if (el) {
+        el.classList.remove('active','exit');
+        if (s === 'detail') el.style.zIndex = '';
+      }
+    });
+
+    if (!window.screenStack) window.screenStack = [];
+    window.screenStack = [];
+
+    var activeTab = qs('screen-' + window.currentTabScreen);
+    if (activeTab) activeTab.classList.add('exit');
+
+    var detailEl = qs('screen-detail');
+    if (detailEl) {
+      detailEl.classList.add('active');
+      detailEl.style.zIndex = '300';
+    }
+
+    window.screenStack.push('detail');
+  };
+
+  window.selectCategoryFromMap = function(cat, building) {
+    if (typeof ensureAllMapFacilityData === 'function') ensureAllMapFacilityData();
+    if (typeof syncMapFacilitiesIntoCategory === 'function') syncMapFacilitiesIntoCategory(cat);
+
+    window.currentCat = cat;
+    window.currentBuilding = building;
+
+    var floors = (window.floorData && floorData[cat] && floorData[cat][building]) ? floorData[cat][building] : [];
+
+    if ((cat === 'store' || cat === 'smoke') && floors.length === 1) {
+      window.goToDetail(building, floors[0].floor, cat);
+      return;
+    }
+
+    document.querySelectorAll('.tab-screen').forEach(function(s){ s.classList.remove('active','exit'); });
+    var home = qs('screen-home');
+    if (home) home.classList.add('active');
+    window.currentTabScreen = 'home';
+
+    ['buildings','floors','detail'].forEach(function(s){
+      var el = qs('screen-' + s);
+      if (el) {
+        el.classList.remove('active','exit');
+        if (s === 'detail') el.style.zIndex = '';
+      }
+    });
+
+    window.screenStack = [];
+
+    var title = qs('floors-title');
+    var sub = qs('floors-sub');
+    if (title) title.textContent = building;
+    if (sub) sub.textContent = ((window.catInfo && catInfo[cat]) ? catInfo[cat].label : '') + ' — 층 선택';
+
+    if (typeof renderFloorList === 'function') renderFloorList();
+    window.pushScreen('floors');
+  };
+
+  window.showMapFloorPopup = function(facility) {
+    var old = qs('map-floor-popup-backdrop');
+    if (old) old.remove();
+
+    var floors = (window.floorData && floorData[facility.cat] && floorData[facility.cat][facility.building])
+      ? floorData[facility.cat][facility.building]
+      : [{ floor: facility.floor || '1층', tags: '지도 위치 기준 / 상세 정보 준비 중' }];
+
+    var backdrop = document.createElement('div');
+    backdrop.id = 'map-floor-popup-backdrop';
+    backdrop.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.48);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;';
+    backdrop.onclick = function(e) {
+      if (e.target.id === 'map-floor-popup-backdrop' && typeof closeMapFloorPopup === 'function') closeMapFloorPopup();
+    };
+
+    var card = document.createElement('div');
+    card.style.cssText = "width:min(520px,92vw);max-height:78vh;overflow:auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,0.28);font-family:'Noto Sans KR',sans-serif;";
+
+    var items = floors.map(function(f){
+      var badge = (typeof getPopupFloorBadgeLabel === 'function') ? getPopupFloorBadgeLabel(f.floor) : f.floor;
+      var title = (typeof getFacilityDisplayTitle === 'function') ? getFacilityDisplayTitle(facility.cat, facility.building, f.floor) : (facility.building + ' ' + f.floor);
+      var tags = (typeof getSavedFloorTags === 'function') ? getSavedFloorTags(facility.cat, facility.building, f.floor, f.tags) : (f.tags || '');
+      var bg = facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6';
+      var color = (window.pinColors && pinColors[facility.cat]) ? pinColors[facility.cat] : '#F4762A';
+
+      return '<div class="map-floor-popup-item" data-building="' + encodeURIComponent(facility.building) + '" data-floor="' + encodeURIComponent(f.floor) + '" data-cat="' + encodeURIComponent(facility.cat) + '" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">' +
+        '<div style="width:46px;height:46px;border-radius:14px;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-weight:900;color:' + color + '">' + badge + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:900;color:#1A1A1A">' + title + '</div>' +
+        '<div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">' + ((typeof escapeHTML === 'function') ? escapeHTML(tags) : tags) + '</div></div>' +
+        '<div style="font-size:20px;color:#AAA">›</div></div>';
+    }).join('');
+
+    card.innerHTML =
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">' +
+      '<div><div style="font-size:18px;font-weight:900;color:#1A1A1A">' + facility.name + '</div>' +
+      '<div style="font-size:13px;color:#777;margin-top:5px">원하는 층을 누르면 사진/도면이 있는 상세페이지로 이동합니다.</div></div>' +
+      '<button type="button" id="map-floor-popup-close" style="width:34px;height:34px;border-radius:50%;border:1px solid #DDD;background:#fff;cursor:pointer;font-size:18px">×</button></div>' +
+      items;
+
+    backdrop.appendChild(card);
+    document.querySelector('.device-frame').appendChild(backdrop);
+
+    var close = qs('map-floor-popup-close');
+    if (close) close.onclick = function(){ if (typeof closeMapFloorPopup === 'function') closeMapFloorPopup(); };
+
+    card.querySelectorAll('.map-floor-popup-item').forEach(function(item){
+      item.addEventListener('click', function(){
+        var building = decodeURIComponent(item.dataset.building);
+        var floor = decodeURIComponent(item.dataset.floor);
+        var cat = decodeURIComponent(item.dataset.cat);
+        if (typeof closeMapFloorPopup === 'function') closeMapFloorPopup();
+        window.goToDetail(building, floor, cat);
+      });
+    });
+  };
+
+  // Event delegation backup for inline onclick failures
+  document.addEventListener('click', function(e){
+    var tab = e.target.closest('.tab-item');
+    if (tab) {
+      var txt = tab.innerText || '';
+      if (txt.includes('홈')) window.switchTab('home');
+      else if (txt.includes('지도')) window.switchTab('map');
+      else if (txt.includes('제보')) window.switchTab('report');
+      else if (txt.includes('마이페이지')) window.switchTab('mypage');
+    }
+  });
+})();
+</script>
+
+</body></html>
