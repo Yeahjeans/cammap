@@ -3094,6 +3094,26 @@ function showMapFloorPopupById(id) {
   showMapFloorPopup(facility);
 }
 
+
+function getPopupFloorBadgeLabel(floor) {
+  const text = String(floor || '').trim();
+
+  // 지하층은 B1처럼 표시
+  if (/B\s*1|B1|지하\s*1층|지하1층/i.test(text)) return 'B1';
+
+  // "혜화관 4층", "만해관 2층", "문화관 1층"처럼 앞에 건물명이 붙어도 숫자만 추출
+  const floorMatch = text.match(/(\d+)\s*층/);
+  if (floorMatch) return floorMatch[1];
+
+  // 흡연구역처럼 외부인 경우
+  if (text.includes('외부')) return '외';
+
+  return text
+    .replace('건물 외부 지정 구역','외')
+    .replace('외부 출입구 근처','외')
+    .replace('건물 뒤편 지정 구역','외');
+}
+
 function showMapFloorPopup(facility) {
   const old = document.getElementById('map-floor-popup-backdrop');
   if (old) old.remove();
@@ -3115,7 +3135,7 @@ function showMapFloorPopup(facility) {
 
   const items = floors.map(f => `
     <div onclick="closeMapFloorPopup(); goToDetail('${facility.building}','${f.floor}','${facility.cat}')" style="display:flex;align-items:center;gap:14px;border:1px solid #EBEBEB;border-radius:16px;padding:14px 16px;margin-top:10px;cursor:pointer;background:#FAFAFA">
-      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${(String(f.floor).match(/^(\d+)층/) ? String(f.floor).match(/^(\d+)층/)[1] : String(f.floor).replace('외부','외'))}</div>
+      <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${getPopupFloorBadgeLabel(f.floor)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:900;color:#1A1A1A">${getFacilityDisplayTitle(facility.cat, facility.building, f.floor)}</div>
         <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
