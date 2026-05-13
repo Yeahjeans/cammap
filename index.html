@@ -567,6 +567,65 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .submit-btn:hover { opacity: 0.9; }
 .submit-btn:active { transform: scale(0.98); }
 
+.comment-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+.comment-action-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.comment-action-btn:hover { border-color: var(--orange); color: var(--orange); }
+.comment-action-btn.danger:hover { border-color: #E53935; color: #E53935; }
+.empty-review {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.admin-panel {
+  background: #FFF8F3;
+  border: 1px solid var(--orange-mid);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.admin-panel strong { font-size: 13px; color: var(--text-primary); display:block; margin-bottom:4px; }
+.admin-panel span { font-size: 12px; color: var(--text-secondary); line-height:1.5; display:block; }
+.admin-inline-btn {
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  background: var(--orange);
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.admin-inline-btn.secondary { background:#1A1A1A; }
+.admin-only-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
 /* MAP SCREEN */
 #map {
   width: 100%;
@@ -1113,6 +1172,17 @@ window.__naverMapScriptLoaded = false;
         <span class="my-item-arrow">›</span>
       </div>
     </div>
+
+    <div class="my-section">
+      <div class="my-section-title">관리자</div>
+      <div id="admin-status-box">
+        <div class="my-item" onclick="loginAdmin()">
+          <div class="my-item-icon o">🔐</div>
+          <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+          <span class="my-item-arrow">›</span>
+        </div>
+      </div>
+    </div>
     <div class="my-section">
       <div class="my-section-title">내가 작성한 댓글</div>
       <div id="my-comments-list">
@@ -1269,31 +1339,31 @@ function requestUserLocationForCategorySort(cat) {
 
 const buildingData = {
   toilet: [
-    { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 4.3, comments: 15, updated: '2026.05.12' },
-    { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 4.1, comments: 10, updated: '2026.05.12' },
-    { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 3.8, comments: 7,  updated: '2026.05.05' },
-    { name: '본관',       walk: '도보 4분', floors: ['2층 화장실','3층 화장실','4층 남자화장실'], rating: 4.0, comments: 0, updated: '2026.05.13' },
-    { name: '혜화관',     walk: '도보 3분', floors: ['1층 화장실','2층 화장실','3층 화장실','5층 화장실','6층 화장실'], rating: 4.0, comments: 0, updated: '2026.05.13' },
-    { name: '명진관',     walk: '도보 4분', floors: ['지하1층 남자화장실','2층 여자화장실','3층 화장실'], rating: 4.0, comments: 0, updated: '2026.05.13' },
-    { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실','4층 화장실','5층 화장실'], rating: 3.9, comments: 9,  updated: '2026.05.13' }
+    { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 0, comments: 0,  updated: '2026.05.05' },
+    { name: '본관',       walk: '도보 4분', floors: ['2층 화장실','3층 화장실','4층 남자화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '혜화관',     walk: '도보 3분', floors: ['1층 화장실','2층 화장실','3층 화장실','5층 화장실','6층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '명진관',     walk: '도보 4분', floors: ['지하1층 남자화장실','2층 여자화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실','4층 화장실','5층 화장실'], rating: 0, comments: 0,  updated: '2026.05.13' }
   ],
   store: [
-    { name: '법학관',     walk: '도보 3분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '문화관',     walk: '도보 2분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '학림관',     walk: '도보 5분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '중앙도서관', walk: '도보 3분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '상록원',     walk: '도보 4분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '혜화관',     walk: '도보 2분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '원흥관',     walk: '도보 4분', floors: ['1층'], rating: 4.4, comments: 12, updated: '2026.05.12' },
-    { name: '기숙사',     walk: '도보 6분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' },
-    { name: '경영관',     walk: '도보 1분', floors: ['1층'], rating: 4.0, comments: 0, updated: '2026.05.12' }
+    { name: '법학관',     walk: '도보 3분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '문화관',     walk: '도보 2분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '학림관',     walk: '도보 5분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '중앙도서관', walk: '도보 3분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '상록원',     walk: '도보 4분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '혜화관',     walk: '도보 2분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관',     walk: '도보 4분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '기숙사',     walk: '도보 6분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '경영관',     walk: '도보 1분', floors: ['1층'], rating: 0, comments: 0, updated: '2026.05.12' }
   ],
   smoke: [
-    { name: '혜화관 옆',   walk: '도보 2분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 앞',   walk: '도보 3분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 다리', walk: '도보 2분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' },
-    { name: '원흥관 앞',   walk: '도보 4분', floors: ['외부'], rating: 3.8, comments: 0, updated: '2026.05.12' }
+    { name: '혜화관 옆',   walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 앞',   walk: '도보 3분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '법학관 다리', walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '원흥관 앞',   walk: '도보 4분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' }
   ]
 };
 
@@ -1411,8 +1481,7 @@ function ensureFacilityDataForMapFacility(facility) {
       name: facility.building,
       walk: '위치 확인 필요',
       floors: [facility.floor || '1층'],
-      rating: 4.0,
-      comments: 0,
+      rating: 0, comments: 0,
       updated: '2026.05.12'
     });
   }
@@ -1453,8 +1522,7 @@ function syncMapFacilitiesIntoCategory(cat) {
             name: facility.building,
             walk: '도보 정보 업데이트 예정',
             floors: [],
-            rating: 4.0,
-            comments: 0,
+            rating: 0, comments: 0,
             updated: '2026.05.12'
           };
           buildingData[cat].push(building);
@@ -1473,8 +1541,7 @@ function syncMapFacilitiesIntoCategory(cat) {
           name: facility.building,
           walk: '도보 정보 업데이트 예정',
           floors: [],
-          rating: 4.0,
-          comments: 0,
+          rating: 0, comments: 0,
           updated: '2026.05.12'
         };
         buildingData[cat].push(building);
@@ -1485,25 +1552,7 @@ function syncMapFacilitiesIntoCategory(cat) {
 
   updateBuildingWalkLabels(cat);
 }
-const commentsData = {
-  'toilet_사회과학관_2층': [
-    { name:'동국01', rating:5, text:'여기 화장실은 깨끗하고 비데가 있어서 좋아요.', date:'2026.05.06' },
-    { name:'동국02', rating:4, text:'점심시간에는 사람이 많아서 조금 기다려야 해요.', date:'2026.05.05' },
-    { name:'동국03', rating:4, text:'파우더룸도 있어서 여학우들이 많이 이용해요.', date:'2026.05.04' }
-  ],
-  'store_원흥관_1층': [
-    { name:'동국04', rating:5, text:'편의점이 가까워서 공강 시간에 자주 이용합니다.', date:'2026.05.06' },
-    { name:'동국05', rating:4, text:'품목이 다양하고 직원분들이 친절해요.', date:'2026.05.05' }
-  ],
-  'smoke_사회과학관_외부': [
-    { name:'동국06', rating:3, text:'흡연구역 위치가 처음에는 조금 찾기 어려웠어요.', date:'2026.05.06' },
-    { name:'동국07', rating:4, text:'벤치가 있어서 편하게 이용할 수 있어요.', date:'2026.05.05' }
-  ],
-  default: [
-    { name:'동국08', rating:4, text:'시설 정보가 실제랑 달라서 수정이 필요합니다.', date:'2026.05.04' },
-    { name:'동국09', rating:4, text:'전반적으로 잘 관리되고 있습니다.', date:'2026.05.03' }
-  ]
-};
+const commentsData = {};
 
 // ============ STATE ============
 let currentCat = 'toilet';
@@ -1514,10 +1563,53 @@ let screenStack = [];
 let userRating = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
 let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
+const COMMENT_RESET_VERSION = '2026-05-13-clear-example-comments-v2';
+if (localStorage.getItem('cammapCommentResetVersion') !== COMMENT_RESET_VERSION) {
+  localStorage.removeItem('cammapUserComments');
+  localStorage.setItem('cammapCommentResetVersion', COMMENT_RESET_VERSION);
+}
 let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
+const ADMIN_PASSWORD = 'cammap2026';
+let isAdmin = localStorage.getItem('cammapIsAdmin') === 'true';
 let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
+
+
+function getReviewComments(key) {
+  return (userComments[key] || []).map((c, index) => ({ ...c, _index: index, _isUserComment: true }));
+}
+
+function getReviewStats(cat, building, floor) {
+  const prefix = `${cat}_${building}_`;
+  const comments = [];
+
+  if (floor) {
+    comments.push(...getReviewComments(`${cat}_${building}_${floor}`));
+  } else {
+    Object.entries(userComments).forEach(([key, arr]) => {
+      if (key.startsWith(prefix)) comments.push(...(arr || []));
+    });
+  }
+
+  if (!comments.length) return { count: 0, avg: null, label: '평점 없음' };
+  const avg = comments.reduce((sum, c) => sum + Number(c.rating || 0), 0) / comments.length;
+  return { count: comments.length, avg, label: avg.toFixed(1) };
+}
+
+function adminOnlyAction(action) {
+  if (!isAdmin) {
+    showToast('관리자 로그인 후 사용할 수 있습니다.');
+    return false;
+  }
+  return true;
+}
+
+function requestAdminMediaUpload(inputId) {
+  if (!adminOnlyAction()) return;
+  const input = document.getElementById(inputId);
+  if (input) input.click();
+}
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
@@ -1599,6 +1691,9 @@ function renderBuildingList(cat) {
 
   list.innerHTML = getSortedBuildingData(cat).map(b => {
     const floors = floorData[cat]?.[b.name] || [];
+    const reviewStats = getReviewStats(cat, b.name);
+    const ratingLabel = reviewStats.label;
+    const commentCount = reviewStats.count;
 
     // 편의점처럼 한 건물에 등록된 시설이 1개뿐이면
     // 건물 → 층 선택을 한 번 더 거치지 않고 바로 상세페이지로 이동
@@ -1617,8 +1712,8 @@ function renderBuildingList(cat) {
             <span class="floor-tag">${f.tags || catInfo[cat].label}</span>
           </div>
           <div class="bc-meta">
-            <div class="bc-rating"><span class="star">⭐</span><span class="rval">${b.rating.toFixed(1)}</span></div>
-            <span class="bc-comments">댓글 ${b.comments}개</span>
+            <div class="bc-rating"><span class="star">⭐</span><span class="rval">${ratingLabel}</span></div>
+            <span class="bc-comments">댓글 ${commentCount}개</span>
             <span class="bc-date">${b.updated}</span>
           </div>
         </div>
@@ -1633,8 +1728,8 @@ function renderBuildingList(cat) {
         </div>
         <div class="floor-tags">${b.floors.map(f => `<span class="floor-tag">${f}</span>`).join('')}</div>
         <div class="bc-meta">
-          <div class="bc-rating"><span class="star">⭐</span><span class="rval">${b.rating.toFixed(1)}</span></div>
-          <span class="bc-comments">댓글 ${b.comments}개</span>
+          <div class="bc-rating"><span class="star">⭐</span><span class="rval">${ratingLabel}</span></div>
+          <span class="bc-comments">댓글 ${commentCount}개</span>
           <span class="bc-date">${b.updated}</span>
         </div>
       </div>
@@ -1713,7 +1808,7 @@ function goToDetail(building, floor, cat) {
 // ============ DETAIL ============
 
 function planPlaceholderHTML(safeId, building, floor) {
-  return `<div class="img-placeholder" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()">
+  return `<div class="img-placeholder" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')">
     <span class="ph-icon">🗂️</span>
     <span class="ph-text">도면 이미지 추가</span>
     <span class="ph-sub">${building} ${floor} 평면도</span>
@@ -1722,7 +1817,7 @@ function planPlaceholderHTML(safeId, building, floor) {
 
 function photoPlaceholderHTML(safeId, num, label) {
   const icon = num === 1 ? '📷' : '➕';
-  return `<div class="photo-ph" id="photo-box-${safeId}-${num}" onclick="document.getElementById('photo-input-${safeId}-${num}').click()">
+  return `<div class="photo-ph" id="photo-box-${safeId}-${num}" onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')">
     <span class="ph-icon">${icon}</span><span class="ph-text">${label}</span>
   </div>`;
 }
@@ -1788,22 +1883,24 @@ function readImageAsDataURL(file, callback) {
 }
 
 function previewPlanImage(event, safeId) {
+  if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, (dataUrl) => {
     if(!saveUploadedMedia('plan', safeId, '', dataUrl)) return;
     const target = document.getElementById(`plan-box-${safeId}`);
-    const html = `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${dataUrl}" alt="도면 미리보기"><span class="media-edit-badge">수정</span></div>`;
+    const html = `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`;
     if(target) target.outerHTML = html;
     showToast('도면 이미지가 저장되었습니다.');
   });
 }
 
 function previewPhotoImage(event, safeId, num) {
+  if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, (dataUrl) => {
     if(!saveUploadedMedia('photo', safeId, num, dataUrl)) return;
     const target = document.getElementById(`photo-box-${safeId}-${num}`);
-    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}" onclick="document.getElementById('photo-input-${safeId}-${num}').click()"><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}"><span class="photo-edit-badge">수정</span></div>`;
+    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}" onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')"><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`;
     if(target) target.outerHTML = html;
     showToast('사진이 저장되었습니다.');
   });
@@ -1820,49 +1917,52 @@ function renderDetail(cat, building, floor) {
   favBtn.classList.toggle('fav-active', favorites.has(favKey));
 
   const commentKey = `${cat}_${building}_${floor}`;
-  const baseCmts = commentsData[commentKey] || commentsData['default'];
-  const extraCmts = userComments[commentKey] || [];
-  const allCmts = [...baseCmts, ...extraCmts];
-  const avgRating = allCmts.length ? (allCmts.reduce((s,c) => s + c.rating, 0) / allCmts.length).toFixed(1) : '—';
+  const allCmts = getReviewComments(commentKey);
+  const stats = getReviewStats(cat, building, floor);
+  const avgRating = stats.label;
 
   const infoRowsHTML = Object.entries(fd.info).map(([k,[v,cls]]) =>
     `<div class="info-row"><span class="info-key">${k}</span><span class="info-val ${cls}">${v}</span></div>`
   ).join('');
 
-  const avgStarsHTML = '⭐'.repeat(Math.round(parseFloat(avgRating) || 0));
+  const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
 
-  const cmtsHTML = allCmts.map(c => `
+  const cmtsHTML = allCmts.length ? allCmts.map(c => `
     <div class="comment-card">
       <div class="cc-top">
-        <div class="cc-avatar">${c.name[0]}</div>
-        <span class="cc-name">${c.name}</span>
-        <span class="cc-date">${c.date}</span>
+        <div class="cc-avatar">${escapeHTML((c.name || '익').charAt(0))}</div>
+        <span class="cc-name">${escapeHTML(c.name || '익명')}</span>
+        <span class="cc-date">${escapeHTML(c.date || '')}</span>
       </div>
-      <div class="cc-stars">${'⭐'.repeat(c.rating)}${'☆'.repeat(5 - c.rating)}</div>
-      <p class="cc-text">${c.text}</p>
+      <div class="cc-stars">${'⭐'.repeat(Number(c.rating || 0))}${'☆'.repeat(5 - Number(c.rating || 0))}</div>
+      <p class="cc-text">${escapeHTML(c.text || '')}</p>
+      <div class="comment-actions">
+        <button class="comment-action-btn" onclick="editReview('${commentKey}', ${c._index}, '${cat}', '${building}', '${floor}')">수정</button>
+        ${isAdmin ? `<button class="comment-action-btn danger" onclick="deleteReviewAsAdmin('${commentKey}', ${c._index}, '${cat}', '${building}', '${floor}')">관리자 삭제</button>` : ''}
+      </div>
     </div>
-  `).join('');
+  `).join('') : '<div class="empty-review">아직 등록된 댓글과 평점이 없습니다.<br>첫 리뷰를 남겨주세요.</div>';
 
   const safeId = `${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
   const savedPlan = getStoredMedia('plan', safeId, '');
   const planHTML = savedPlan
-    ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${savedPlan}" alt="${building} ${floor} 저장된 도면"><span class="media-edit-badge">수정</span></div>`
+    ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${savedPlan}" alt="${building} ${floor} 저장된 도면">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`
     : (fd.planImage
-      ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="document.getElementById('plan-input-${safeId}').click()"><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')"><span class="media-edit-badge">수정</span></div>`
+      ? `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`
       : planPlaceholderHTML(safeId, building, floor));
 
   const photos = fd.photos || [];
   const savedPhoto1 = getStoredMedia('photo', safeId, 1);
   const savedPhoto2 = getStoredMedia('photo', safeId, 2);
   const photo1HTML = savedPhoto1
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="document.getElementById('photo-input-${safeId}-1').click()"><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1"><span class="photo-edit-badge">수정</span></div>`
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="requestAdminMediaUpload('photo-input-${safeId}-1')"><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
     : (photos[0]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="document.getElementById('photo-input-${safeId}-1').click()"><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')"><span class="photo-edit-badge">수정</span></div>`
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1" onclick="requestAdminMediaUpload('photo-input-${safeId}-1')"><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
       : photoPlaceholderHTML(safeId, 1, '사진 1'));
   const photo2HTML = savedPhoto2
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="document.getElementById('photo-input-${safeId}-2').click()"><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2"><span class="photo-edit-badge">수정</span></div>`
+    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="requestAdminMediaUpload('photo-input-${safeId}-2')"><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
     : (photos[1]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="document.getElementById('photo-input-${safeId}-2').click()"><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')"><span class="photo-edit-badge">수정</span></div>`
+      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2" onclick="requestAdminMediaUpload('photo-input-${safeId}-2')"><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`
       : photoPlaceholderHTML(safeId, 2, '사진 추가'));
 
   document.getElementById('detail-content').innerHTML = `
@@ -1879,6 +1979,7 @@ function renderDetail(cat, building, floor) {
       </div>
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-1" onchange="previewPhotoImage(event, '${safeId}', 1)">
       <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-2" onchange="previewPhotoImage(event, '${safeId}', 2)">
+      <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다.' : '도면·실사진 등록과 수정은 관리자만 할 수 있습니다.'}</div>
     </div>
     <div class="loc-box">
       <span class="loc-icon">📍</span>
@@ -1937,6 +2038,67 @@ function submitReview(key, cat, building, floor) {
   renderDetail(cat, building, floor);
   renderMyPage();
   showToast('리뷰가 등록되었습니다! 🎉');
+}
+
+
+function editReview(key, index, cat, building, floor) {
+  const list = userComments[key] || [];
+  const item = list[index];
+  if (!item) { showToast('수정할 댓글을 찾지 못했습니다.'); return; }
+
+  const nextText = prompt('댓글 내용을 수정하세요.', item.text || '');
+  if (nextText === null) return;
+  const cleanText = nextText.trim();
+  if (!cleanText) { showToast('댓글 내용은 비워둘 수 없습니다.'); return; }
+
+  const nextRatingRaw = prompt('별점을 1~5 사이 숫자로 입력하세요.', String(item.rating || 5));
+  if (nextRatingRaw === null) return;
+  const nextRating = Number(nextRatingRaw);
+  if (!Number.isInteger(nextRating) || nextRating < 1 || nextRating > 5) {
+    showToast('별점은 1~5 사이 숫자로 입력해주세요.');
+    return;
+  }
+
+  item.text = cleanText;
+  item.rating = nextRating;
+  item.edited = true;
+  item.editedDate = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  renderDetail(cat, building, floor);
+  renderMyPage();
+  showToast('댓글이 수정되었습니다.');
+}
+
+function deleteReviewAsAdmin(key, index, cat, building, floor) {
+  if (!adminOnlyAction()) return;
+  const list = userComments[key] || [];
+  if (!list[index]) { showToast('삭제할 댓글을 찾지 못했습니다.'); return; }
+  if (!confirm('이 댓글을 삭제할까요?')) return;
+  list.splice(index, 1);
+  if (!list.length) delete userComments[key];
+  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  renderDetail(cat, building, floor);
+  renderMyPage();
+  showToast('관리자 권한으로 댓글을 삭제했습니다.');
+}
+
+function loginAdmin() {
+  const pw = prompt('관리자 비밀번호를 입력하세요.');
+  if (pw === null) return;
+  if (pw !== ADMIN_PASSWORD) { showToast('관리자 비밀번호가 올바르지 않습니다.'); return; }
+  isAdmin = true;
+  localStorage.setItem('cammapIsAdmin', 'true');
+  renderMyPage();
+  if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
+  showToast('관리자 모드가 켜졌습니다.');
+}
+
+function logoutAdmin() {
+  isAdmin = false;
+  localStorage.removeItem('cammapIsAdmin');
+  renderMyPage();
+  if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
+  showToast('관리자 모드가 꺼졌습니다.');
 }
 
 // ============ FAVORITES ============
@@ -2005,7 +2167,7 @@ function handleSearch(q) {
 
   for(const [kw, cat] of Object.entries(keywords)) {
     if(q.includes(kw)) {
-      buildingData[cat].forEach(b => results.push({ title: `${b.name} ${catInfo[cat].label}`, sub: `${b.walk} · ⭐ ${b.rating.toFixed(1)}`, cat, building: b.name, floor: floorData[cat][b.name]?.[0]?.floor, cls: cat === 'toilet' ? 'toilet' : cat === 'store' ? 'store' : 'smoke', icon: catInfo[cat].icon }));
+      buildingData[cat].forEach(b => results.push({ title: `${b.name} ${catInfo[cat].label}`, sub: `${b.walk} · ⭐ ${getReviewStats(cat, b.name).label}`, cat, building: b.name, floor: floorData[cat][b.name]?.[0]?.floor, cls: cat === 'toilet' ? 'toilet' : cat === 'store' ? 'store' : 'smoke', icon: catInfo[cat].icon }));
     }
   }
   buildings.forEach(b => {
@@ -2776,8 +2938,7 @@ function getToiletCandidates() {
       building: item.building,
       floor: item.floor,
       name: item.name,
-      rating: 4.0,
-      comments: 0,
+      rating: 0, comments: 0,
       lat: item.lat,
       lng: item.lng,
       hasDetail: !!(floorData.toilet?.[item.building])
@@ -2843,7 +3004,7 @@ function renderNearestToiletCard(item, openCard = true) {
   if (!card || !title || !desc) return;
 
   title.textContent = `🚻 가장 가까운 화장실: ${item.name || (item.building + " " + item.floor)}`;
-  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${item.rating.toFixed(1)} · 댓글 ${item.comments}개<br>저장된 화장실 좌표 기준 추천입니다.`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${getReviewStats(item.cat, item.building).label} · 댓글 ${getReviewStats(item.cat, item.building).count}개<br>저장된 화장실 좌표 기준 추천입니다.`;
   if (openCard) card.classList.add('show');
 }
 
@@ -3095,6 +3256,23 @@ function renderRecentViews() {
   }).join('');
 }
 
+
+function renderAdminStatus() {
+  const box = document.getElementById('admin-status-box');
+  if (!box) return;
+  box.innerHTML = isAdmin ? `
+    <div class="my-item">
+      <div class="my-item-icon o">🛠️</div>
+      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
+      <button class="comment-action-btn danger" onclick="event.stopPropagation(); logoutAdmin();">로그아웃</button>
+    </div>` : `
+    <div class="my-item" onclick="loginAdmin()">
+      <div class="my-item-icon o">🔐</div>
+      <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+      <span class="my-item-arrow">›</span>
+    </div>`;
+}
+
 function renderMyPage() {
   const profileName = document.getElementById('profile-name');
   const profileAvatar = document.getElementById('profile-avatar');
@@ -3104,6 +3282,7 @@ function renderMyPage() {
   if (profileAvatar) profileAvatar.textContent = currentUser.trim().charAt(0) || '동';
   if (profileDesc) profileDesc.textContent = `현재 댓글 표시 이름: ${currentUser}`;
 
+  renderAdminStatus();
   renderMyComments();
   renderMyFavorites();
   renderMyReports();
