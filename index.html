@@ -1569,6 +1569,7 @@ let isAdmin = localStorage.getItem('cammapIsAdmin') === 'true';
 let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
+let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
 
 
 function getReviewComments(key) {
@@ -1604,6 +1605,59 @@ function requestAdminMediaUpload(inputId) {
   if (!adminOnlyAction()) return;
   const input = document.getElementById(inputId);
   if (input) input.click();
+}
+
+function getDetailInfoKey(cat, building, floor) {
+  return `${cat}_${building}_${floor}`;
+}
+
+function getInfoClassFromValue(value) {
+  const v = String(value || '').trim();
+  if (!v || /정보\s*없음|정보\s*업데이트|업데이트\s*예정|없음|해당\s*없음/.test(v)) return 'none';
+  if (/혼잡|주의|부족|불량|나쁨|고장|불편/.test(v)) return 'warn';
+  if (/있음|좋음|깨끗|한산|가능|남녀|남자|여자|운영/.test(v)) return 'good';
+  return '';
+}
+
+function getMergedFacilityInfo(cat, building, floor, fd) {
+  const key = getDetailInfoKey(cat, building, floor);
+  const saved = detailInfoEdits[key] || {};
+  return {
+    info: saved.info || fd.info || {},
+    updated: saved.updated || fd.updated || '2026.05.07'
+  };
+}
+
+function editDetailInfo(cat, building, floor) {
+  if (!adminOnlyAction()) return;
+  const fd = (floorData[cat][building] || []).find(f => f.floor === floor) || (floorData[cat][building] || [])[0];
+  if (!fd) { showToast('수정할 상세 정보를 찾지 못했습니다.'); return; }
+
+  const merged = getMergedFacilityInfo(cat, building, floor, fd);
+  const defaultKeys = ['구분', '파우더룸', '청결도', '휴지비치', '비데', '혼잡도', '장애인화장실'];
+  const keys = [...new Set([...Object.keys(merged.info || {}), ...defaultKeys])];
+  const nextInfo = {};
+
+  for (const key of keys) {
+    const current = Array.isArray(merged.info[key]) ? merged.info[key][0] : '정보 없음';
+    const next = prompt(`${key} 정보를 입력하세요.\n비워두면 '정보 없음'으로 저장됩니다.`, current || '');
+    if (next === null) return;
+    const value = next.trim() || '정보 없음';
+    nextInfo[key] = [value, getInfoClassFromValue(value)];
+  }
+
+  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  const updated = prompt('최근 업데이트 날짜를 입력하세요.', merged.updated || today);
+  if (updated === null) return;
+
+  const storageKey = getDetailInfoKey(cat, building, floor);
+  detailInfoEdits[storageKey] = {
+    info: nextInfo,
+    updated: updated.trim() || today
+  };
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  renderDetail(cat, building, floor);
+  showToast('상세 정보가 수정되었습니다.');
 }
 
 // ============ NAVIGATION ============
@@ -1916,8 +1970,9 @@ function renderDetail(cat, building, floor) {
   const stats = getReviewStats(cat, building, floor);
   const avgRating = stats.label;
 
-  const infoRowsHTML = Object.entries(fd.info).map(([k,[v,cls]]) =>
-    `<div class="info-row"><span class="info-key">${k}</span><span class="info-val ${cls}">${v}</span></div>`
+  const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
+  const infoRowsHTML = Object.entries(mergedInfo.info).map(([k,[v,cls]]) =>
+    `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val ${cls}">${escapeHTML(v)}</span></div>`
   ).join('');
 
   const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
@@ -1981,7 +2036,8 @@ function renderDetail(cat, building, floor) {
       <span class="loc-text">${fd.loc}</span>
     </div>
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
-    <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val">2026.05.07</span></div></div>
+    <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn" onclick="editDetailInfo('${cat}','${building}','${floor}')">상세 정보 수정</button></div>` : ''}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
