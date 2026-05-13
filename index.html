@@ -1175,7 +1175,7 @@ window.__naverMapScriptLoaded = false;
       <div id="admin-status-box">
         <div class="my-item" onclick="loginAdmin()">
           <div class="my-item-icon o">🔐</div>
-          <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+          <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
           <span class="my-item-arrow">›</span>
         </div>
       </div>
@@ -1562,11 +1562,9 @@ let screenStack = [];
 let userRating = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
 let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
-const COMMENT_RESET_VERSION = '2026-05-13-clear-example-comments-v2';
-if (localStorage.getItem('cammapCommentResetVersion') !== COMMENT_RESET_VERSION) {
-  localStorage.removeItem('cammapUserComments');
-  localStorage.setItem('cammapCommentResetVersion', COMMENT_RESET_VERSION);
-}
+// 리뷰/평점은 localStorage에 저장됩니다.
+// 앞으로 코드를 새로 붙여넣거나 기능을 수정해도 기존 리뷰가 지워지지 않도록
+// 자동 초기화 코드는 사용하지 않습니다.
 let userComments = JSON.parse(localStorage.getItem('cammapUserComments') || '{}');
 const ADMIN_PASSWORD = 'cammap2026';
 let isAdmin = localStorage.getItem('cammapIsAdmin') === 'true';
@@ -1638,6 +1636,7 @@ function setFacilityUpdatedNow(cat, building, floor) {
   detailInfoEdits[storageKey] = {
     ...saved,
     info: saved.info || fd?.info || {},
+    loc: saved.loc || fd?.loc || '',
     updated: today
   };
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
@@ -1660,6 +1659,7 @@ function getMergedFacilityInfo(cat, building, floor, fd) {
   const saved = detailInfoEdits[key] || {};
   return {
     info: saved.info || fd.info || {},
+    loc: saved.loc || fd.loc || '정확한 내부 위치 정보는 추후 업데이트 예정입니다.',
     updated: saved.updated || fd.updated || '2026.05.07'
   };
 }
@@ -1684,13 +1684,38 @@ function editDetailInfo(cat, building, floor) {
 
   const storageKey = getDetailInfoKey(cat, building, floor);
   detailInfoEdits[storageKey] = {
+    ...(detailInfoEdits[storageKey] || {}),
     info: nextInfo,
+    loc: merged.loc || fd.loc || '',
     updated: getTodayText()
   };
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   showToast('상세 정보가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
+}
+
+function editLocationInfo(cat, building, floor) {
+  if (!adminOnlyAction()) return;
+  const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
+  if (!fd) { showToast('수정할 위치 정보를 찾지 못했습니다.'); return; }
+
+  const merged = getMergedFacilityInfo(cat, building, floor, fd);
+  const next = prompt('위치 안내 문구를 수정하세요.', merged.loc || fd.loc || '');
+  if (next === null) return;
+  const cleanLoc = next.trim() || '정확한 내부 위치 정보는 추후 업데이트 예정입니다.';
+
+  const storageKey = getDetailInfoKey(cat, building, floor);
+  detailInfoEdits[storageKey] = {
+    ...(detailInfoEdits[storageKey] || {}),
+    info: (detailInfoEdits[storageKey] || {}).info || fd.info || {},
+    loc: cleanLoc,
+    updated: getTodayText()
+  };
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  setFacilityUpdatedNow(cat, building, floor);
+  renderDetail(cat, building, floor);
+  showToast('위치 안내가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
 }
 
 // ============ NAVIGATION ============
@@ -1830,12 +1855,23 @@ function selectBuilding(bname) {
   pushScreen('floors');
 }
 
+function getShortFloorLabel(floor) {
+  const text = String(floor || '');
+  if (/지하\s*1층|지하1층|B1/i.test(text)) return 'B1';
+  const floorMatch = text.match(/^(\d+)층/);
+  if (floorMatch) return floorMatch[1];
+  return text
+    .replace('외부','외')
+    .replace('건물 외부 지정 구역','외')
+    .replace('외부 출입구 근처','외')
+    .replace('건물 뒤편 지정 구역','외');
+}
+
 function renderFloorList() {
   const floors = (floorData[currentCat][currentBuilding] || []);
   const list = document.getElementById('floor-list');
   list.innerHTML = floors.map(f => {
-    const floorMatch = String(f.floor).match(/^(\d+)층/);
-    const shortFloor = floorMatch ? floorMatch[1] : String(f.floor).replace('외부','외').replace('건물 외부 지정 구역','외').replace('외부 출입구 근처','외').replace('건물 뒤편 지정 구역','외');
+    const shortFloor = getShortFloorLabel(f.floor);
     return `
     <div class="floor-card" onclick="selectFloor('${f.floor}')">
       <div class="floor-num">${shortFloor}</div>
@@ -2068,8 +2104,9 @@ function renderDetail(cat, building, floor) {
     </div>
     <div class="loc-box">
       <span class="loc-icon">📍</span>
-      <span class="loc-text">${fd.loc}</span>
+      <span class="loc-text">${escapeHTML(mergedInfo.loc)}</span>
     </div>
+    ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn" onclick="editDetailInfo('${cat}','${building}','${floor}')">상세 정보 수정</button></div>` : ''}
@@ -3343,12 +3380,12 @@ function renderAdminStatus() {
   box.innerHTML = isAdmin ? `
     <div class="my-item">
       <div class="my-item-icon o">🛠️</div>
-      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
+      <div class="my-item-text"><strong>관리자 모드 ON</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 버튼이 활성화되어 있습니다.</span></div>
       <button class="comment-action-btn danger" onclick="event.stopPropagation(); logoutAdmin();">로그아웃</button>
     </div>` : `
     <div class="my-item" onclick="loginAdmin()">
       <div class="my-item-icon o">🔐</div>
-      <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
+      <div class="my-item-text"><strong>관리자 로그인</strong><span>댓글 삭제, 위치·상세정보·도면·사진 등록/수정 권한을 켤 수 있어요</span></div>
       <span class="my-item-arrow">›</span>
     </div>`;
 }
