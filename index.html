@@ -1149,6 +1149,23 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   .cloud-status-box { margin: 10px 40px 0; }
 }
 
+
+.cloud-migration-btn {
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #1A1A1A;
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.cloud-migration-btn.secondary {
+  background: var(--orange);
+}
+
 </style>
 <script>
 // 네이버 지도 SDK는 지도 탭을 열 때 동적으로 불러옵니다.
@@ -1883,11 +1900,13 @@ let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') |
 let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}');
 
 /* ===== 공유 저장 설정 =====
-   중요:
-   localStorage는 '내 컴퓨터/내 브라우저'에만 저장됩니다.
-   여러 사람이 같은 리뷰·사진·도면·실시간 혼잡도를 보려면 공용 DB가 필요합니다.
-   아래 SUPABASE_URL / SUPABASE_ANON_KEY에 본인 Supabase 값을 넣으면
-   지금까지 내 브라우저에 저장된 리뷰/사진/도면도 공용 DB로 병합 저장됩니다.
+   localStorage는 내 컴퓨터/내 폰 안에만 저장됩니다.
+   모든 사람이 같은 리뷰·사진·도면·실시간 혼잡도를 보려면 공용 DB가 필요합니다.
+
+   1) Supabase 프로젝트를 만든다.
+   2) 이 파일 맨 아래 주석의 SQL을 Supabase SQL Editor에서 실행한다.
+   3) 아래 두 값에 내 Supabase Project URL / anon public key를 넣는다.
+   4) 컴퓨터에서 사이트를 한 번 열면, 기존 localStorage의 리뷰·사진·도면이 공용 DB로 자동 업로드된다.
 */
 const SUPABASE_URL = '';
 const SUPABASE_ANON_KEY = '';
@@ -1895,6 +1914,7 @@ const SUPABASE_ANON_KEY = '';
 let cammapDb = null;
 let cloudReady = false;
 let cloudSyncStarted = false;
+let isApplyingRemoteUpdate = false;
 
 function initCloudStore() {
   try {
@@ -1918,10 +1938,40 @@ function updateCloudStatusBox() {
   if (!el) return;
 
   if (cloudReady) {
-    el.innerHTML = '<strong>공유 저장 ON:</strong> 댓글·사진·도면·실시간 혼잡도가 모든 사용자에게 공유됩니다.';
+    el.innerHTML = `
+      <strong>공유 저장 ON:</strong> 댓글·사진·도면·실시간 혼잡도가 모든 사용자에게 공유됩니다.
+      <br>이 컴퓨터에 이미 저장돼 있던 리뷰/사진/도면도 공용 DB와 자동 병합됩니다.
+      <br><button class="cloud-migration-btn" onclick="manualSyncLocalToCloud()">내 기기 저장자료 다시 공유 저장</button>
+    `;
   } else {
-    el.innerHTML = '<strong>공유 저장 OFF:</strong> 지금은 이 기기 브라우저에만 저장됩니다. 코드 상단의 SUPABASE_URL / SUPABASE_ANON_KEY를 입력하면 모든 사용자가 같은 리뷰·사진·도면을 볼 수 있습니다.';
+    el.innerHTML = `
+      <strong>공유 저장 OFF:</strong> 지금 상태에서는 리뷰·사진·도면이 각 기기 브라우저에만 저장됩니다.
+      <br>코드의 <strong>SUPABASE_URL</strong> / <strong>SUPABASE_ANON_KEY</strong>를 입력해야 폰·컴퓨터·친구 기기에서 같은 내용을 볼 수 있습니다.
+      <br><button class="cloud-migration-btn secondary" onclick="showCloudSetupGuide()">공유 저장 설정 안내 보기</button>
+    `;
   }
+}
+
+function showCloudSetupGuide() {
+  alert(
+`공유 저장을 켜려면 Supabase가 필요합니다.
+
+1. supabase.com에서 프로젝트 생성
+2. SQL Editor에서 이 HTML 파일 맨 아래 주석에 있는 cammap_store SQL 실행
+3. Project Settings > API에서
+   - Project URL
+   - anon public key
+   를 복사
+4. 코드의 SUPABASE_URL / SUPABASE_ANON_KEY에 붙여넣기
+5. 다시 배포
+
+그 다음 컴퓨터에서 사이트를 한 번 열면
+컴퓨터에 저장되어 있던 기존 리뷰·사진·도면이 공용 DB로 자동 업로드됩니다.`
+  );
+}
+
+function saveLocalOnly(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
 function isPlainObject(value) {
@@ -1978,7 +2028,7 @@ async function cloudLoadJson(key, fallbackValue) {
 }
 
 async function cloudSaveJson(key, value) {
-  if (!cloudReady || !cammapDb) return false;
+  if (!cloudReady || !cammapDb || isApplyingRemoteUpdate) return false;
 
   try {
     const { error } = await cammapDb
@@ -2007,27 +2057,58 @@ async function loadSharedData() {
   const remoteMedia = await cloudLoadJson('media', {});
   const remoteCrowd = await cloudLoadJson('crowd', {});
   const remoteDetailInfo = await cloudLoadJson('detailInfoEdits', {});
+  const remoteReports = await cloudLoadJson('reports', []);
 
   userComments = mergeObjectPreserveLocal(remoteComments, userComments);
   uploadedMedia = mergeObjectPreserveLocal(remoteMedia, uploadedMedia);
   crowdReports = mergeObjectPreserveLocal(remoteCrowd, crowdReports);
   detailInfoEdits = mergeObjectPreserveLocal(remoteDetailInfo, detailInfoEdits);
 
-  saveCommentsShared();
-  saveMediaShared();
-  saveCrowdShared();
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  if (Array.isArray(remoteReports) || Array.isArray(userReports)) {
+    const combinedReports = [];
+    const seenReports = new Set();
+    [...(Array.isArray(remoteReports) ? remoteReports : []), ...(Array.isArray(userReports) ? userReports : [])].forEach(item => {
+      const id = JSON.stringify(item);
+      if (seenReports.has(id)) return;
+      seenReports.add(id);
+      combinedReports.push(item);
+    });
+    userReports = combinedReports;
+  }
+
+  saveLocalOnly('cammapUserComments', userComments);
+  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+  saveLocalOnly('cammapCrowdReports', crowdReports);
+  saveLocalOnly('cammapDetailInfoEdits', detailInfoEdits);
+  saveLocalOnly('cammapUserReports', userReports);
 
   await cloudSaveJson('comments', userComments);
   await cloudSaveJson('media', uploadedMedia);
   await cloudSaveJson('crowd', crowdReports);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
+  await cloudSaveJson('reports', userReports);
 
   if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
   if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
   if (currentTabScreen === 'mypage') renderMyPage();
 
   updateCloudStatusBox();
+  showToast('공유 저장소와 기존 자료를 동기화했습니다.');
+}
+
+async function manualSyncLocalToCloud() {
+  if (!cloudReady) {
+    showCloudSetupGuide();
+    return;
+  }
+
+  await cloudSaveJson('comments', userComments);
+  await cloudSaveJson('media', uploadedMedia);
+  await cloudSaveJson('crowd', crowdReports);
+  await cloudSaveJson('detailInfoEdits', detailInfoEdits);
+  await cloudSaveJson('reports', userReports);
+
+  showToast('이 기기에 저장된 리뷰·사진·도면을 공유 저장했습니다.');
 }
 
 function startSharedRealtimeSync() {
@@ -2039,25 +2120,34 @@ function startSharedRealtimeSync() {
       const row = payload.new;
       if (!row || !row.key) return;
 
+      isApplyingRemoteUpdate = true;
+
       if (row.key === 'comments') {
         userComments = row.value || {};
-        saveCommentsShared();
+        saveLocalOnly('cammapUserComments', userComments);
       }
 
       if (row.key === 'media') {
         uploadedMedia = row.value || {};
-        saveMediaShared();
+        saveLocalOnly('cammapUploadedMedia', uploadedMedia);
       }
 
       if (row.key === 'crowd') {
         crowdReports = row.value || {};
-        saveCrowdShared();
+        saveLocalOnly('cammapCrowdReports', crowdReports);
       }
 
       if (row.key === 'detailInfoEdits') {
         detailInfoEdits = row.value || {};
-        localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+        saveLocalOnly('cammapDetailInfoEdits', detailInfoEdits);
       }
+
+      if (row.key === 'reports') {
+        userReports = row.value || [];
+        saveLocalOnly('cammapUserReports', userReports);
+      }
+
+      isApplyingRemoteUpdate = false;
 
       if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
       if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
@@ -2067,23 +2157,28 @@ function startSharedRealtimeSync() {
 }
 
 async function saveCommentsShared() {
-  localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  saveLocalOnly('cammapUserComments', userComments);
   await cloudSaveJson('comments', userComments);
 }
 
 async function saveMediaShared() {
-  localStorage.setItem('cammapUploadedMedia', JSON.stringify(uploadedMedia));
+  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
   await cloudSaveJson('media', uploadedMedia);
 }
 
 async function saveCrowdShared() {
-  localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
+  saveLocalOnly('cammapCrowdReports', crowdReports);
   await cloudSaveJson('crowd', crowdReports);
 }
 
 async function saveDetailInfoShared() {
-  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  saveLocalOnly('cammapDetailInfoEdits', detailInfoEdits);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
+}
+
+async function saveReportsShared() {
+  saveLocalOnly('cammapUserReports', userReports);
+  await cloudSaveJson('reports', userReports);
 }
 
 
@@ -4307,7 +4402,7 @@ function renderAdminReports() {
 function updateReportStatus(reportId, status) {
   if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
   userReports = userReports.map(r => r.id === reportId ? { ...r, status } : r);
-  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+  saveReportsShared();
   renderMyPage();
   showToast(`제보 상태를 ${status}(으)로 변경했습니다.`);
 }
@@ -4316,7 +4411,7 @@ function deleteReport(reportId) {
   if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
   if (!confirm('이 제보를 삭제할까요?')) return;
   userReports = userReports.filter(r => r.id !== reportId);
-  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+  saveReportsShared();
   renderMyPage();
   showToast('제보를 삭제했습니다.');
 }
@@ -4441,7 +4536,7 @@ function submitReport() {
   };
 
   userReports.push(report);
-  localStorage.setItem('cammapUserReports', JSON.stringify(userReports));
+  saveReportsShared();
 
   textInput.value = '';
   document.getElementById('report-building').value = '';
@@ -4483,6 +4578,10 @@ create table if not exists public.cammap_store (
 );
 
 alter table public.cammap_store enable row level security;
+
+drop policy if exists "cammap_store_select_all" on public.cammap_store;
+drop policy if exists "cammap_store_insert_all" on public.cammap_store;
+drop policy if exists "cammap_store_update_all" on public.cammap_store;
 
 create policy "cammap_store_select_all"
 on public.cammap_store for select
