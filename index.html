@@ -644,6 +644,11 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .write-box h4 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
 .star-picker { display: flex; gap: 6px; margin-bottom: 12px; }
 .star-pick-btn {
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
   font-size: 28px; background: none; border: none;
   cursor: pointer; padding: 2px;
   transition: transform 0.1s;
@@ -1138,6 +1143,36 @@ window.__naverMapScriptFailed = false;
 window.__naverMapScriptLoading = false;
 window.__naverMapScriptLoaded = false;
 </script>
+
+<style id="cammap-click-fix">
+.floor-card,
+.report-tab,
+.category-btn,
+.detail-card,
+button,
+a,
+.marker-card {
+  pointer-events: auto !important;
+  cursor: pointer;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 10;
+}
+
+.modal-overlay {
+  pointer-events: auto;
+}
+
+.modal-content {
+  position: relative;
+  z-index: 20;
+}
+
+.map-overlay-blocker {
+  pointer-events:auto !important;
+}
+</style>
+
 </head>
 <body>
 
@@ -2707,7 +2742,7 @@ function renderDetail(cat, building, floor) {
       <div class="write-box">
         <h4>리뷰 작성</h4>
         <div class="star-picker" id="star-picker-${reviewSafeId}">
-          ${[1,2,3,4,5].map(i => `<button class="star-pick-btn" data-val="${i}" onclick="setRating(${i},'${reviewSafeId}')">☆</button>`).join('')}
+          ${[1,2,3,4,5].map(i => `<button type="button" class="star-pick-btn" data-val="${i}" data-key="${reviewSafeId}">☆</button>`).join('')}
         </div>
         <textarea class="review-textarea" id="review-input-${reviewSafeId}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
         <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}','${reviewSafeId}')">리뷰 등록하기</button>
@@ -2727,6 +2762,21 @@ function setRating(val, key) {
   const btns = picker.querySelectorAll('.star-pick-btn');
   btns.forEach((btn, i) => { btn.textContent = i < val ? '⭐' : '☆'; });
 }
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.star-pick-btn');
+  if (!btn) return;
+
+  e.preventDefault();
+  
+
+  const val = Number(btn.dataset.val || 0);
+  const key = btn.dataset.key;
+
+  if (!val || !key) return;
+
+  setRating(val, key);
+});
 
 function submitReview(key, cat, building, floor, inputKey = key) {
   const input = document.getElementById('review-input-' + inputKey);
