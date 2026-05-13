@@ -524,6 +524,83 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .info-row .info-edit-btn:hover { border-color: var(--orange); color: var(--orange); }
 .info-val-wrap { display: flex; align-items: center; gap: 6px; justify-content: flex-end; text-align: right; }
 
+.crowd-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  margin: 0 20px 16px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.crowd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.crowd-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+.crowd-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+.crowd-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.crowd-badge.low { background: var(--green-light); color: var(--green); }
+.crowd-badge.mid { background: var(--orange-light); color: var(--orange); }
+.crowd-badge.high { background: var(--pink-light); color: var(--pink); }
+.crowd-badge.none { background: var(--bg); color: var(--text-muted); }
+.crowd-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.crowd-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 13px;
+  padding: 11px 8px;
+  font-size: 12px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+}
+.crowd-btn:active { transform: scale(0.97); }
+.crowd-btn.low { color: var(--green); }
+.crowd-btn.mid { color: var(--orange); }
+.crowd-btn.high { color: var(--pink); }
+.crowd-btn.low.active { background: var(--green-light); border-color: var(--green); }
+.crowd-btn.mid.active { background: var(--orange-light); border-color: var(--orange); }
+.crowd-btn.high.active { background: var(--pink-light); border-color: var(--pink); }
+.crowd-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+@media (min-width: 768px) {
+  .crowd-card { margin: 0 40px 16px; }
+}
+
+/* REVIEWS */
+.review-section { padding: 0 20px 20px; }
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.review-header h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.avg-block { display: flex; align-items: center; gap: 8px; }
+
+
 /* REVIEWS */
 .review-section { padding: 0 20px 20px; }
 .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -1782,6 +1859,7 @@ let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
+let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}');
 
 
 function getReviewComments(key) {
@@ -2056,6 +2134,98 @@ function editLocationInfo(cat, building, floor) {
   renderDetail(cat, building, floor);
   showToast('위치 안내가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
 }
+
+}
+
+function getCrowdMeta(status) {
+  const map = {
+    low: { label: '한산', cls: 'low', icon: '🟢' },
+    mid: { label: '보통', cls: 'mid', icon: '🟠' },
+    high: { label: '혼잡', cls: 'high', icon: '🔴' }
+  };
+  return map[status] || { label: '아직 제보 없음', cls: 'none', icon: '⚪' };
+}
+
+function getCrowdSummary(cat, building, floor) {
+  const key = getCrowdKey(cat, building, floor);
+  const reports = (crowdReports[key] || [])
+    .filter(r => Date.now() - Number(r.time || 0) < 2 * 60 * 60 * 1000);
+
+  // 2시간 지난 제보는 자동 정리
+  if ((crowdReports[key] || []).length !== reports.length) {
+    crowdReports[key] = reports;
+    localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
+  }
+
+  if (!reports.length) {
+    return { status: 'none', count: 0, label: '아직 제보 없음', updatedText: '최근 2시간 내 학생 제보가 없습니다.' };
+  }
+
+  const score = { low: 0, mid: 1, high: 2 };
+  const avg = reports.reduce((sum, r) => sum + score[r.status], 0) / reports.length;
+  const status = avg < 0.67 ? 'low' : avg < 1.34 ? 'mid' : 'high';
+  const latest = reports.reduce((max, r) => Math.max(max, Number(r.time || 0)), 0);
+  const minutesAgo = Math.max(0, Math.round((Date.now() - latest) / 60000));
+  const meta = getCrowdMeta(status);
+
+  return {
+    status,
+    count: reports.length,
+    label: meta.label,
+    updatedText: minutesAgo === 0 ? '방금 전 업데이트' : `${minutesAgo}분 전 업데이트`
+  };
+}
+
+function submitCrowdStatus(cat, building, floor, status) {
+  if (!(cat === 'toilet' || cat === 'store')) {
+    showToast('실시간 혼잡도는 화장실과 편의점에서만 사용할 수 있어요.');
+    return;
+  }
+
+  const key = getCrowdKey(cat, building, floor);
+  const userKey = currentUser || '익명';
+  const reports = (crowdReports[key] || [])
+    .filter(r => Date.now() - Number(r.time || 0) < 2 * 60 * 60 * 1000)
+    .filter(r => r.user !== userKey);
+
+  reports.push({
+    status,
+    user: userKey,
+    time: Date.now()
+  });
+
+  crowdReports[key] = reports;
+  localStorage.setItem('cammapCrowdReports', JSON.stringify(crowdReports));
+
+  renderDetail(cat, building, floor);
+  showToast(`실시간 혼잡도를 '${getCrowdMeta(status).label}'으로 반영했습니다.`);
+}
+
+function renderCrowdStatusSection(cat, building, floor) {
+  if (!(cat === 'toilet' || cat === 'store')) return '';
+
+  const summary = getCrowdSummary(cat, building, floor);
+  const meta = getCrowdMeta(summary.status);
+
+  return `
+    <div class="crowd-card">
+      <div class="crowd-top">
+        <div>
+          <div class="crowd-title">실시간 혼잡도</div>
+          <div class="crowd-sub">학생들이 직접 선택한 최근 2시간 기준 혼잡도입니다.</div>
+        </div>
+        <div class="crowd-badge ${meta.cls}">${meta.icon} ${summary.label}</div>
+      </div>
+      <div class="crowd-buttons">
+        <button class="crowd-btn low ${summary.status === 'low' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','low')">🟢 한산</button>
+        <button class="crowd-btn mid ${summary.status === 'mid' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','mid')">🟠 보통</button>
+        <button class="crowd-btn high ${summary.status === 'high' ? 'active' : ''}" onclick="submitCrowdStatus('${cat}','${building}','${floor}','high')">🔴 혼잡</button>
+      </div>
+      <div class="crowd-note">${summary.updatedText} · 참여 ${summary.count}명</div>
+    </div>
+  `;
+}
+
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
@@ -2443,6 +2613,7 @@ function renderDetail(cat, building, floor) {
   favBtn.classList.toggle('fav-active', favorites.has(favKey));
 
   const commentKey = `${cat}_${building}_${floor}`;
+  const reviewSafeId = makeMediaSafeId(cat, building, floor) + '_review';
   const allCmts = getReviewCommentsForFacility(cat, building, floor);
   const stats = getReviewStats(cat, building, floor);
   const avgRating = stats.label;
@@ -2517,6 +2688,7 @@ function renderDetail(cat, building, floor) {
       <span class="loc-text">${escapeHTML(mergedInfo.loc)}</span>
     </div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
+    ${renderCrowdStatusSection(cat, building, floor)}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
     ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다.</div>` : ''}
@@ -2534,11 +2706,11 @@ function renderDetail(cat, building, floor) {
       ${cmtsHTML}
       <div class="write-box">
         <h4>리뷰 작성</h4>
-        <div class="star-picker" id="star-picker-${commentKey}">
-          ${[1,2,3,4,5].map(i => `<button class="star-pick-btn" data-val="${i}" onclick="setRating(${i},'${commentKey}')">☆</button>`).join('')}
+        <div class="star-picker" id="star-picker-${reviewSafeId}">
+          ${[1,2,3,4,5].map(i => `<button class="star-pick-btn" data-val="${i}" onclick="setRating(${i},'${reviewSafeId}')">☆</button>`).join('')}
         </div>
-        <textarea class="review-textarea" id="review-input-${commentKey}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
-        <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}')">리뷰 등록하기</button>
+        <textarea class="review-textarea" id="review-input-${reviewSafeId}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
+        <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}','${reviewSafeId}')">리뷰 등록하기</button>
       </div>
     </div>
   `;
@@ -2547,12 +2719,17 @@ function renderDetail(cat, building, floor) {
 
 function setRating(val, key) {
   userRating = val;
-  const btns = document.querySelectorAll(`#star-picker-${key} .star-pick-btn`);
+  const picker = document.getElementById('star-picker-' + key);
+  if (!picker) {
+    showToast('별점 선택 영역을 찾지 못했습니다.');
+    return;
+  }
+  const btns = picker.querySelectorAll('.star-pick-btn');
   btns.forEach((btn, i) => { btn.textContent = i < val ? '⭐' : '☆'; });
 }
 
-function submitReview(key, cat, building, floor) {
-  const input = document.getElementById('review-input-' + key);
+function submitReview(key, cat, building, floor, inputKey = key) {
+  const input = document.getElementById('review-input-' + inputKey);
   const text = input ? input.value.trim() : '';
   if(!text) { showToast('리뷰 내용을 입력해주세요.'); return; }
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
