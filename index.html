@@ -367,6 +367,19 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .floor-info { flex: 1; }
 .floor-info h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
 .floor-info p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.floor-tags-edit-btn {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.floor-tags-edit-btn:hover { border-color: var(--orange); color: var(--orange); }
 .floor-arrow { font-size: 18px; color: var(--text-muted); }
 
 /* DETAIL SCREEN */
@@ -1944,10 +1957,44 @@ function getMergedFacilityInfo(cat, building, floor, fd) {
   return {
     info: normalizeInfoForCat(cat, saved.info || fd.info || {}),
     loc: saved.loc || fd.loc || '정확한 내부 위치 정보는 추후 업데이트 예정입니다.',
+    tags: saved.tags || fd.tags || '상세 정보 보기',
     updated: saved.updated || fd.updated || '2026.05.07'
   };
 }
 
+function getSavedFloorTags(cat, building, floor, fallback = '') {
+  const key = getDetailInfoKey(cat, building, floor);
+  const saved = detailInfoEdits[key] || {};
+  return saved.tags || fallback || '상세 정보 보기';
+}
+
+function editFloorTags(catEnc, buildingEnc, floorEnc) {
+  if (!adminOnlyAction()) return;
+  const cat = decodeInfoArg(catEnc);
+  const building = decodeInfoArg(buildingEnc);
+  const floor = decodeInfoArg(floorEnc);
+  const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
+  if (!fd) { showToast('수정할 층 설명을 찾지 못했습니다.'); return; }
+
+  const current = getSavedFloorTags(cat, building, floor, fd.tags || '');
+  const next = prompt('목록에 표시될 설명을 입력하세요.\n예: 비교적 깨끗함 / 비데 있음', current);
+  if (next === null) return;
+
+  const cleanTags = next.trim() || '상세 정보 보기';
+  const storageKey = getDetailInfoKey(cat, building, floor);
+  const prev = detailInfoEdits[storageKey] || {};
+  detailInfoEdits[storageKey] = {
+    ...prev,
+    info: prev.info || fd.info || {},
+    loc: prev.loc || fd.loc || '',
+    tags: cleanTags,
+    updated: getTodayText()
+  };
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  setFacilityUpdatedNow(cat, building, floor);
+  renderFloorList();
+  showToast('층 설명이 수정되었습니다.');
+}
 
 function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
   if (!adminOnlyAction()) return;
@@ -2164,12 +2211,15 @@ function renderFloorList() {
   const list = document.getElementById('floor-list');
   list.innerHTML = floors.map(f => {
     const shortFloor = getShortFloorLabel(f.floor);
+    const savedTags = getSavedFloorTags(currentCat, currentBuilding, f.floor, f.tags);
+    const editBtn = isAdmin ? `<button class="floor-tags-edit-btn" onclick="event.stopPropagation(); editFloorTags('${encodeURIComponent(currentCat)}','${encodeURIComponent(currentBuilding)}','${encodeURIComponent(f.floor)}')">설명 수정</button>` : '';
     return `
     <div class="floor-card" onclick="selectFloor('${f.floor}')">
       <div class="floor-num">${shortFloor}</div>
       <div class="floor-info">
         <h3>${getFacilityDisplayTitle(currentCat, currentBuilding, f.floor)}</h3>
-        <p>${f.tags}</p>
+        <p>${escapeHTML(savedTags)}</p>
+        ${editBtn}
       </div>
       <span class="floor-arrow">›</span>
     </div>`;
@@ -3202,7 +3252,7 @@ function showMapFloorPopup(facility) {
       <div style="width:46px;height:46px;border-radius:14px;background:${facility.cat === 'store' ? '#E8F8EF' : facility.cat === 'smoke' ? '#FCE4F3' : '#FFF0E6'};display:flex;align-items:center;justify-content:center;font-weight:900;color:${pinColors[facility.cat]}">${getPopupFloorBadgeLabel(f.floor)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:900;color:#1A1A1A">${getFacilityDisplayTitle(facility.cat, facility.building, f.floor)}</div>
-        <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${f.tags || '상세 정보 보기'}</div>
+        <div style="font-size:12px;color:#777;margin-top:4px;line-height:1.45">${escapeHTML(getSavedFloorTags(facility.cat, facility.building, f.floor, f.tags))}</div>
       </div>
       <div style="font-size:20px;color:#AAA">›</div>
     </div>
@@ -3698,7 +3748,8 @@ function renderMyFavorites() {
   listEl.innerHTML = favItems.map(item => {
     const iconClass = getCatIconClass(item.cat);
     const title = escapeHTML(getFacilityTitle(item.cat, item.building, item.floor));
-    const desc = floorData[item.cat]?.[item.building]?.find(f => f.floor === item.floor)?.tags || '상세 정보와 리뷰 확인';
+    const favFloorData = floorData[item.cat]?.[item.building]?.find(f => f.floor === item.floor);
+    const desc = favFloorData ? getSavedFloorTags(item.cat, item.building, item.floor, favFloorData.tags) : '상세 정보와 리뷰 확인';
     return `
       <div class="my-item" onclick="goToDetail('${item.building}','${item.floor}','${item.cat}')">
         <div class="my-item-icon ${iconClass}">⭐</div>
@@ -3821,7 +3872,7 @@ function deleteReport(reportId) {
 
 function getRecentViewDescription(v) {
   const fd = floorData[v.cat]?.[v.building]?.find(f => f.floor === v.floor);
-  const base = fd?.tags || catInfo[v.cat]?.label || '시설 정보';
+  const base = fd ? getSavedFloorTags(v.cat, v.building, v.floor, fd.tags) : (catInfo[v.cat]?.label || '시설 정보');
   return v.date ? `${base} · ${v.date} 방문` : base;
 }
 
