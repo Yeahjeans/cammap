@@ -3164,39 +3164,50 @@ function renderDetail(cat, building, floor) {
 
   let infoCardHTML = '';
   if (cat === 'toilet') {
-    const womenInfo = displayInfo['여자화장실'];
-    const menInfo = displayInfo['남자화장실'];
-    let showWomen = isKnownGender(womenInfo) && !isUnavailableGender(womenInfo);
-    let showMen = isKnownGender(menInfo) && !isUnavailableGender(menInfo);
-
-    // 성별 정보가 아직 둘 다 불명확한 화장실은 기존처럼 두 구역을 모두 보여줍니다.
-    if (!showWomen && !showMen) {
-      showWomen = true;
-      showMen = true;
-    }
-
+    const contextTextForGender = [floor, fd?.floor, fd?.tags, fd?.loc].filter(Boolean).join(' ');
+    const isExplicitWomenOnlyPage = /여자|여성|여학생/.test(contextTextForGender) && !/남자|남성|남학생|남녀|공용/.test(contextTextForGender);
+    const isExplicitMenOnlyPage = /남자|남성|남학생/.test(contextTextForGender) && !/여자|여성|여학생|남녀|공용/.test(contextTextForGender);
     const detailKeys = ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
-    const renderGenderSection = (title, genderArr) => {
-      const badgeText = getInfoValueText(genderArr) || '정보 업데이트 예정';
-      const rows = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
-      return `
-        <div class="toilet-gender-card">
-          <div class="toilet-gender-head">
-            <span class="toilet-gender-title">${escapeHTML(title)}</span>
-            <span class="toilet-gender-badge">${escapeHTML(badgeText)}</span>
+
+    // 과학관 1층 남자화장실, 명진관 B1층 여자화장실처럼
+    // 층 이름 자체가 이미 여자/남자화장실로 구분된 상세페이지는 상세정보 카드 하나만 보여줍니다.
+    if (isExplicitWomenOnlyPage || isExplicitMenOnlyPage) {
+      const infoRowsHTML = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
+      infoCardHTML = `<div class="info-card">${infoRowsHTML}</div>`;
+    } else {
+      const womenInfo = displayInfo['여자화장실'];
+      const menInfo = displayInfo['남자화장실'];
+      let showWomen = isKnownGender(womenInfo) && !isUnavailableGender(womenInfo);
+      let showMen = isKnownGender(menInfo) && !isUnavailableGender(menInfo);
+
+      // 일반 화장실 상세페이지는 여자/남자 구역으로 나누어 보여줍니다.
+      if (!showWomen && !showMen) {
+        showWomen = true;
+        showMen = true;
+      }
+
+      const renderGenderSection = (title, genderArr) => {
+        const badgeText = getInfoValueText(genderArr) || '정보 업데이트 예정';
+        const rows = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
+        return `
+          <div class="toilet-gender-card">
+            <div class="toilet-gender-head">
+              <span class="toilet-gender-title">${escapeHTML(title)}</span>
+              <span class="toilet-gender-badge">${escapeHTML(badgeText)}</span>
+            </div>
+            ${rows}
           </div>
-          ${rows}
-        </div>
-      `;
-    };
+        `;
+      };
 
-    const genderSections = [
-      showWomen ? renderGenderSection('여자화장실', womenInfo) : '',
-      showMen ? renderGenderSection('남자화장실', menInfo) : ''
-    ].join('');
+      const genderSections = [
+        showWomen ? renderGenderSection('여자화장실', womenInfo) : '',
+        showMen ? renderGenderSection('남자화장실', menInfo) : ''
+      ].join('');
 
-    const sectionCount = [showWomen, showMen].filter(Boolean).length;
-    infoCardHTML = `<div class="toilet-gender-wrap ${sectionCount === 1 ? 'single' : ''}">${genderSections}</div>`;
+      const sectionCount = [showWomen, showMen].filter(Boolean).length;
+      infoCardHTML = `<div class="toilet-gender-wrap ${sectionCount === 1 ? 'single' : ''}">${genderSections}</div>`;
+    }
   } else {
     const infoRowsHTML = Object.entries(displayInfo).map(([k, arr]) => renderInfoRow(k, arr)).join('');
     infoCardHTML = `<div class="info-card">${infoRowsHTML}</div>`;
