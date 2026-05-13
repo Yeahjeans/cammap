@@ -1144,34 +1144,6 @@ window.__naverMapScriptLoading = false;
 window.__naverMapScriptLoaded = false;
 </script>
 
-<style id="cammap-click-fix">
-.floor-card,
-.report-tab,
-.category-btn,
-.detail-card,
-button,
-a,
-.marker-card {
-  pointer-events: auto !important;
-  cursor: pointer;
-  touch-action: manipulation;
-  position: relative;
-  z-index: 10;
-}
-
-.modal-overlay {
-  pointer-events: auto;
-}
-
-.modal-content {
-  position: relative;
-  z-index: 20;
-}
-
-.map-overlay-blocker {
-  pointer-events:auto !important;
-}
-</style>
 
 </head>
 <body>
@@ -2170,7 +2142,6 @@ function editLocationInfo(cat, building, floor) {
   showToast('위치 안내가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
 }
 
-}
 
 function getCrowdMeta(status) {
   const map = {
@@ -2742,7 +2713,7 @@ function renderDetail(cat, building, floor) {
       <div class="write-box">
         <h4>리뷰 작성</h4>
         <div class="star-picker" id="star-picker-${reviewSafeId}">
-          ${[1,2,3,4,5].map(i => `<button type="button" class="star-pick-btn" data-val="${i}" data-key="${reviewSafeId}">☆</button>`).join('')}
+          ${[1,2,3,4,5].map(i => `<button type="button" type="button" class="star-pick-btn" data-val="${i}" data-key="${reviewSafeId}">☆</button>`).join('')}
         </div>
         <textarea class="review-textarea" id="review-input-${reviewSafeId}" placeholder="이 시설을 이용한 경험을 공유해주세요..."></textarea>
         <button class="submit-btn" onclick="submitReview('${commentKey}','${cat}','${building}','${floor}','${reviewSafeId}')">리뷰 등록하기</button>
