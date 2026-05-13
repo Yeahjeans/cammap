@@ -1409,6 +1409,9 @@ window.__naverMapScriptLoaded = false;
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','다향관')">
           <div class="map-pin-name">📍 다향관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','법학관')">
+          <div class="map-pin-name">📍 법학관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
+        </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','원흥관')">
           <div class="map-pin-name">📍 원흥관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
@@ -1617,7 +1620,13 @@ const catInfo = {
   smoke:  { label: '흡연구역', icon: '🚬', color: 'var(--pink)' }
 };
 
+function canonicalBuildingName(name) {
+  if (name === '법학만해관') return '법학관';
+  return name;
+}
+
 function getFacilityDisplayTitle(cat, building, floor) {
+  building = canonicalBuildingName(building);
   const label = catInfo[cat]?.label || '';
   const floorText = String(floor || '');
   const base = `${building} ${floorText}`.trim();
@@ -1634,6 +1643,7 @@ function getFacilityDisplayTitle(cat, building, floor) {
 }
 
 function getFacilityCoordForBuilding(cat, building) {
+  building = canonicalBuildingName(building);
   if (typeof facilityCoords === 'undefined') return null;
   return facilityCoords.find(f => f.cat === cat && f.building === building)
       || facilityCoords.find(f => f.building === building)
@@ -3554,10 +3564,10 @@ const facilityCoords = [
     "lng": 127.0029112
   },
   {
-    "id": "toilet_law_manhae",
+    "id": "toilet_law",
     "cat": "toilet",
-    "name": "법학만해관 화장실",
-    "building": "법학만해관",
+    "name": "법학관 화장실",
+    "building": "법학관",
     "floor": "1층",
     "lat": 37.5580468,
     "lng": 127.0009122
@@ -4094,6 +4104,7 @@ function toggleMapFilter(cat) {
 }
 
 function selectCategoryFromMap(cat, building) {
+  building = canonicalBuildingName(building);
   ensureAllMapFacilityData();
   syncMapFacilitiesIntoCategory(cat);
 
