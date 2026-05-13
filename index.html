@@ -819,6 +819,98 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   font-family: inherit;
   cursor: pointer;
 }
+
+.nearest-choice-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.48);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.nearest-choice-backdrop.show { display: flex; }
+.nearest-choice-modal {
+  width: min(420px, 92vw);
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+}
+.nearest-choice-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.nearest-choice-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+.nearest-choice-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.nearest-choice-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.nearest-choice-list {
+  display: grid;
+  gap: 10px;
+}
+.nearest-choice-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+}
+.nearest-choice-btn:hover { border-color: var(--orange); background: #fff; }
+.nearest-choice-btn:active { transform: scale(0.98); }
+.nearest-choice-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.nearest-choice-icon.toilet { background: var(--orange-light); }
+.nearest-choice-icon.store { background: var(--green-light); }
+.nearest-choice-icon.smoke { background: var(--pink-light); }
+.nearest-choice-text strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 800;
+}
+.nearest-choice-text span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.45;
+}
 @media (max-width: 420px) {
   .location-actions { grid-template-columns: 1fr; }
 }
@@ -1086,12 +1178,37 @@ window.__naverMapScriptLoaded = false;
 </div>
       <div class="location-actions">
         <button class="location-btn primary" id="my-location-btn" onclick="toggleMyLocationTracking()">📍 내 위치 켜기</button>
-        <button class="location-btn secondary" onclick="recommendNearestToilet()">🚻 가까운 화장실 추천</button>
+        <button class="location-btn secondary" onclick="openNearestChoiceModal()">✨ 가까운 시설 추천</button>
       </div>
       <div class="nearest-card" id="nearest-card">
-        <div class="nearest-title" id="nearest-title">가까운 화장실</div>
-        <div class="nearest-desc" id="nearest-desc">내 위치를 켜면 가장 가까운 화장실을 계산해 보여줍니다.</div>
-        <button class="nearest-open-btn" id="nearest-open-btn" onclick="openNearestToilet()">상세 정보 보기</button>
+        <div class="nearest-title" id="nearest-title">가까운 시설</div>
+        <div class="nearest-desc" id="nearest-desc">내 위치를 켜고 원하는 시설 종류를 선택하면 가장 가까운 곳을 보여줍니다.</div>
+        <button class="nearest-open-btn" id="nearest-open-btn" onclick="openNearestFacility()">상세 정보 보기</button>
+      </div>
+      <div class="nearest-choice-backdrop" id="nearest-choice-backdrop" onclick="handleNearestChoiceBackdrop(event)">
+        <div class="nearest-choice-modal">
+          <div class="nearest-choice-head">
+            <div>
+              <div class="nearest-choice-title">가까운 시설 추천</div>
+              <div class="nearest-choice-sub">추천받고 싶은 시설 종류를 선택하세요. 현재 위치 기준으로 가장 가까운 곳을 계산합니다.</div>
+            </div>
+            <button class="nearest-choice-close" onclick="closeNearestChoiceModal()">×</button>
+          </div>
+          <div class="nearest-choice-list">
+            <button class="nearest-choice-btn" onclick="recommendNearestFacility('toilet')">
+              <span class="nearest-choice-icon toilet">🚻</span>
+              <span class="nearest-choice-text"><strong>화장실</strong><span>가장 가까운 화장실을 추천합니다.</span></span>
+            </button>
+            <button class="nearest-choice-btn" onclick="recommendNearestFacility('store')">
+              <span class="nearest-choice-icon store">🏪</span>
+              <span class="nearest-choice-text"><strong>편의점</strong><span>가장 가까운 편의점을 추천합니다.</span></span>
+            </button>
+            <button class="nearest-choice-btn" onclick="recommendNearestFacility('smoke')">
+              <span class="nearest-choice-icon smoke">🚬</span>
+              <span class="nearest-choice-text"><strong>흡연구역</strong><span>가장 가까운 흡연구역을 추천합니다.</span></span>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><div class="legend-label">화장실</div></div>
@@ -2805,6 +2922,7 @@ let myAccuracyCircle = null;
 let myLocationWatchId = null;
 let myLocation = null;
 let nearestToilet = null;
+let nearestFacility = null;
 let nearestToiletHighlightMarker = null;
 
 function setMapMessage(html) {
@@ -3101,7 +3219,7 @@ function selectCategoryFromMap(cat, building) {
 
 
 
-// ============ MY LOCATION / NEAREST TOILET ============
+// ============ MY LOCATION / NEAREST FACILITY ============
 function toggleMyLocationTracking() {
   if (myLocationWatchId !== null) {
     stopMyLocationTracking();
@@ -3129,7 +3247,9 @@ function startMyLocationTracking() {
       const lng = position.coords.longitude;
       const accuracy = position.coords.accuracy || 0;
       updateMyLocationOnMap(lat, lng, accuracy, true);
-      updateNearestToiletByLocation(lat, lng, false);
+      if (nearestFacility && nearestFacility.cat) {
+        updateNearestFacilityByLocation(nearestFacility.cat, lat, lng, false);
+      }
       ['toilet','store','smoke'].forEach(updateBuildingWalkLabels);
       const buildingScreen = document.getElementById('screen-buildings');
       if (buildingScreen && buildingScreen.classList.contains('active')) {
@@ -3227,44 +3347,66 @@ function formatDistance(meter) {
   return `약 ${(meter / 1000).toFixed(1)}km`;
 }
 
-function getToiletCandidates() {
-  return facilityCoords
-    .filter(item => item.cat === 'toilet')
-    .map(item => ({
-      building: item.building,
-      floor: item.floor,
-      name: item.name,
-      rating: 0, comments: 0,
-      lat: item.lat,
-      lng: item.lng,
-      hasDetail: !!(floorData.toilet?.[item.building])
-    }));
+function openNearestChoiceModal() {
+  const modal = document.getElementById('nearest-choice-backdrop');
+  if (modal) modal.classList.add('show');
 }
 
-function updateNearestToiletByLocation(lat, lng, openCard = true) {
-  const candidates = getToiletCandidates().map(item => ({
+function closeNearestChoiceModal() {
+  const modal = document.getElementById('nearest-choice-backdrop');
+  if (modal) modal.classList.remove('show');
+}
+
+function handleNearestChoiceBackdrop(event) {
+  if (event.target && event.target.id === 'nearest-choice-backdrop') {
+    closeNearestChoiceModal();
+  }
+}
+
+function getFacilityCandidates(cat) {
+  return facilityCoords
+    .filter(item => item.cat === cat)
+    .map(item => {
+      ensureFacilityDataForMapFacility(item);
+      const firstFloor = floorData[item.cat]?.[item.building]?.[0]?.floor || item.floor || '1층';
+      return {
+        cat: item.cat,
+        building: item.building,
+        floor: item.floor || firstFloor,
+        name: item.name,
+        lat: item.lat,
+        lng: item.lng,
+        hasDetail: !!(floorData[item.cat]?.[item.building])
+      };
+    });
+}
+
+function updateNearestFacilityByLocation(cat, lat, lng, openCard = true) {
+  const candidates = getFacilityCandidates(cat).map(item => ({
     ...item,
     distance: getDistanceMeter(lat, lng, item.lat, item.lng)
   }));
 
   candidates.sort((a, b) => a.distance - b.distance);
-  nearestToilet = candidates[0];
+  nearestFacility = candidates[0];
+  nearestToilet = cat === 'toilet' ? nearestFacility : null;
 
-  if (!nearestToilet) {
-    showToast('등록된 화장실 좌표가 없습니다.');
+  if (!nearestFacility) {
+    showToast(`등록된 ${catInfo[cat]?.label || '시설'} 좌표가 없습니다.`);
     return;
   }
 
-  renderNearestToiletCard(nearestToilet, openCard);
-  highlightNearestToilet(nearestToilet);
+  renderNearestFacilityCard(nearestFacility, openCard);
+  highlightNearestFacility(nearestFacility);
 }
 
-function recommendNearestToilet() {
+function recommendNearestFacility(cat) {
+  closeNearestChoiceModal();
   if (!naverMap) initMap();
 
   if (myLocation) {
-    updateNearestToiletByLocation(myLocation.lat, myLocation.lng, true);
-    showToast(`가장 가까운 화장실은 ${nearestToilet.name || nearestToilet.building}입니다.`);
+    updateNearestFacilityByLocation(cat, myLocation.lat, myLocation.lng, true);
+    showToast(`가장 가까운 ${catInfo[cat].label}은 ${nearestFacility.name || nearestFacility.building}입니다.`);
     return;
   }
 
@@ -3278,12 +3420,12 @@ function recommendNearestToilet() {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       updateMyLocationOnMap(lat, lng, position.coords.accuracy || 0, true);
-      updateNearestToiletByLocation(lat, lng, true);
-      showToast(`가장 가까운 화장실은 ${nearestToilet.name || nearestToilet.building}입니다.`);
+      updateNearestFacilityByLocation(cat, lat, lng, true);
+      showToast(`가장 가까운 ${catInfo[cat].label}은 ${nearestFacility.name || nearestFacility.building}입니다.`);
     },
     function(error) {
       console.error(error);
-      showToast('위치 권한을 허용해야 가까운 화장실을 추천할 수 있어요.');
+      showToast('위치 권한을 허용해야 가까운 시설을 추천할 수 있어요.');
     },
     {
       enableHighAccuracy: true,
@@ -3293,54 +3435,65 @@ function recommendNearestToilet() {
   );
 }
 
-function renderNearestToiletCard(item, openCard = true) {
+function renderNearestFacilityCard(item, openCard = true) {
   const card = document.getElementById('nearest-card');
   const title = document.getElementById('nearest-title');
   const desc = document.getElementById('nearest-desc');
+  const openBtn = document.getElementById('nearest-open-btn');
   if (!card || !title || !desc) return;
 
-  title.textContent = `🚻 가장 가까운 화장실: ${item.name || (item.building + " " + item.floor)}`;
-  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${getReviewStats(item.cat, item.building).label} · 댓글 ${getReviewStats(item.cat, item.building).count}개<br>저장된 화장실 좌표 기준 추천입니다.`;
+  const stats = getReviewStats(item.cat, item.building, item.floor);
+  const label = catInfo[item.cat]?.label || '시설';
+  title.textContent = `${catInfo[item.cat]?.icon || '📍'} 가장 가까운 ${label}: ${item.name || getFacilityDisplayTitle(item.cat, item.building, item.floor)}`;
+  desc.innerHTML = `${formatDistance(item.distance)} · ⭐ ${stats.label} · 댓글 ${stats.count}개<br>저장된 ${label} 좌표 기준 추천입니다.`;
+  if (openBtn) openBtn.textContent = `${label} 상세 정보 보기`;
   if (openCard) card.classList.add('show');
 }
 
-function highlightNearestToilet(item) {
+function highlightNearestFacility(item) {
   if (!naverMap || !window.naver || !naver.maps) return;
 
   if (nearestToiletHighlightMarker) {
     nearestToiletHighlightMarker.setMap(null);
   }
 
+  const label = catInfo[item.cat]?.label || '시설';
+  const icon = catInfo[item.cat]?.icon || '📍';
+  const color = pinColors[item.cat] || '#F4762A';
   const pos = new naver.maps.LatLng(item.lat, item.lng);
   nearestToiletHighlightMarker = new naver.maps.Marker({
     position: pos,
     map: naverMap,
     icon: {
       content: `<div style="
-        background:#F4762A;color:#fff;border-radius:18px;padding:7px 10px;
+        background:${color};color:#fff;border-radius:18px;padding:7px 10px;
         font-size:12px;font-weight:800;white-space:nowrap;
         box-shadow:0 3px 12px rgba(0,0,0,0.28);border:2px solid #fff;
-      ">가장 가까움 🚻</div>`,
-      anchor: new naver.maps.Point(48, 38)
+      ">가장 가까운 ${label} ${icon}</div>`,
+      anchor: new naver.maps.Point(58, 38)
     }
   });
-
-  // 가까운 화장실 추천은 표시만 하고, 지도 중심은 내 위치가 유지되도록 이동시키지 않는다.
-  // naverMap.panTo(pos);
 }
 
-function openNearestToilet() {
-  if (!nearestToilet) {
-    recommendNearestToilet();
+function openNearestFacility() {
+  if (!nearestFacility) {
+    openNearestChoiceModal();
     return;
   }
-  if (nearestToilet.hasDetail) {
-    goToDetail(nearestToilet.building, nearestToilet.floor, 'toilet');
+  if (nearestFacility.hasDetail) {
+    goToDetail(nearestFacility.building, nearestFacility.floor, nearestFacility.cat);
   } else {
-    showToast(`${nearestToilet.name} 위치입니다. 상세 정보는 준비 중입니다.`);
+    showToast(`${nearestFacility.name} 위치입니다. 상세 정보는 준비 중입니다.`);
   }
 }
 
+// 이전 코드/버튼명이 남아 있어도 작동하도록 호환 함수 유지
+function getToiletCandidates() { return getFacilityCandidates('toilet'); }
+function updateNearestToiletByLocation(lat, lng, openCard = true) { return updateNearestFacilityByLocation('toilet', lat, lng, openCard); }
+function recommendNearestToilet() { return recommendNearestFacility('toilet'); }
+function renderNearestToiletCard(item, openCard = true) { return renderNearestFacilityCard({ ...item, cat: 'toilet' }, openCard); }
+function highlightNearestToilet(item) { return highlightNearestFacility({ ...item, cat: 'toilet' }); }
+function openNearestToilet() { return openNearestFacility(); }
 
 
 // ============ USER PERSONALIZATION / MYPAGE ============
