@@ -1737,7 +1737,7 @@ const buildingData = {
     { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 0, comments: 0,  updated: '2026.05.05' },
     { name: '본관',       walk: '도보 4분', floors: ['2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '혜화관',     walk: '도보 3분', floors: ['1층 화장실','2층 화장실','3층 화장실','4층 화장실','5층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
-    { name: '명진관',     walk: '도보 4분', floors: ['B1층 화장실','1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '명진관',     walk: '도보 4분', floors: ['B1층 남자화장실','1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '원흥관',     walk: '도보 6분', floors: ['1층 여자화장실','2층 남자화장실','4층 화장실','5층 화장실'], rating: 0, comments: 0,  updated: '2026.05.13' },
     { name: '다향관',     walk: '도보 5분', floors: ['1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' }
   ],
@@ -1796,7 +1796,7 @@ const floorData = {
       { floor: '5층 화장실', tags: '혜화관 5층 화장실', loc: '혜화관 5층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '명진관': [
-      { floor: 'B1층 화장실', tags: '명진관 B1층 화장실', loc: '명진관 B1층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: 'B1층 남자화장실', tags: '명진관 B1층 남자화장실', loc: '명진관 B1층 남자화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '1층 화장실', tags: '명진관 1층 화장실', loc: '명진관 1층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '2층 화장실', tags: '명진관 2층 화장실', loc: '명진관 2층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '3층 화장실', tags: '명진관 3층 화장실', loc: '명진관 3층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
@@ -3169,7 +3169,7 @@ function renderDetail(cat, building, floor) {
     const isExplicitMenOnlyPage = /남자|남성|남학생/.test(contextTextForGender) && !/여자|여성|여학생|남녀|공용/.test(contextTextForGender);
     const detailKeys = ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
 
-    // 과학관 1층 남자화장실, 명진관 B1층 여자화장실처럼
+    // 과학관 1층 남자화장실, 명진관 B1층 남자화장실처럼
     // 층 이름 자체가 이미 여자/남자화장실로 구분된 상세페이지는 상세정보 카드 하나만 보여줍니다.
     if (isExplicitWomenOnlyPage || isExplicitMenOnlyPage) {
       const infoRowsHTML = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
