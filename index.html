@@ -495,7 +495,8 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .info-val { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .info-val.good { color: var(--green); }
 .info-val.warn { color: var(--orange); }
-.info-val.none { color: var(--text-muted); }
+.info-val.none { color: #E53935; font-weight: 800; }
+.info-val.pending { color: var(--text-muted); }
 .info-row .info-edit-btn {
   margin-left: 10px;
   border: 1px solid var(--border);
@@ -549,6 +550,14 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   background: var(--orange-light);
   color: var(--orange);
   white-space: nowrap;
+}
+.toilet-gender-badge.complete {
+  background: var(--orange-light);
+  color: var(--orange);
+}
+.toilet-gender-badge.pending {
+  background: #F3F3F3;
+  color: var(--text-muted);
 }
 .toilet-gender-card .info-row {
   margin: 0;
@@ -2413,7 +2422,8 @@ function getDetailInfoKey(cat, building, floor) {
 
 function getInfoClassFromValue(value) {
   const v = String(value || '').trim();
-  if (!v || /정보\s*없음|정보\s*업데이트|업데이트\s*예정|없음|해당\s*없음/.test(v)) return 'none';
+  if (!v || /정보\s*없음|정보\s*업데이트|업데이트\s*예정/.test(v)) return 'pending';
+  if (/없음|해당\s*없음|미설치|X/i.test(v)) return 'none';
   if (/혼잡|주의|부족|불량|나쁨|고장|불편/.test(v)) return 'warn';
   if (/있음|좋음|깨끗|한산|가능|남녀|남자|여자|운영/.test(v)) return 'good';
   return '';
@@ -3196,7 +3206,8 @@ function renderDetail(cat, building, floor) {
   const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {}, { building, floor, fd });
   const renderInfoRow = (k, arr, genderScope = '') => {
     const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
-    const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
+    const inferredCls = getInfoClassFromValue(v);
+    const cls = inferredCls || (Array.isArray(arr) ? (arr[1] || '') : '');
     const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}','${encodeURIComponent(genderScope)}')">수정</button>` : '';
     return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
   };
@@ -3206,6 +3217,16 @@ function renderDetail(cat, building, floor) {
   const isKnownGender = (arr) => {
     const text = getInfoValueText(arr).trim();
     return text && !/정보\s*업데이트|업데이트\s*예정|정보\s*없음/.test(text);
+  };
+  const isPendingInfoValue = (arr) => {
+    const text = getInfoValueText(arr).trim();
+    return !text || /정보\s*업데이트|업데이트\s*예정|정보\s*없음/.test(text);
+  };
+  const getGenderBadgeState = (scopedInfo) => {
+    const hasPending = detailKeys.some(key => isPendingInfoValue(scopedInfo[key] || ['정보 업데이트 예정','pending']));
+    return hasPending
+      ? { text: '정보 업데이트 예정', cls: 'pending' }
+      : { text: '있음', cls: 'complete' };
   };
 
   let infoCardHTML = '';
@@ -3237,13 +3258,13 @@ function renderDetail(cat, building, floor) {
       const renderGenderSection = (title, genderArr) => {
         const genderScope = getGenderScopeFromTitle(title);
         const scopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, displayInfo, genderScope);
-        const badgeText = getInfoValueText(genderArr) || '정보 업데이트 예정';
-        const rows = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','none'], genderScope)).join('');
+        const badge = getGenderBadgeState(scopedInfo);
+        const rows = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','pending'], genderScope)).join('');
         return `
           <div class="toilet-gender-card">
             <div class="toilet-gender-head">
               <span class="toilet-gender-title">${escapeHTML(title)}</span>
-              <span class="toilet-gender-badge">${escapeHTML(badgeText)}</span>
+              <span class="toilet-gender-badge ${badge.cls}">${escapeHTML(badge.text)}</span>
             </div>
             ${rows}
           </div>
