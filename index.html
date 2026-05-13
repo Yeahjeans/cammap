@@ -1241,6 +1241,10 @@ function getFacilityDisplayTitle(cat, building, floor) {
   const floorText = String(floor || '');
   const base = `${building} ${floorText}`.trim();
 
+  // 편의점은 이름 자체가 시설명이라 '1층 편의점'을 뒤에 붙이지 않는다.
+  // 예: '법학관 쿱스켓 편의점'만 표시
+  if (cat === 'store') return building;
+
   // 예: '원흥관 1층 여자화장실'처럼 floor 안에 이미 '화장실'이 들어간 경우
   // 뒤에 '화장실'을 한 번 더 붙이지 않는다.
   if (label && floorText.includes(label)) return base;
@@ -1619,6 +1623,38 @@ function getInfoClassFromValue(value) {
   return '';
 }
 
+
+function getTodayText() {
+  return new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+}
+
+function setFacilityUpdatedNow(cat, building, floor) {
+  const today = getTodayText();
+
+  const storageKey = getDetailInfoKey(cat, building, floor);
+  const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor);
+  const saved = detailInfoEdits[storageKey] || {};
+
+  detailInfoEdits[storageKey] = {
+    ...saved,
+    info: saved.info || fd?.info || {},
+    updated: today
+  };
+  localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+
+  const target = (buildingData[cat] || []).find(b => b.name === building);
+  if (target) target.updated = today;
+
+  const dateEl = document.getElementById('detail-updated-value');
+  if (dateEl) dateEl.textContent = today;
+
+  document.querySelectorAll(`[data-building-date="${cat}_${building}"]`).forEach(el => {
+    el.textContent = today;
+  });
+
+  return today;
+}
+
 function getMergedFacilityInfo(cat, building, floor, fd) {
   const key = getDetailInfoKey(cat, building, floor);
   const saved = detailInfoEdits[key] || {};
@@ -1646,18 +1682,15 @@ function editDetailInfo(cat, building, floor) {
     nextInfo[key] = [value, getInfoClassFromValue(value)];
   }
 
-  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
-  const updated = prompt('최근 업데이트 날짜를 입력하세요.', merged.updated || today);
-  if (updated === null) return;
-
   const storageKey = getDetailInfoKey(cat, building, floor);
   detailInfoEdits[storageKey] = {
     info: nextInfo,
-    updated: updated.trim() || today
+    updated: getTodayText()
   };
   localStorage.setItem('cammapDetailInfoEdits', JSON.stringify(detailInfoEdits));
+  setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
-  showToast('상세 정보가 수정되었습니다.');
+  showToast('상세 정보가 수정되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
 }
 
 // ============ NAVIGATION ============
@@ -1748,7 +1781,7 @@ function renderBuildingList(cat) {
     // 건물 → 층 선택을 한 번 더 거치지 않고 바로 상세페이지로 이동
     if (cat === 'store' && floors.length === 1) {
       const f = floors[0];
-      const title = `${b.name} ${f.floor} ${f.tags || catInfo[cat].label}`;
+      const title = b.name;
 
       return `
         <div class="building-card" onclick="goToDetail('${b.name}','${f.floor}','${cat}')">
@@ -1758,12 +1791,12 @@ function renderBuildingList(cat) {
           </div>
           <div class="floor-tags">
             <span class="floor-tag">${f.floor}</span>
-            <span class="floor-tag">${f.tags || catInfo[cat].label}</span>
+            <span class="floor-tag">${catInfo[cat].label}</span>
           </div>
           <div class="bc-meta">
             <div class="bc-rating"><span class="star">⭐</span><span class="rval">${ratingLabel}</span></div>
             <span class="bc-comments">댓글 ${commentCount}개</span>
-            <span class="bc-date">${b.updated}</span>
+            <span class="bc-date" data-building-date="${cat}_${b.name}">${b.updated}</span>
           </div>
         </div>
       `;
@@ -1779,7 +1812,7 @@ function renderBuildingList(cat) {
         <div class="bc-meta">
           <div class="bc-rating"><span class="star">⭐</span><span class="rval">${ratingLabel}</span></div>
           <span class="bc-comments">댓글 ${commentCount}개</span>
-          <span class="bc-date">${b.updated}</span>
+          <span class="bc-date" data-building-date="${cat}_${b.name}">${b.updated}</span>
         </div>
       </div>
     `;
@@ -1939,7 +1972,8 @@ function previewPlanImage(event, safeId) {
     const target = document.getElementById(`plan-box-${safeId}`);
     const html = `<div class="media-img-wrap" id="plan-box-${safeId}" onclick="requestAdminMediaUpload('plan-input-${safeId}')"><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${isAdmin ? '<span class="media-edit-badge">수정</span>' : ''}</div>`;
     if(target) target.outerHTML = html;
-    showToast('도면 이미지가 저장되었습니다.');
+    if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
+    showToast('도면 이미지가 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
   });
 }
 
@@ -1951,7 +1985,8 @@ function previewPhotoImage(event, safeId, num) {
     const target = document.getElementById(`photo-box-${safeId}-${num}`);
     const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}" onclick="requestAdminMediaUpload('photo-input-${safeId}-${num}')"><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${isAdmin ? '<span class="photo-edit-badge">수정</span>' : ''}</div>`;
     if(target) target.outerHTML = html;
-    showToast('사진이 저장되었습니다.');
+    if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
+    showToast('사진이 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
   });
 }
 
@@ -2036,7 +2071,7 @@ function renderDetail(cat, building, floor) {
       <span class="loc-text">${fd.loc}</span>
     </div>
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
-    <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn" onclick="editDetailInfo('${cat}','${building}','${floor}')">상세 정보 수정</button></div>` : ''}
     <div class="review-section">
       <div class="review-header">
@@ -2075,7 +2110,7 @@ function submitReview(key, cat, building, floor) {
   if(!text) { showToast('리뷰 내용을 입력해주세요.'); return; }
   if(!userRating) { showToast('별점을 선택해주세요.'); return; }
   if(!userComments[key]) userComments[key] = [];
-  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  const today = getTodayText();
   userComments[key].push({
     name: currentUser,
     rating: userRating,
@@ -2086,6 +2121,7 @@ function submitReview(key, cat, building, floor) {
     floor
   });
   localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   renderMyPage();
   showToast('리뷰가 등록되었습니다! 🎉');
@@ -2113,8 +2149,9 @@ function editReview(key, index, cat, building, floor) {
   item.text = cleanText;
   item.rating = nextRating;
   item.edited = true;
-  item.editedDate = new Date().toISOString().slice(0, 10).replaceAll('-', '.');
+  item.editedDate = getTodayText();
   localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   renderMyPage();
   showToast('댓글이 수정되었습니다.');
@@ -2128,6 +2165,7 @@ function deleteReviewAsAdmin(key, index, cat, building, floor) {
   list.splice(index, 1);
   if (!list.length) delete userComments[key];
   localStorage.setItem('cammapUserComments', JSON.stringify(userComments));
+  setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
   renderMyPage();
   showToast('관리자 권한으로 댓글을 삭제했습니다.');
