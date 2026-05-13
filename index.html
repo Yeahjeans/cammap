@@ -511,94 +511,55 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
 .info-row .info-edit-btn:hover { border-color: var(--orange); color: var(--orange); }
 .info-val-wrap { display: flex; align-items: center; gap: 6px; justify-content: flex-end; text-align: right; }
 
-.gender-info-grid {
+
+
+/* TOILET GENDER DETAIL SECTIONS */
+.toilet-gender-wrap {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
-  padding: 12px;
+  margin: 0 20px 16px;
 }
-.gender-info-card {
+.toilet-gender-card {
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: #fff;
+  box-shadow: var(--shadow-sm);
 }
-.gender-info-card.unavailable {
-  opacity: 0.62;
-  background: var(--bg);
-}
-.gender-info-head {
+.toilet-gender-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 13px 14px;
-  background: var(--bg);
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #FFF8F3;
   border-bottom: 1px solid var(--border);
 }
-.gender-info-title {
-  font-size: 14px;
+.toilet-gender-title {
+  font-size: 15px;
   font-weight: 900;
   color: var(--text-primary);
 }
-.gender-info-status {
+.toilet-gender-badge {
+  border-radius: 999px;
+  padding: 5px 10px;
   font-size: 11px;
   font-weight: 900;
-  border-radius: 999px;
-  padding: 4px 8px;
   background: var(--orange-light);
   color: var(--orange);
+  white-space: nowrap;
 }
-.gender-info-status.none {
-  background: var(--bg);
-  color: var(--text-muted);
+.toilet-gender-card .info-row {
+  margin: 0;
 }
-.gender-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--bg);
+.toilet-common-card {
+  margin: 0 20px 16px;
 }
-.gender-info-row:last-child { border-bottom: none; }
-.gender-info-key {
-  font-size: 12px;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-.gender-info-val-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  min-width: 0;
-  text-align: right;
-}
-.gender-info-val {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  word-break: keep-all;
-}
-.gender-info-val.good { color: var(--green); }
-.gender-info-val.warn { color: var(--orange); }
-.gender-info-val.none { color: var(--text-muted); }
-.gender-info-card .info-edit-btn {
-  margin-left: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-secondary);
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 10px;
-  font-weight: 800;
-  font-family: inherit;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.gender-info-card .info-edit-btn:hover { border-color: var(--orange); color: var(--orange); }
-@media (max-width: 520px) {
-  .gender-info-grid { grid-template-columns: 1fr; }
+@media (min-width: 768px) {
+  .toilet-gender-wrap { margin: 0 40px 16px; grid-template-columns: 1fr 1fr; }
+  .toilet-gender-wrap.single { grid-template-columns: 1fr; }
+  .toilet-common-card { margin: 0 40px 16px; }
 }
 
 /* REVIEWS */
@@ -2465,16 +2426,8 @@ function setFacilityUpdatedNow(cat, building, floor) {
 }
 
 
-function getBaseToiletInfoKeys() {
-  return ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
-}
-
-function getGenderedToiletInfoKeys() {
-  return getBaseToiletInfoKeys().flatMap(key => [`여자_${key}`, `남자_${key}`]);
-}
-
 function getDefaultInfoKeys(cat) {
-  if (cat === 'toilet') return ['여자화장실', '남자화장실', ...getBaseToiletInfoKeys(), ...getGenderedToiletInfoKeys()];
+  if (cat === 'toilet') return ['여자화장실', '남자화장실', '파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
   if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '결제방식'];
   if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통'];
   return [];
@@ -2529,8 +2482,17 @@ function normalizeInfoForCat(cat, info, context = {}) {
     const gender = getToiletGenderInfo(next, context.building, context.floor, context.fd);
     delete next['구분'];
 
-    if (!next['여자화장실']) next['여자화장실'] = gender.women;
-    if (!next['남자화장실']) next['남자화장실'] = gender.men;
+    const contextText = [context.floor, context.fd?.floor, context.fd?.tags, context.fd?.loc].filter(Boolean).join(' ');
+    const explicitWomenOnly = /여자|여성|여학생/.test(contextText) && !/남자|남성|남학생|남녀|공용/.test(contextText);
+    const explicitMenOnly = /남자|남성|남학생/.test(contextText) && !/여자|여성|여학생|남녀|공용/.test(contextText);
+
+    if (explicitWomenOnly || explicitMenOnly) {
+      next['여자화장실'] = gender.women;
+      next['남자화장실'] = gender.men;
+    } else {
+      if (!next['여자화장실']) next['여자화장실'] = gender.women;
+      if (!next['남자화장실']) next['남자화장실'] = gender.men;
+    }
   }
 
   getDefaultInfoKeys(cat).forEach(key => {
@@ -3149,56 +3111,6 @@ function getPrimaryReviewKey(cat, building, floor) {
   return `${cat}_${building}_${floor}`;
 }
 
-
-function getInfoValueTuple(info, key, fallback = ['정보 업데이트 예정', 'none']) {
-  const value = info?.[key];
-  if (Array.isArray(value)) return value;
-  if (value === undefined || value === null || value === '') return fallback;
-  const text = String(value);
-  return [text, getInfoClassFromValue(text)];
-}
-
-function isGenderAvailable(info, gender) {
-  const key = gender === 'women' ? '여자화장실' : '남자화장실';
-  const tuple = getInfoValueTuple(info, key);
-  const text = String(tuple[0] || '');
-  return !/해당\s*없음|없음|정보\s*업데이트|업데이트\s*예정/.test(text);
-}
-
-function renderToiletGenderInfoCard(info, cat, building, floor) {
-  const baseKeys = getBaseToiletInfoKeys();
-  const groups = [
-    { code: 'women', label: '여자', prefix: '여자', available: isGenderAvailable(info, 'women') },
-    { code: 'men', label: '남자', prefix: '남자', available: isGenderAvailable(info, 'men') }
-  ];
-
-  const cards = groups.map(group => {
-    const statusText = group.available ? '있음' : '해당 없음';
-    const statusClass = group.available ? '' : 'none';
-    const rows = baseKeys.map(baseKey => {
-      const genderKey = `${group.prefix}_${baseKey}`;
-      const fallback = group.available ? getInfoValueTuple(info, baseKey) : ['해당 없음', 'none'];
-      const tuple = getInfoValueTuple(info, genderKey, fallback);
-      const v = tuple[0] || '정보 업데이트 예정';
-      const cls = tuple[1] || getInfoClassFromValue(v);
-      const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(genderKey)}')">수정</button>` : '';
-      return `<div class="gender-info-row"><span class="gender-info-key">${escapeHTML(baseKey)}</span><span class="gender-info-val-wrap"><span class="gender-info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
-    }).join('');
-
-    return `
-      <div class="gender-info-card ${group.available ? '' : 'unavailable'}">
-        <div class="gender-info-head">
-          <span class="gender-info-title">${group.label}</span>
-          <span class="gender-info-status ${statusClass}">${statusText}</span>
-        </div>
-        ${rows}
-      </div>
-    `;
-  }).join('');
-
-  return `<div class="gender-info-grid">${cards}</div>`;
-}
-
 function renderDetail(cat, building, floor) {
   const fd = (floorData[cat][building] || []).find(f => f.floor === floor) || (floorData[cat][building] || [])[0];
   if(!fd) return;
@@ -3217,14 +3129,59 @@ function renderDetail(cat, building, floor) {
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
   const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {}, { building, floor, fd });
-  const infoRowsHTML = cat === 'toilet'
-    ? renderToiletGenderInfoCard(displayInfo, cat, building, floor)
-    : Object.entries(displayInfo).map(([k, arr]) => {
-        const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
-        const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
-        const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}')">수정</button>` : '';
-        return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
-      }).join('');
+  const renderInfoRow = (k, arr) => {
+    const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
+    const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
+    const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}')">수정</button>` : '';
+    return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
+  };
+
+  const getInfoValueText = (arr) => Array.isArray(arr) ? String(arr[0] || '') : String(arr || '');
+  const isUnavailableGender = (arr) => /해당\s*없음|없음|미설치|X/i.test(getInfoValueText(arr));
+  const isKnownGender = (arr) => {
+    const text = getInfoValueText(arr).trim();
+    return text && !/정보\s*업데이트|업데이트\s*예정|정보\s*없음/.test(text);
+  };
+
+  let infoCardHTML = '';
+  if (cat === 'toilet') {
+    const womenInfo = displayInfo['여자화장실'];
+    const menInfo = displayInfo['남자화장실'];
+    let showWomen = isKnownGender(womenInfo) && !isUnavailableGender(womenInfo);
+    let showMen = isKnownGender(menInfo) && !isUnavailableGender(menInfo);
+
+    // 성별 정보가 아직 둘 다 불명확한 화장실은 기존처럼 두 구역을 모두 보여줍니다.
+    if (!showWomen && !showMen) {
+      showWomen = true;
+      showMen = true;
+    }
+
+    const detailKeys = ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
+    const renderGenderSection = (title, genderArr) => {
+      const badgeText = getInfoValueText(genderArr) || '정보 업데이트 예정';
+      const rows = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
+      return `
+        <div class="toilet-gender-card">
+          <div class="toilet-gender-head">
+            <span class="toilet-gender-title">${escapeHTML(title)}</span>
+            <span class="toilet-gender-badge">${escapeHTML(badgeText)}</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    };
+
+    const genderSections = [
+      showWomen ? renderGenderSection('여자화장실', womenInfo) : '',
+      showMen ? renderGenderSection('남자화장실', menInfo) : ''
+    ].join('');
+
+    const sectionCount = [showWomen, showMen].filter(Boolean).length;
+    infoCardHTML = `<div class="toilet-gender-wrap ${sectionCount === 1 ? 'single' : ''}">${genderSections}</div>`;
+  } else {
+    const infoRowsHTML = Object.entries(displayInfo).map(([k, arr]) => renderInfoRow(k, arr)).join('');
+    infoCardHTML = `<div class="info-card">${infoRowsHTML}</div>`;
+  }
 
   const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
 
@@ -3289,8 +3246,9 @@ function renderDetail(cat, building, floor) {
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
     ${renderCrowdStatusSection(cat, building, floor)}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
-    <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 여자/남자 구역별 수정 버튼으로 항목을 따로 수정할 수 있습니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
+    ${infoCardHTML}
+    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
