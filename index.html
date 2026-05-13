@@ -1735,7 +1735,6 @@ function ensureFacilityDataForMapFacility(facility) {
           위치: [`${facility.building} ${facility.floor || '1층'}`, ''],
           운영시간: ['정보 업데이트 예정', 'none'],
           주요판매품목: ['음료·간식·간편식', ''],
-          혼잡도: ['정보 없음', 'none'],
           결제방식: ['카드/페이', 'good']
         }
       : {
@@ -1743,7 +1742,6 @@ function ensureFacilityDataForMapFacility(facility) {
           청결도: ['정보 없음','none'],
           휴지비치: ['정보 없음','none'],
           비데: ['정보 없음','none'],
-          혼잡도: ['정보 없음','none'],
           장애인화장실: ['정보 없음','none']
         };
 
@@ -2009,17 +2007,31 @@ function setFacilityUpdatedNow(cat, building, floor) {
 
 
 function getDefaultInfoKeys(cat) {
-  if (cat === 'toilet') return ['구분', '파우더룸', '청결도', '휴지비치', '비데', '화장실 칸 수', '혼잡도', '장애인화장실'];
-  if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '혼잡도', '결제방식'];
-  if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통', '혼잡도'];
+  if (cat === 'toilet') return ['파우더룸', '청결도', '휴지비치', '비데', '화장실 칸 수', '장애인화장실'];
+  if (cat === 'store') return ['매장명', '위치', '운영시간', '주요판매품목', '결제방식'];
+  if (cat === 'smoke') return ['위치', '지붕여부', '벤치여부', '쓰레기통'];
   return [];
 }
 
 function normalizeInfoForCat(cat, info) {
   const next = { ...(info || {}) };
+
+  // 상세정보에서는 학생 선택형 실시간 혼잡도만 사용하므로
+  // 기존 고정 항목 '혼잡도'는 표시하지 않는다.
+  delete next['혼잡도'];
+
+  // 화장실 상세정보의 '구분' 항목도 표시하지 않는다.
+  if (cat === 'toilet') delete next['구분'];
+
   getDefaultInfoKeys(cat).forEach(key => {
     if (!next[key]) next[key] = ['정보 업데이트 예정', 'none'];
   });
+
+  // 기본 키 목록에 없는 과거 저장 항목이 다시 보이지 않게 한 번 더 정리
+  Object.keys(next).forEach(key => {
+    if (!getDefaultInfoKeys(cat).includes(key)) delete next[key];
+  });
+
   return next;
 }
 
@@ -2173,12 +2185,22 @@ function renderCrowdStatusSection(cat, building, floor) {
 }
 
 
+
+function cleanInfoForDisplay(cat, info) {
+  return normalizeInfoForCat(cat, info || {});
+}
+
 function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
   if (!adminOnlyAction()) return;
   const cat = decodeInfoArg(catEnc);
   const building = decodeInfoArg(buildingEnc);
   const floor = decodeInfoArg(floorEnc);
   const key = decodeInfoArg(keyEnc);
+
+  if (key === '혼잡도' || (cat === 'toilet' && key === '구분')) {
+    showToast('이 항목은 상세정보에서 사용하지 않습니다.');
+    return;
+  }
 
   const fd = (floorData[cat]?.[building] || []).find(f => f.floor === floor) || (floorData[cat]?.[building] || [])[0];
   if (!fd) { showToast('수정할 상세 정보를 찾지 못했습니다.'); return; }
@@ -2191,7 +2213,7 @@ function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
   const value = next.trim() || '정보 업데이트 예정';
   const storageKey = getDetailInfoKey(cat, building, floor);
   const prev = detailInfoEdits[storageKey] || {};
-  const nextInfo = normalizeInfoForCat(cat, { ...(merged.info || {}) });
+  const nextInfo = cleanInfoForDisplay(cat, { ...(merged.info || {}) });
   nextInfo[key] = [value, getInfoClassFromValue(value)];
 
   detailInfoEdits[storageKey] = {
@@ -2625,7 +2647,7 @@ function renderDetail(cat, building, floor) {
   const avgRating = stats.label;
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
-  const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {});
+  const displayInfo = cleanInfoForDisplay(cat, mergedInfo.info || {});
   const infoRowsHTML = Object.entries(displayInfo).map(([k, arr]) => {
     const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
     const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
@@ -2697,7 +2719,7 @@ function renderDetail(cat, building, floor) {
     ${renderCrowdStatusSection(cat, building, floor)}
     <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
     <div class="info-card">${infoRowsHTML}<div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다.</div>` : ''}
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
