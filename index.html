@@ -1409,8 +1409,8 @@ window.__naverMapScriptLoaded = false;
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','다향관')">
           <div class="map-pin-name">📍 다향관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','법학관')">
-          <div class="map-pin-name">📍 법학관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','법학만해관')">
+          <div class="map-pin-name">📍 법학만해관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
         </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('toilet','원흥관')">
           <div class="map-pin-name">📍 원흥관</div><div class="map-pin-badges"><span class="pin-badge t">화장실</span></div>
@@ -1418,17 +1418,17 @@ window.__naverMapScriptLoaded = false;
         <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','혜화관 옆')">
           <div class="map-pin-name">📍 혜화관 옆</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학관 앞')">
-          <div class="map-pin-name">📍 법학관 앞</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학만해관 앞')">
+          <div class="map-pin-name">📍 법학만해관 앞</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학관 다리')">
-          <div class="map-pin-name">📍 법학관 다리</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','법학만해관 다리')">
+          <div class="map-pin-name">📍 법학만해관 다리</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
         </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('smoke','원흥관 앞')">
           <div class="map-pin-name">📍 원흥관 앞</div><div class="map-pin-badges"><span class="pin-badge k">흡연구역</span></div>
         </div>
-        <div class="map-pin-card" onclick="selectCategoryFromMap('store','법학관 쿱스켓 편의점')">
-          <div class="map-pin-name">📍 법학관 쿱스켓 편의점</div><div class="map-pin-badges"><span class="pin-badge s">편의점</span></div>
+        <div class="map-pin-card" onclick="selectCategoryFromMap('store','법학만해관 쿱스켓 편의점')">
+          <div class="map-pin-name">📍 법학만해관 쿱스켓 편의점</div><div class="map-pin-badges"><span class="pin-badge s">편의점</span></div>
         </div>
         <div class="map-pin-card" onclick="selectCategoryFromMap('store','문화관 쿱스켓 편의점')">
           <div class="map-pin-name">📍 문화관 쿱스켓 편의점</div><div class="map-pin-badges"><span class="pin-badge s">편의점</span></div>
@@ -1478,7 +1478,7 @@ window.__naverMapScriptLoaded = false;
         <ul>
           <li>사회과학관 2층 화장실에 비데가 있습니다.</li>
           <li>원흥관 1층 편의점 운영시간이 변경되었습니다.</li>
-          <li>법학관 외부 흡연구역 위치 설명이 수정되어야 합니다.</li>
+          <li>법학만해관 외부 흡연구역 위치 설명이 수정되어야 합니다.</li>
           <li>경영관 3층 화장실 휴지 비치 정보가 다릅니다.</li>
         </ul>
       </div>
@@ -1486,7 +1486,7 @@ window.__naverMapScriptLoaded = false;
         <label class="form-label">건물 선택</label>
         <select class="form-select" id="report-building">
           <option value="">건물을 선택하세요</option>
-          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>과학관</option><option>법학관</option><option>본관</option><option>혜화관</option><option>명진관</option><option>문화관</option><option>학림관</option><option>상록원</option><option>기숙사</option><option>다향관</option>
+          <option>원흥관</option><option>사회과학관</option><option>경영관</option><option>과학관</option><option>법학만해관</option><option>본관</option><option>혜화관</option><option>명진관</option><option>문화관</option><option>학림관</option><option>상록원</option><option>기숙사</option><option>다향관</option>
         </select>
       </div>
       <div class="form-group">
@@ -1621,8 +1621,9 @@ const catInfo = {
 };
 
 function canonicalBuildingName(name) {
-  if (name === '법학만해관') return '법학관';
-  return name;
+  const text = String(name || '').trim();
+  if (text === '법학관') return '법학만해관';
+  return text.replace(/법학관/g, '법학만해관').replace(/법학만해관만해관/g, '법학만해관');
 }
 
 function getFacilityDisplayTitle(cat, building, floor) {
@@ -1632,7 +1633,7 @@ function getFacilityDisplayTitle(cat, building, floor) {
   const base = `${building} ${floorText}`.trim();
 
   // 편의점은 이름 자체가 시설명이라 '1층 편의점'을 뒤에 붙이지 않는다.
-  // 예: '법학관 쿱스켓 편의점'만 표시
+  // 예: '법학만해관 쿱스켓 편의점'만 표시
   if (cat === 'store') return building;
 
   // 예: '원흥관 1층 여자화장실'처럼 floor 안에 이미 '화장실'이 들어간 경우
@@ -1734,7 +1735,7 @@ const buildingData = {
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 0, comments: 0, updated: '2026.05.12' },
-    { name: '법학관',     walk: '도보 5분', floors: ['2층','5층'],       rating: 0, comments: 0,  updated: '2026.05.05' },
+    { name: '법학만해관',   walk: '도보 5분', floors: ['1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '본관',       walk: '도보 4분', floors: ['2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '혜화관',     walk: '도보 3분', floors: ['1층 화장실','2층 화장실','3층 화장실','4층 화장실','5층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '명진관',     walk: '도보 4분', floors: ['B1층 남자화장실','1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
@@ -1742,7 +1743,7 @@ const buildingData = {
     { name: '다향관',     walk: '도보 5분', floors: ['1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' }
   ],
   store: [
-    { name: '법학관 쿱스켓 편의점',     walk: '도보 3분', floors: ['만해관 2층'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '법학만해관 쿱스켓 편의점',     walk: '도보 3분', floors: ['만해관 2층'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '문화관 쿱스켓 편의점',     walk: '도보 2분', floors: ['문화관 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '학림관 쿱스켓 편의점',     walk: '도보 5분', floors: ['학림관 B1층 (계산관 옆)'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '상록원 쿱스켓 편의점',     walk: '도보 4분', floors: ['상록원 1층'], rating: 0, comments: 0, updated: '2026.05.13' },
@@ -1753,8 +1754,8 @@ const buildingData = {
   ],
   smoke: [
     { name: '혜화관 옆',   walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 앞',   walk: '도보 3분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
-    { name: '법학관 다리', walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '법학만해관 앞',   walk: '도보 3분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
+    { name: '법학만해관 다리', walk: '도보 2분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '원흥관 앞',   walk: '도보 4분', floors: ['외부'], rating: 0, comments: 0, updated: '2026.05.12' }
   ]
 };
@@ -1780,9 +1781,10 @@ const floorData = {
       { floor: '3층 남자화장실', tags: '남자화장실 / 홀수층', loc: '과학관 3층 남자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-3f-men-map.png', photos: ['science-3f-men-photo1.jpg', 'science-3f-men-photo2.jpg'], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '4층 여자화장실', tags: '여자화장실 / 짝수층', loc: '과학관 4층 여자화장실입니다. 도면과 사진을 추가해 주세요.', planImage: 'science-4f-women-map.png', photos: ['science-4f-women-photo1.jpg', 'science-4f-women-photo2.jpg'], info: { 구분: ['여자화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
-    '법학관': [
-      { floor: '2층', tags: '비데 있음 / 쿱스켓 옆',       loc: '2층 쿱스켓 옆 복도를 따라 들어가면 있습니다.',                 info: { 파우더룸: ['없음','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 혼잡도: ['수업 후 혼잡','warn'], 장애인화장실: ['없음','none'] } },
-      { floor: '5층', tags: '조용 / 교수 연구실 층',       loc: '5층 엘리베이터에서 왼쪽 복도 끝에 있습니다.',                  info: { 파우더룸: ['없음','none'], 청결도: ['좋음','good'], 휴지비치: ['있음','good'], 비데: ['없음','none'], 혼잡도: ['한산','good'], 장애인화장실: ['없음','none'] } }
+    '법학만해관': [
+      { floor: '1층 화장실', tags: '법학만해관 1층 화장실', loc: '법학만해관 1층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-1f-map.png', photos: ['law-manhae-1f-photo1.jpg', 'law-manhae-1f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
+      { floor: '2층 화장실', tags: '법학만해관 2층 화장실 / 쿱스켓 인근', loc: '법학만해관 2층 쿱스켓 인근 복도에 위치한 화장실입니다.', planImage: 'law-manhae-2f-map.png', photos: ['law-manhae-2f-photo1.jpg', 'law-manhae-2f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
+      { floor: '3층 화장실', tags: '법학만해관 3층 화장실', loc: '법학만해관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-3f-map.png', photos: ['law-manhae-3f-photo1.jpg', 'law-manhae-3f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
     ],
     '본관': [
       { floor: '2층 화장실', tags: '본관 2층 화장실', loc: '본관 2층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
@@ -1814,7 +1816,7 @@ const floorData = {
     ]
   },
   store: {
-    '법학관 쿱스켓 편의점':     [{ floor: '만해관 2층', tags: '만해관 2층', loc: '만해관 2층에 위치한 법학관 쿱스켓 편의점입니다.', info: { 매장명: ['법학관 쿱스켓 편의점',''], 위치: ['만해관 2층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
+    '법학만해관 쿱스켓 편의점':     [{ floor: '만해관 2층', tags: '만해관 2층', loc: '만해관 2층에 위치한 법학만해관 쿱스켓 편의점입니다.', info: { 매장명: ['법학만해관 쿱스켓 편의점',''], 위치: ['만해관 2층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
     '문화관 쿱스켓 편의점':     [{ floor: '문화관 1층', tags: '문화관 1층', loc: '문화관 1층에 위치한 문화관 쿱스켓 편의점입니다.', info: { 매장명: ['문화관 쿱스켓 편의점',''], 위치: ['문화관 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
     '학림관 쿱스켓 편의점':     [{ floor: '학림관 B1층 (계산관 옆)', tags: '학림관 B1층 (계산관 옆)', loc: '학림관 B1층, 계산관 옆에 위치한 학림관 쿱스켓 편의점입니다.', info: { 매장명: ['학림관 쿱스켓 편의점',''], 위치: ['학림관 B1층 (계산관 옆)',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
     '상록원 쿱스켓 편의점':     [{ floor: '상록원 1층', tags: '상록원 1층', loc: '상록원 1층에 위치한 상록원 쿱스켓 편의점입니다.', info: { 매장명: ['상록원 쿱스켓 편의점',''], 위치: ['상록원 1층',''], 운영시간: ['정보 업데이트 예정','none'], 주요판매품목: ['음료·간식·간편식',''], 혼잡도: ['정보 없음','none'], 결제방식: ['카드/페이','good'] } }],
@@ -1825,8 +1827,8 @@ const floorData = {
   },
   smoke: {
     '혜화관 옆': [{ floor: '외부', tags: '혜화관 옆 지정 흡연구역', loc: '혜화관 옆 외부 흡연구역입니다.', info: { 위치: ['혜화관 옆',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
-    '법학관 앞': [{ floor: '외부', tags: '법학관 앞 지정 흡연구역', loc: '법학관 앞 외부 흡연구역입니다.', info: { 위치: ['법학관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
-    '법학관 다리': [{ floor: '외부', tags: '법학관 다리 인근 지정 흡연구역', loc: '법학관 다리 인근 외부 흡연구역입니다.', info: { 위치: ['법학관 다리',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
+    '법학만해관 앞': [{ floor: '외부', tags: '법학만해관 앞 지정 흡연구역', loc: '법학만해관 앞 외부 흡연구역입니다.', info: { 위치: ['법학만해관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
+    '법학만해관 다리': [{ floor: '외부', tags: '법학만해관 다리 인근 지정 흡연구역', loc: '법학만해관 다리 인근 외부 흡연구역입니다.', info: { 위치: ['법학만해관 다리',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }],
     '원흥관 앞': [{ floor: '외부', tags: '원흥관 앞 지정 흡연구역', loc: '원흥관 앞 외부 흡연구역입니다.', info: { 위치: ['원흥관 앞',''], 지붕여부: ['정보 업데이트 예정','none'], 벤치여부: ['정보 업데이트 예정','none'], 쓰레기통: ['정보 업데이트 예정','none'], 혼잡도: ['정보 없음','none'] } }]
   }
 };
@@ -2303,7 +2305,7 @@ function getReviewComments(key) {
 function normalizeReviewBuilding(cat, building) {
   const b = String(building || '').trim();
   if (cat !== 'store') return b;
-  if (b.includes('법학관') || b.includes('만해관')) return '법학관 쿱스켓 편의점';
+  if (b.includes('법학만해관') || b.includes('법학관') || b.includes('만해관')) return '법학만해관 쿱스켓 편의점';
   if (b.includes('문화관')) return '문화관 쿱스켓 편의점';
   if (b.includes('학림관')) return '학림관 쿱스켓 편의점';
   if (b.includes('상록원')) return '상록원 쿱스켓 편의점';
@@ -2325,7 +2327,7 @@ function getReviewAliasKeys(cat, building, floor) {
   if (cat === 'store') {
     const canonical = normalizeReviewBuilding(cat, building);
     const oldNames = {
-      '법학관 쿱스켓 편의점': ['법학관 쿱스켓 편의점', '법학관', '만해관'],
+      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '만해관'],
       '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
       '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
       '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
@@ -2540,6 +2542,22 @@ function getMergedFacilityInfo(cat, building, floor, fd) {
   };
 }
 
+function getGenderScopedDisplayInfo(cat, building, floor, fd, baseInfo, genderScope) {
+  if (cat !== 'toilet' || !genderScope) return baseInfo;
+
+  const key = getDetailInfoKey(cat, building, floor);
+  const saved = detailInfoEdits[key] || {};
+  const genderInfo = saved.infoByGender?.[genderScope] || {};
+
+  return normalizeInfoForCat(cat, { ...(baseInfo || {}), ...genderInfo }, { building, floor, fd });
+}
+
+function getGenderScopeFromTitle(title) {
+  if (/여자|여성|여학생/.test(String(title || ''))) return 'women';
+  if (/남자|남성|남학생/.test(String(title || ''))) return 'men';
+  return '';
+}
+
 
 
 function getSavedFloorTags(cat, building, floor, fallback = '') {
@@ -2675,12 +2693,13 @@ function renderCrowdStatusSection(cat, building, floor) {
 }
 
 
-function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
+function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc, genderScopeEnc = '') {
   if (!adminOnlyAction()) return;
   const cat = decodeInfoArg(catEnc);
   const building = decodeInfoArg(buildingEnc);
   const floor = decodeInfoArg(floorEnc);
   const key = decodeInfoArg(keyEnc);
+  const genderScope = decodeInfoArg(genderScopeEnc || '');
 
   if (key === '혼잡도' || (cat === 'toilet' && key === '구분')) {
     showToast('이 항목은 상세정보에서 사용하지 않습니다. 혼잡도는 실시간 혼잡도만 사용합니다.');
@@ -2698,15 +2717,35 @@ function editSingleInfoField(catEnc, buildingEnc, floorEnc, keyEnc) {
   const value = next.trim() || '정보 업데이트 예정';
   const storageKey = getDetailInfoKey(cat, building, floor);
   const prev = detailInfoEdits[storageKey] || {};
-  const nextInfo = normalizeInfoForCat(cat, { ...(merged.info || {}) });
-  nextInfo[key] = [value, getInfoClassFromValue(value)];
 
-  detailInfoEdits[storageKey] = {
-    ...prev,
-    info: nextInfo,
-    loc: merged.loc || fd.loc || '',
-    updated: getTodayText()
-  };
+  if (cat === 'toilet' && genderScope) {
+    const savedGenderInfo = prev.infoByGender || {};
+    const currentScopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, merged.info || {}, genderScope);
+    const nextScopedInfo = normalizeInfoForCat(cat, { ...(currentScopedInfo || {}) }, { building, floor, fd });
+    nextScopedInfo[key] = [value, getInfoClassFromValue(value)];
+
+    detailInfoEdits[storageKey] = {
+      ...prev,
+      info: prev.info || merged.info || fd.info || {},
+      infoByGender: {
+        ...savedGenderInfo,
+        [genderScope]: nextScopedInfo
+      },
+      loc: merged.loc || fd.loc || '',
+      updated: getTodayText()
+    };
+  } else {
+    const nextInfo = normalizeInfoForCat(cat, { ...(merged.info || {}) }, { building, floor, fd });
+    nextInfo[key] = [value, getInfoClassFromValue(value)];
+
+    detailInfoEdits[storageKey] = {
+      ...prev,
+      info: nextInfo,
+      loc: merged.loc || fd.loc || '',
+      updated: getTodayText()
+    };
+  }
+
   saveDetailInfoShared();
   setFacilityUpdatedNow(cat, building, floor);
   renderDetail(cat, building, floor);
@@ -2984,7 +3023,7 @@ function legacyMediaSafeIds(cat, building, floor) {
     const canonical = normalizeReviewBuilding(cat, building);
     const canonicalFloor = getCanonicalStoreFloor(canonical);
     const oldNames = {
-      '법학관 쿱스켓 편의점': ['법학관 쿱스켓 편의점', '법학관', '만해관'],
+      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '만해관'],
       '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
       '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
       '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
@@ -3148,10 +3187,10 @@ function renderDetail(cat, building, floor) {
 
   const mergedInfo = getMergedFacilityInfo(cat, building, floor, fd);
   const displayInfo = normalizeInfoForCat(cat, mergedInfo.info || {}, { building, floor, fd });
-  const renderInfoRow = (k, arr) => {
+  const renderInfoRow = (k, arr, genderScope = '') => {
     const v = Array.isArray(arr) ? arr[0] : String(arr || '정보 업데이트 예정');
     const cls = Array.isArray(arr) ? (arr[1] || '') : getInfoClassFromValue(v);
-    const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}')">수정</button>` : '';
+    const editBtn = isAdmin ? `<button class="info-edit-btn" onclick="editSingleInfoField('${encodeURIComponent(cat)}','${encodeURIComponent(building)}','${encodeURIComponent(floor)}','${encodeURIComponent(k)}','${encodeURIComponent(genderScope)}')">수정</button>` : '';
     return `<div class="info-row"><span class="info-key">${escapeHTML(k)}</span><span class="info-val-wrap"><span class="info-val ${cls}">${escapeHTML(v)}</span>${editBtn}</span></div>`;
   };
 
@@ -3172,7 +3211,9 @@ function renderDetail(cat, building, floor) {
     // 과학관 1층 남자화장실, 명진관 B1층 남자화장실처럼
     // 층 이름 자체가 이미 여자/남자화장실로 구분된 상세페이지는 상세정보 카드 하나만 보여줍니다.
     if (isExplicitWomenOnlyPage || isExplicitMenOnlyPage) {
-      const infoRowsHTML = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
+      const singleGenderScope = isExplicitWomenOnlyPage ? 'women' : 'men';
+      const scopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, displayInfo, singleGenderScope);
+      const infoRowsHTML = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','none'], singleGenderScope)).join('');
       infoCardHTML = `<div class="info-card">${infoRowsHTML}</div>`;
     } else {
       const womenInfo = displayInfo['여자화장실'];
@@ -3187,8 +3228,10 @@ function renderDetail(cat, building, floor) {
       }
 
       const renderGenderSection = (title, genderArr) => {
+        const genderScope = getGenderScopeFromTitle(title);
+        const scopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, displayInfo, genderScope);
         const badgeText = getInfoValueText(genderArr) || '정보 업데이트 예정';
-        const rows = detailKeys.map(key => renderInfoRow(key, displayInfo[key] || ['정보 업데이트 예정','none'])).join('');
+        const rows = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','none'], genderScope)).join('');
         return `
           <div class="toilet-gender-card">
             <div class="toilet-gender-head">
@@ -3495,7 +3538,7 @@ function handleSearch(q) {
   mainContent.style.display = 'none';
 
   const keywords = { '화장실': 'toilet', '편의점': 'store', '흡연': 'smoke', '흡연구역': 'smoke' };
-  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','과학관','법학관','법학관 앞','법학관 다리','문화관','학림관','상록원','본관','혜화관','혜화관 옆','명진관','다향관','기숙사'];
+  const buildings = ['원흥관','원흥관 앞','사회과학관','경영관','과학관','법학만해관','법학만해관 앞','법학만해관 다리','문화관','학림관','상록원','본관','혜화관','혜화관 옆','명진관','다향관','기숙사'];
   let results = [];
 
   for(const [kw, cat] of Object.entries(keywords)) {
@@ -3575,11 +3618,29 @@ const facilityCoords = [
     "lng": 127.0029112
   },
   {
-    "id": "toilet_law",
+    "id": "toilet_law_manhae_1f",
     "cat": "toilet",
-    "name": "법학관 화장실",
-    "building": "법학관",
-    "floor": "1층",
+    "name": "법학만해관 1층 화장실",
+    "building": "법학만해관",
+    "floor": "1층 화장실",
+    "lat": 37.5580468,
+    "lng": 127.0009122
+  },
+  {
+    "id": "toilet_law_manhae_2f",
+    "cat": "toilet",
+    "name": "법학만해관 2층 화장실",
+    "building": "법학만해관",
+    "floor": "2층 화장실",
+    "lat": 37.5580468,
+    "lng": 127.0009122
+  },
+  {
+    "id": "toilet_law_manhae_3f",
+    "cat": "toilet",
+    "name": "법학만해관 3층 화장실",
+    "building": "법학만해관",
+    "floor": "3층 화장실",
     "lat": 37.5580468,
     "lng": 127.0009122
   },
@@ -3721,8 +3782,8 @@ const facilityCoords = [
   {
     "id": "store_law_coopsket",
     "cat": "store",
-    "name": "법학관 쿱스켓 편의점",
-    "building": "법학관 쿱스켓 편의점",
+    "name": "법학만해관 쿱스켓 편의점",
+    "building": "법학만해관 쿱스켓 편의점",
     "floor": "1층",
     "lat": 37.55794,
     "lng": 127.00105
@@ -3802,8 +3863,8 @@ const facilityCoords = [
   {
     "id": "smoke_law_front",
     "cat": "smoke",
-    "name": "법학관 앞 흡연구역",
-    "building": "법학관 앞",
+    "name": "법학만해관 앞 흡연구역",
+    "building": "법학만해관 앞",
     "floor": "외부",
     "lat": 37.55794,
     "lng": 127.0011
@@ -3811,8 +3872,8 @@ const facilityCoords = [
   {
     "id": "smoke_law_bridge",
     "cat": "smoke",
-    "name": "법학관 다리 흡연구역",
-    "building": "법학관 다리",
+    "name": "법학만해관 다리 흡연구역",
+    "building": "법학만해관 다리",
     "floor": "외부",
     "lat": 37.55823,
     "lng": 127.00072
