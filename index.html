@@ -3213,6 +3213,7 @@ function renderDetail(cat, building, floor) {
   };
 
   const getInfoValueText = (arr) => Array.isArray(arr) ? String(arr[0] || '') : String(arr || '');
+  const toiletDetailKeys = ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
   const isUnavailableGender = (arr) => /해당\s*없음|없음|미설치|X/i.test(getInfoValueText(arr));
   const isKnownGender = (arr) => {
     const text = getInfoValueText(arr).trim();
@@ -3223,7 +3224,7 @@ function renderDetail(cat, building, floor) {
     return !text || /정보\s*업데이트|업데이트\s*예정|정보\s*없음/.test(text);
   };
   const getGenderBadgeState = (scopedInfo) => {
-    const hasPending = detailKeys.some(key => isPendingInfoValue(scopedInfo[key] || ['정보 업데이트 예정','pending']));
+    const hasPending = toiletDetailKeys.some(key => isPendingInfoValue(scopedInfo[key] || ['정보 업데이트 예정','pending']));
     return hasPending
       ? { text: '정보 업데이트 예정', cls: 'pending' }
       : { text: '있음', cls: 'complete' };
@@ -3234,14 +3235,13 @@ function renderDetail(cat, building, floor) {
     const contextTextForGender = [floor, fd?.floor, fd?.tags, fd?.loc].filter(Boolean).join(' ');
     const isExplicitWomenOnlyPage = /여자|여성|여학생/.test(contextTextForGender) && !/남자|남성|남학생|남녀|공용/.test(contextTextForGender);
     const isExplicitMenOnlyPage = /남자|남성|남학생/.test(contextTextForGender) && !/여자|여성|여학생|남녀|공용/.test(contextTextForGender);
-    const detailKeys = ['파우더룸', '청결도', '휴지비치', '비데', '장애인화장실', '화장실 칸 수'];
 
     // 과학관 1층 남자화장실, 명진관 B1층 남자화장실처럼
     // 층 이름 자체가 이미 여자/남자화장실로 구분된 상세페이지는 상세정보 카드 하나만 보여줍니다.
     if (isExplicitWomenOnlyPage || isExplicitMenOnlyPage) {
       const singleGenderScope = isExplicitWomenOnlyPage ? 'women' : 'men';
       const scopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, displayInfo, singleGenderScope);
-      const infoRowsHTML = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','none'], singleGenderScope)).join('');
+      const infoRowsHTML = toiletDetailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','none'], singleGenderScope)).join('');
       infoCardHTML = `<div class="info-card">${infoRowsHTML}</div>`;
     } else {
       const womenInfo = displayInfo['여자화장실'];
@@ -3259,7 +3259,7 @@ function renderDetail(cat, building, floor) {
         const genderScope = getGenderScopeFromTitle(title);
         const scopedInfo = getGenderScopedDisplayInfo(cat, building, floor, fd, displayInfo, genderScope);
         const badge = getGenderBadgeState(scopedInfo);
-        const rows = detailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','pending'], genderScope)).join('');
+        const rows = toiletDetailKeys.map(key => renderInfoRow(key, scopedInfo[key] || ['정보 업데이트 예정','pending'], genderScope)).join('');
         return `
           <div class="toilet-gender-card">
             <div class="toilet-gender-head">
