@@ -1985,6 +1985,20 @@ let lastReviewSubmitKey = '';
 let lastReviewSubmitAt = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[]'));
 let currentUser = localStorage.getItem('cammapUserName') || '동국대학교 학생';
+let currentUserId = localStorage.getItem('cammapUserId');
+if (!currentUserId) {
+  currentUserId = 'user_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('cammapUserId', currentUserId);
+}
+let myCommentIds = new Set(JSON.parse(localStorage.getItem('cammapMyCommentIds') || '[]'));
+let myReportIds = new Set(JSON.parse(localStorage.getItem('cammapMyReportIds') || '[]'));
+function saveMyOwnership() {
+  localStorage.setItem('cammapMyCommentIds', JSON.stringify([...myCommentIds]));
+  localStorage.setItem('cammapMyReportIds', JSON.stringify([...myReportIds]));
+}
+function isMineByAuthor(item) {
+  return !!item && (item.authorId === currentUserId || item.userId === currentUserId || (item.id && (myCommentIds.has(String(item.id)) || myReportIds.has(String(item.id)))));
+}
 // 리뷰/평점은 localStorage에 저장됩니다.
 // 앞으로 코드를 새로 붙여넣거나 기능을 수정해도 기존 리뷰가 지워지지 않도록
 // 자동 초기화 코드는 사용하지 않습니다.
@@ -2980,18 +2994,31 @@ function selectFloor(floor) {
   pushScreen('detail');
 }
 
+function normalizeTargetFloor(cat, building, floor) {
+  if (cat === 'store') return getCanonicalStoreFloor(building) || floor || '1층';
+  if (cat === 'toilet' && building === '신공학관' && floor === '9층') return '9층 화장실';
+  if (floorData[cat]?.[building]?.some(f => f.floor === floor)) return floor;
+  const cleaned = String(floor || '').replace(' 화장실', '');
+  const found = floorData[cat]?.[building]?.find(f => f.floor === cleaned || String(f.floor || '').includes(cleaned));
+  return found?.floor || floor;
+}
+
 function goToDetail(building, floor, cat) {
   closeMapFloorPopup();
 
-  currentCat = cat;
-  currentBuilding = building;
-  currentFloor = floor;
+  const targetCat = cat || currentCat || 'toilet';
+  const targetBuilding = normalizeReviewBuilding(targetCat, building);
+  const targetFloor = normalizeTargetFloor(targetCat, targetBuilding, floor);
+
+  currentCat = targetCat;
+  currentBuilding = targetBuilding;
+  currentFloor = targetFloor;
 
   const detailEl = document.getElementById('screen-detail');
   const mapEl = document.getElementById('screen-map');
 
-  renderDetail(cat, building, floor);
-  addRecentView(building, floor, cat);
+  renderDetail(targetCat, targetBuilding, targetFloor);
+  addRecentView(targetBuilding, targetFloor, targetCat);
 
   ['buildings','floors','detail'].forEach(s => {
     const el = document.getElementById('screen-' + s);
@@ -3424,6 +3451,7 @@ function submitReview(key, cat, building, floor, safeId = '') {
   const today = getTodayText();
   const newComment = {
     id: `${now}_${Math.random().toString(36).slice(2, 10)}`,
+    authorId: currentUserId,
     name: currentUser,
     rating: Number(userRating),
     text,
@@ -3436,7 +3464,11 @@ function submitReview(key, cat, building, floor, safeId = '') {
 
   const newFingerprint = getCommentFingerprint(newComment);
   const alreadyExists = (userComments[key] || []).some(item => getCommentFingerprint(item) === newFingerprint);
-  if (!alreadyExists) userComments[key].push(newComment);
+  if (!alreadyExists) {
+    userComments[key].push(newComment);
+    myCommentIds.add(String(newComment.id));
+    saveMyOwnership();
+  }
 
   saveCommentsShared();
   setFacilityUpdatedNow(cat, building, floor);
@@ -4563,6 +4595,7 @@ function escapeHTML(value) {
 
 function addRecentView(building, floor, cat) {
   if (!building || !floor || !cat) return;
+  const normalizedFloor = normalizeTargetFloor(cat, building, floor);
   const item = {
     building,
     floor: normalizedFloor,
@@ -4581,17 +4614,17 @@ function addRecentView(building, floor, cat) {
 function getMyCommentsArray() {
   const arr = [];
   Object.entries(userComments).forEach(([key, comments]) => {
-    comments.forEach(comment => {
+    (comments || []).forEach(comment => {
+      // MY 탭은 공유 저장소의 전체 댓글이 아니라, 이 기기/사용자가 직접 쓴 댓글만 보여준다.
+      if (!isMineByAuthor(comment)) return;
+
       const parts = key.split('_');
       const rawCat = comment.cat || parts[0];
       const rawBuilding = comment.building || parts[1];
       const canonicalBuilding = normalizeReviewBuilding(rawCat, rawBuilding);
-      const canonicalFloor = rawCat === 'store' ? getCanonicalStoreFloor(canonicalBuilding) : (comment.floor || parts.slice(2).join('_'));
+      const canonicalFloor = normalizeTargetFloor(rawCat, canonicalBuilding, rawCat === 'store' ? getCanonicalStoreFloor(canonicalBuilding) : (comment.floor || parts.slice(2).join('_')));
       arr.push({
         key,
-        cat: rawCat,
-        building: canonicalBuilding,
-        floor: canonicalFloor,
         ...comment,
         cat: rawCat,
         building: canonicalBuilding,
@@ -4662,13 +4695,39 @@ function renderMyFavorites() {
   }).join('');
 }
 
+function getMyReportsArray() {
+  return (userReports || []).filter(r => isMineByAuthor(r));
+}
+
+function getReportOpenTarget(r) {
+  const cat = r.cat || 'toilet';
+  const building = normalizeReviewBuilding(cat, r.building || '');
+  const floor = getReportTargetFloor({ ...r, cat, building });
+  return { cat, building, floor };
+}
+
+function openMyReportTarget(reportId) {
+  const r = (userReports || []).find(item => String(item.id) === String(reportId));
+  if (!r) {
+    showToast('제보 내용을 찾지 못했습니다.');
+    return;
+  }
+  const target = getReportOpenTarget(r);
+  if (!target.building || !target.floor) {
+    openMyReportDetailById(reportId);
+    return;
+  }
+  goToDetail(target.building, target.floor, target.cat);
+}
+
 function renderMyReports() {
+  const myReports = getMyReportsArray();
   const listEl = document.getElementById('my-reports-list');
   const countEl = document.getElementById('my-report-count');
-  if (countEl) countEl.textContent = userReports.length;
+  if (countEl) countEl.textContent = myReports.length;
   if (!listEl) return;
 
-  if (!userReports.length) {
+  if (!myReports.length) {
     listEl.innerHTML = `
       <div class="my-item">
         <div class="my-item-icon o">✏️</div>
@@ -4677,16 +4736,16 @@ function renderMyReports() {
     return;
   }
 
-  listEl.innerHTML = userReports.slice().reverse().map((r, reverseIndex) => {
-    const originalIndex = userReports.length - 1 - reverseIndex;
+  listEl.innerHTML = myReports.slice().reverse().map((r) => {
     const iconClass = getCatIconClass(r.cat);
-    const title = escapeHTML(`${r.building} ${r.floor || ''} ${catInfo[r.cat]?.label || '시설'} 제보`);
+    const target = getReportOpenTarget(r);
+    const title = escapeHTML(`${target.building || r.building} ${target.floor || r.floor || ''} ${catInfo[r.cat]?.label || '시설'} 제보`);
     const text = escapeHTML(r.text || '제보 내용 없음');
     const status = escapeHTML(r.status || '검토중');
     return `
-      <div class="my-item" onclick="openMyReportDetail(${originalIndex})">
+      <div class="my-item" onclick="openMyReportTarget('${String(r.id)}')">
         <div class="my-item-icon ${iconClass}">✏️</div>
-        <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date || ''}</span></div>
+        <div class="my-item-text"><strong>${title}</strong><span>${text} · ${r.date || ''} · 누르면 상세정보로 이동</span></div>
         <span style="font-size:11px;color:var(--orange);font-weight:600">${status}</span>
       </div>`;
   }).join('');
@@ -4694,6 +4753,15 @@ function renderMyReports() {
 
 function openMyReportDetail(index) {
   const r = userReports[index];
+  if (!r) {
+    showToast('제보 내용을 찾지 못했습니다.');
+    return;
+  }
+  openMyReportDetailById(r.id);
+}
+
+function openMyReportDetailById(reportId) {
+  const r = (userReports || []).find(item => String(item.id) === String(reportId));
   if (!r) {
     showToast('제보 내용을 찾지 못했습니다.');
     return;
@@ -4713,7 +4781,6 @@ function openMyReportDetail(index) {
 
   alert(message);
 }
-
 
 
 function getReportStatusClass(status) {
@@ -4932,7 +4999,9 @@ function submitReport() {
   const normalizedFloor = (cat === 'toilet' && building === '신공학관' && floor === '9층') ? '9층 화장실' : floor;
 
   const report = {
-    id: Date.now(),
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    authorId: currentUserId,
+    authorName: currentUser,
     building,
     floor: normalizedFloor,
     cat,
@@ -4942,6 +5011,8 @@ function submitReport() {
   };
 
   userReports.push(report);
+  myReportIds.add(String(report.id));
+  saveMyOwnership();
   saveReportsShared();
 
   textInput.value = '';
