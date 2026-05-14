@@ -2101,6 +2101,18 @@ const ADMIN_PASSWORD = 'cammap2026';
 // 관리자 모드는 새로고침/재접속 때 자동 유지하지 않고, 직접 로그인했을 때만 켜집니다.
 let isAdmin = sessionStorage.getItem('cammapIsAdmin') === 'true';
 let userReports = JSON.parse(localStorage.getItem('cammapUserReports') || '[]');
+let deletedReportIds = new Set(JSON.parse(localStorage.getItem('cammapDeletedReportIds') || '[]'));
+let deletedReportKeys = new Set(JSON.parse(localStorage.getItem('cammapDeletedReportKeys') || '[]'));
+function saveDeletedReportMarkers() {
+  localStorage.setItem('cammapDeletedReportIds', JSON.stringify([...deletedReportIds]));
+  localStorage.setItem('cammapDeletedReportKeys', JSON.stringify([...deletedReportKeys]));
+}
+function isReportDeleted(item) {
+  if (!item) return false;
+  const id = String(item.id || '');
+  const key = getReportUniqueKey(item);
+  return (!!id && deletedReportIds.has(id)) || (!!key && deletedReportKeys.has(key));
+}
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
@@ -2120,6 +2132,10 @@ let crowdReports = JSON.parse(localStorage.getItem('cammapCrowdReports') || '{}'
 // 예시: const SUPABASE_ANON_KEY = 'eyJ...';
 const SUPABASE_URL = 'https://yyekhpavboyikzzahmzl.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_3tp8QRKmTKdn8LMquMWeaw_-c4BrSna';
+// 사진은 JSON(localStorage/cammap_store)에 직접 넣으면 용량 문제로 사라질 수 있어
+// 가능하면 Supabase Storage bucket(cammap-media)에 올리고 URL만 저장합니다.
+// Supabase Storage에서 public bucket 이름을 cammap-media로 만들어 주세요.
+const SUPABASE_MEDIA_BUCKET = 'cammap-media';
 
 let cammapDb = null;
 let cloudReady = false;
@@ -2149,7 +2165,7 @@ function updateCloudStatusBox() {
 
   if (cloudReady) {
     el.innerHTML = `
-      <strong>공유 저장 ON:</strong> 댓글·도면·사진·혼잡도·관리자 수정정보·제보함이 모든 사용자에게 공유됩니다.
+      <strong>공유 저장 ON:</strong> 댓글·도면·사진·혼잡도·관리자 수정정보·제보함이 모든 사용자에게 공유됩니다. 사진은 Supabase Storage에 우선 저장됩니다.
       <br>이 컴퓨터에 이미 저장돼 있던 리뷰/사진/도면도 공용 DB와 자동 병합됩니다.
       <br><button class="cloud-migration-btn" onclick="manualSyncLocalToCloud()">내 기기 저장자료 전체 공유 저장</button>
     `;
@@ -2309,7 +2325,7 @@ function getReportUniqueKey(item) {
 function dedupeReportsArray(arr) {
   const map = new Map();
   (Array.isArray(arr) ? arr : []).forEach((item) => {
-    if (!item) return;
+    if (!item || isReportDeleted(item)) return;
     const key = getReportUniqueKey(item) || String(item.id || JSON.stringify(item));
     const prev = map.get(key);
     if (!prev) {
@@ -2328,7 +2344,7 @@ function dedupeReportsArray(arr) {
       updatedAt: nextTime >= prevTime ? (item.updatedAt || prev.updatedAt) : (prev.updatedAt || item.updatedAt)
     });
   });
-  return Array.from(map.values());
+  return Array.from(map.values()).filter(item => !isReportDeleted(item));
 }
 
 async function loadSharedData() {
@@ -2439,6 +2455,39 @@ async function saveCommentsShared() {
   await cloudSaveJson('comments', userComments);
 }
 
+function dataURLToBlob(dataUrl) {
+  const parts = String(dataUrl || '').split(',');
+  if (parts.length < 2) return null;
+  const mimeMatch = parts[0].match(/data:([^;]+);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
+  if (!cloudReady || !cammapDb || !SUPABASE_MEDIA_BUCKET) return '';
+  try {
+    const blob = dataURLToBlob(dataUrl);
+    if (!blob) return '';
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const cleanSafeId = String(safeId || 'media').replace(/[^a-zA-Z0-9가-힣_]/g, '_');
+    const suffix = num ? `_${num}` : '';
+    const path = `${type}/${cleanSafeId}${suffix}.${ext}`;
+    const { error } = await cammapDb.storage
+      .from(SUPABASE_MEDIA_BUCKET)
+      .upload(path, blob, { upsert: true, contentType: blob.type });
+    if (error) throw error;
+    const { data } = cammapDb.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
+    return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : '';
+  } catch (e) {
+    console.warn('Supabase Storage 업로드 실패:', e);
+    showToast('사진 공유 저장에 실패했습니다. Storage bucket(cammap-media)을 확인해주세요. 이 기기에는 임시 저장됩니다.');
+    return '';
+  }
+}
+
 async function saveMediaShared() {
   saveLocalOnly('cammapUploadedMedia', uploadedMedia);
   await cloudSaveJson('media', uploadedMedia);
@@ -2455,8 +2504,9 @@ async function saveDetailInfoShared() {
 }
 
 async function saveReportsShared() {
-  userReports = dedupeReportsArray(userReports);
+  userReports = dedupeReportsArray(userReports).filter(item => !isReportDeleted(item));
   saveLocalOnly('cammapUserReports', userReports);
+  saveDeletedReportMarkers();
   await cloudSaveJson('reports', userReports);
 }
 
@@ -3233,21 +3283,26 @@ function getStoredMedia(type, safeId, num, cat = currentCat, building = currentB
   return '';
 }
 
-function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, building = currentBuilding, floor = currentFloor) {
+async function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, building = currentBuilding, floor = currentFloor) {
   const safeIds = legacyMediaSafeIds(cat, building, floor);
   if (!safeIds.includes(safeId)) safeIds.unshift(safeId);
 
-  // 대표 키와 과거 호환 키에 함께 저장해서, 이후 코드를 수정해도 기존 사진이 계속 보이게 함
+  // 1차: 이 기기에는 즉시 저장해서 새로고침해도 사라지지 않게 함
   safeIds.forEach(id => {
     uploadedMedia[mediaStorageKey(type, id, num)] = dataUrl;
   });
+  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
 
-  try {
-    saveMediaShared();
-  } catch (e) {
-    showToast('이미지 용량이 커서 저장하지 못했습니다. 더 작은 사진으로 다시 시도해주세요.');
-    return false;
+  // 2차: Supabase Storage에 올릴 수 있으면 URL로 바꿔서 공용 저장
+  const publicUrl = await uploadMediaToSupabaseStorage(type, safeId, num, dataUrl);
+  if (publicUrl) {
+    safeIds.forEach(id => {
+      uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
+    });
+    saveLocalOnly('cammapUploadedMedia', uploadedMedia);
   }
+
+  await saveMediaShared();
   return true;
 }
 
@@ -3307,12 +3362,14 @@ function readImageAsDataURL(file, callback) {
 function previewPlanImage(event, safeId) {
   if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
-  readImageAsDataURL(file, (dataUrl) => {
-    if(!saveUploadedMedia('plan', safeId, '', dataUrl, currentCat, currentBuilding, currentFloor)) return;
+  readImageAsDataURL(file, async (dataUrl) => {
     const target = document.getElementById(`plan-box-${safeId}`);
     const html = `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${mediaEditBadgeHTML()}</div>`;
     if(target) target.outerHTML = html;
+    const ok = await saveUploadedMedia('plan', safeId, '', dataUrl, currentCat, currentBuilding, currentFloor);
+    if(!ok) return;
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
+    renderDetail(currentCat, currentBuilding, currentFloor);
     showToast('도면 이미지가 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
   });
 }
@@ -3320,12 +3377,14 @@ function previewPlanImage(event, safeId) {
 function previewPhotoImage(event, safeId, num) {
   if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
-  readImageAsDataURL(file, (dataUrl) => {
-    if(!saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor)) return;
+  readImageAsDataURL(file, async (dataUrl) => {
     const target = document.getElementById(`photo-box-${safeId}-${num}`);
     const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}"${mediaUploadAttr(`photo-input-${safeId}-${num}`)}><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${photoEditBadgeHTML()}</div>`;
     if(target) target.outerHTML = html;
+    const ok = await saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor);
+    if(!ok) return;
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
+    renderDetail(currentCat, currentBuilding, currentFloor);
     showToast('사진이 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
   });
 }
@@ -5185,10 +5244,22 @@ async function updateReportStatus(reportId, status) {
 async function deleteReport(reportId) {
   if (!isAdmin) { showToast('관리자 모드에서만 가능합니다.'); return; }
   if (!confirm('이 제보를 삭제할까요?')) return;
-  userReports = dedupeReportsArray(userReports).filter(r => String(r.id) !== String(reportId));
+
+  const target = (userReports || []).find(r => String(r.id) === String(reportId));
+  if (target) {
+    deletedReportIds.add(String(target.id));
+    const uniqueKey = getReportUniqueKey(target);
+    if (uniqueKey) deletedReportKeys.add(uniqueKey);
+  } else {
+    deletedReportIds.add(String(reportId));
+  }
+  saveDeletedReportMarkers();
+
+  userReports = dedupeReportsArray(userReports).filter(r => String(r.id) !== String(reportId) && !isReportDeleted(r));
   await saveReportsShared();
+  await cloudSaveJson('reports', userReports);
   renderMyPage();
-  showToast('제보를 삭제했습니다.');
+  showToast('제보를 완전히 삭제했습니다. 새로고침해도 다시 뜨지 않습니다.');
 }
 
 function getRecentViewDescription(v) {
@@ -5407,6 +5478,31 @@ create policy "cammap_store_update_all"
 on public.cammap_store for update
 using (true)
 with check (true);
+
+-- 사진 저장용 Supabase Storage 설정
+-- Supabase Dashboard > Storage에서 public bucket 이름을 cammap-media로 직접 만들어 주세요.
+-- SQL로 정책을 만들 경우 아래도 실행할 수 있습니다.
+
+insert into storage.buckets (id, name, public)
+values ('cammap-media', 'cammap-media', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "cammap_media_select_all" on storage.objects;
+drop policy if exists "cammap_media_insert_all" on storage.objects;
+drop policy if exists "cammap_media_update_all" on storage.objects;
+
+create policy "cammap_media_select_all"
+on storage.objects for select
+using (bucket_id = 'cammap-media');
+
+create policy "cammap_media_insert_all"
+on storage.objects for insert
+with check (bucket_id = 'cammap-media');
+
+create policy "cammap_media_update_all"
+on storage.objects for update
+using (bucket_id = 'cammap-media')
+with check (bucket_id = 'cammap-media');
 -->
 
 </html>
