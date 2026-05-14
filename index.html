@@ -2533,18 +2533,12 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
 
     const ext = blob.type.includes('png') ? 'png' : 'jpg';
 
-    // Supabase Storage 경로에는 한글/공백/특수문자가 들어가면 Invalid key 오류가 날 수 있습니다.
-    // 그래서 실제 업로드 경로는 영문·숫자·_·- 만 남기고 안전하게 만듭니다.
-    const cleanSafeId = String(safeId || 'media')
-      .normalize('NFKD')
-      .replace(/[^\x00-\x7F]/g, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '') || 'media';
-
-    const slot = num ? `slot${num}` : 'main';
-    const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${ext}`;
-    const path = `${type}/${cleanSafeId}/${slot}/${uniqueName}`;
+    // 최종 수정: Supabase Storage object key에는 한글/공백/괄호/층 이름을 절대 넣지 않습니다.
+    // 시설명은 DB의 media key에만 남기고, Storage 파일 경로는 완전히 영문 랜덤값으로만 만듭니다.
+    const safeType = String(type || 'media').replace(/[^a-zA-Z0-9_-]/g, '') || 'media';
+    const slot = num ? `slot${String(num).replace(/[^a-zA-Z0-9_-]/g, '')}` : 'main';
+    const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2, 12)}.${ext}`;
+    const path = `${safeType}/${slot}/${uniqueName}`;
 
     const { error } = await cammapDb.storage
       .from(SUPABASE_MEDIA_BUCKET)
@@ -2555,7 +2549,7 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
       });
 
     if (error) {
-      console.warn('Supabase Storage 업로드 실패:', error);
+      console.warn('Supabase Storage upload failed:', error);
       return '';
     }
 
@@ -2565,15 +2559,18 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
 
     return data?.publicUrl || '';
   } catch (e) {
-    console.warn('Supabase Storage 업로드 예외:', e);
+    console.warn('Supabase Storage upload exception:', e);
     return '';
   }
 }
 
 async function saveMediaShared() {
-  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
-  await cloudSaveJson('media', uploadedMedia);
+  const localOk = saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+  if (!cloudReady || !cammapDb) return localOk;
+  const cloudOk = await cloudSaveJson('media', uploadedMedia);
+  return !!cloudOk;
 }
+
 
 async function saveCrowdShared() {
   saveLocalOnly('cammapCrowdReports', crowdReports);
@@ -3370,21 +3367,36 @@ async function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, b
   const safeIds = legacyMediaSafeIds(cat, building, floor);
   if (!safeIds.includes(safeId)) safeIds.unshift(safeId);
 
-  // 중요: 사진 원본(dataURL)을 localStorage/JSON DB에 먼저 저장하지 않습니다.
-  // 브라우저 저장공간이 초과되면 업로드 함수가 중간에 멈춰서 Supabase Storage에 파일이 안 올라갑니다.
-  // 따라서 Storage에 먼저 업로드하고, 성공하면 모든 기기에서 볼 수 있는 public URL만 저장합니다.
+  // 1단계: 화면 미리보기용으로 메모리에만 먼저 반영합니다.
+  // base64 원본은 가능하면 localStorage/DB에 오래 저장하지 않고, Storage 성공 후 public URL만 저장합니다.
+  safeIds.forEach(id => {
+    uploadedMedia[mediaStorageKey(type, id, num)] = dataUrl;
+  });
+
+  // 2단계: Supabase Storage에 업로드합니다. Storage 경로는 시설명 없이 영문 랜덤 경로만 사용합니다.
   const publicUrl = await uploadMediaToSupabaseStorage(type, safeId, num, dataUrl);
-  if (!publicUrl) {
-    return false;
+
+  if (publicUrl) {
+    safeIds.forEach(id => {
+      uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
+    });
+    saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+    await saveMediaShared();
+    return true;
   }
 
-  safeIds.forEach(id => {
-    uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
-  });
+  // 3단계: Storage 실패 시에도 현재 화면에서는 사진이 보이도록 DB 저장을 한 번 더 시도합니다.
+  // 단, base64는 용량 제한이 있어 다른 기기 공유가 실패할 수 있으므로 Storage 설정 확인이 필요합니다.
   saveLocalOnly('cammapUploadedMedia', uploadedMedia);
-  await saveMediaShared();
+  const dbOk = await saveMediaShared();
+  if (!dbOk) {
+    showToast('사진 저장에 실패했습니다. Supabase Storage 설정을 확인해주세요.');
+    return false;
+  }
+  showToast('사진을 임시 저장했습니다. 다른 기기 공유는 Storage 설정 확인이 필요합니다.');
   return true;
 }
+
 
 function mediaUploadAttr(inputId) {
   return isAdmin ? ` onclick="requestAdminMediaUpload('${inputId}')"` : '';
@@ -3444,30 +3456,40 @@ function previewPlanImage(event, safeId) {
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, async (dataUrl) => {
     const target = document.getElementById(`plan-box-${safeId}`);
-    const html = `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${dataUrl}" alt="도면 미리보기">${mediaEditBadgeHTML()}</div>`;
-    if(target) target.outerHTML = html;
+    const previewHtml = `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${dataUrl}" alt="도면 미리보기"><span class="media-edit-badge">저장 중...</span></div>`;
+    if (target) target.outerHTML = previewHtml;
+
     const ok = await saveUploadedMedia('plan', safeId, '', dataUrl, currentCat, currentBuilding, currentFloor);
-    if(!ok) return;
+    if (!ok) {
+      renderDetail(currentCat, currentBuilding, currentFloor);
+      return;
+    }
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     renderDetail(currentCat, currentBuilding, currentFloor);
-    showToast('도면 이미지가 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
+    showToast('도면 이미지가 저장되었습니다.');
   });
 }
+
 
 function previewPhotoImage(event, safeId, num) {
   if (!adminOnlyAction()) return;
   const file = event.target.files && event.target.files[0];
   readImageAsDataURL(file, async (dataUrl) => {
     const target = document.getElementById(`photo-box-${safeId}-${num}`);
-    const html = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}"${mediaUploadAttr(`photo-input-${safeId}-${num}`)}><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}">${photoEditBadgeHTML()}</div>`;
-    if(target) target.outerHTML = html;
+    const previewHtml = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}"${mediaUploadAttr(`photo-input-${safeId}-${num}`)}><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}"><span class="photo-edit-badge">저장 중...</span></div>`;
+    if (target) target.outerHTML = previewHtml;
+
     const ok = await saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor);
-    if(!ok) return;
+    if (!ok) {
+      renderDetail(currentCat, currentBuilding, currentFloor);
+      return;
+    }
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     renderDetail(currentCat, currentBuilding, currentFloor);
-    showToast('사진이 저장되었습니다. 최근 업데이트 날짜도 자동 반영되었습니다.');
+    showToast('사진이 저장되었습니다.');
   });
 }
+
 
 
 function makeReviewSafeId(cat, building, floor) {
