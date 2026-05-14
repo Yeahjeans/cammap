@@ -2113,6 +2113,47 @@ function isReportDeleted(item) {
   const key = getReportUniqueKey(item);
   return (!!id && deletedReportIds.has(id)) || (!!key && deletedReportKeys.has(key));
 }
+
+function getDeletedReportsPayload() {
+  return {
+    ids: [...deletedReportIds].filter(Boolean),
+    keys: [...deletedReportKeys].filter(Boolean),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function applyDeletedReportsPayload(payload) {
+  const data = payload || {};
+  (Array.isArray(data.ids) ? data.ids : []).forEach(id => {
+    if (id !== undefined && id !== null && String(id).trim()) deletedReportIds.add(String(id));
+  });
+  (Array.isArray(data.keys) ? data.keys : []).forEach(key => {
+    if (key !== undefined && key !== null && String(key).trim()) deletedReportKeys.add(String(key));
+  });
+  saveDeletedReportMarkers();
+}
+
+function isDataUrl(value) {
+  return typeof value === 'string' && value.startsWith('data:image/');
+}
+
+function isPublicMediaUrl(value) {
+  return typeof value === 'string' && /^https?:\/\//i.test(value);
+}
+
+function mergeMediaPreferRemote(remoteValue, localValue) {
+  if (!isPlainObject(remoteValue)) remoteValue = {};
+  if (!isPlainObject(localValue)) localValue = {};
+
+  const merged = { ...remoteValue };
+  Object.entries(localValue).forEach(([key, localItem]) => {
+    const remoteItem = merged[key];
+    if (remoteItem && isPublicMediaUrl(remoteItem)) return;
+    if (remoteItem && !isDataUrl(remoteItem) && !isDataUrl(localItem)) return;
+    if (!remoteItem && localItem) merged[key] = localItem;
+  });
+  return merged;
+}
 let recentViews = JSON.parse(localStorage.getItem('cammapRecentViews') || '[]');
 let uploadedMedia = JSON.parse(localStorage.getItem('cammapUploadedMedia') || '{}');
 let detailInfoEdits = JSON.parse(localStorage.getItem('cammapDetailInfoEdits') || '{}');
@@ -2358,9 +2399,12 @@ async function loadSharedData() {
   const remoteCrowd = await cloudLoadJson('crowd', {});
   const remoteDetailInfo = await cloudLoadJson('detailInfoEdits', {});
   const remoteReports = await cloudLoadJson('reports', []);
+  const remoteDeletedReports = await cloudLoadJson('deletedReports', { ids: [], keys: [] });
+
+  applyDeletedReportsPayload(remoteDeletedReports);
 
   userComments = dedupeCommentsObject(mergeObjectPreserveLocal(remoteComments, userComments));
-  uploadedMedia = mergeObjectPreserveLocal(remoteMedia, uploadedMedia);
+  uploadedMedia = mergeMediaPreferRemote(remoteMedia, uploadedMedia);
   crowdReports = mergeObjectPreserveLocal(remoteCrowd, crowdReports);
   detailInfoEdits = mergeObjectPreserveLocal(remoteDetailInfo, detailInfoEdits);
 
@@ -2380,6 +2424,7 @@ async function loadSharedData() {
   await cloudSaveJson('crowd', crowdReports);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
   await cloudSaveJson('reports', userReports);
+  await cloudSaveJson('deletedReports', getDeletedReportsPayload());
 
   if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
   if (document.getElementById('screen-floors')?.classList.contains('active')) renderFloorList();
@@ -2400,6 +2445,7 @@ async function manualSyncLocalToCloud() {
   await cloudSaveJson('crowd', crowdReports);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
   await cloudSaveJson('reports', userReports);
+  await cloudSaveJson('deletedReports', getDeletedReportsPayload());
 
   showToast('이 기기에 저장된 리뷰·도면·사진·혼잡도·관리자 수정정보·제보함을 공유 저장했습니다.');
 }
@@ -2421,7 +2467,7 @@ function startSharedRealtimeSync() {
       }
 
       if (row.key === 'media') {
-        uploadedMedia = row.value || {};
+        uploadedMedia = mergeMediaPreferRemote(row.value || {}, uploadedMedia);
         saveLocalOnly('cammapUploadedMedia', uploadedMedia);
       }
 
@@ -2437,6 +2483,12 @@ function startSharedRealtimeSync() {
 
       if (row.key === 'reports') {
         userReports = dedupeReportsArray(row.value || []);
+        saveLocalOnly('cammapUserReports', userReports);
+      }
+
+      if (row.key === 'deletedReports') {
+        applyDeletedReportsPayload(row.value || { ids: [], keys: [] });
+        userReports = dedupeReportsArray(userReports).filter(item => !isReportDeleted(item));
         saveLocalOnly('cammapUserReports', userReports);
       }
 
@@ -2473,17 +2525,18 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
     if (!blob) return '';
     const ext = blob.type.includes('png') ? 'png' : 'jpg';
     const cleanSafeId = String(safeId || 'media').replace(/[^a-zA-Z0-9가-힣_]/g, '_');
-    const suffix = num ? `_${num}` : '';
-    const path = `${type}/${cleanSafeId}${suffix}.${ext}`;
+    const slot = num ? `slot${num}` : 'main';
+    const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    const path = `${type}/${cleanSafeId}/${slot}/${uniqueName}`;
     const { error } = await cammapDb.storage
       .from(SUPABASE_MEDIA_BUCKET)
-      .upload(path, blob, { upsert: true, contentType: blob.type });
+      .upload(path, blob, { upsert: false, contentType: blob.type, cacheControl: '3600' });
     if (error) throw error;
     const { data } = cammapDb.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
-    return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : '';
+    return data?.publicUrl || '';
   } catch (e) {
     console.warn('Supabase Storage 업로드 실패:', e);
-    showToast('사진 공유 저장에 실패했습니다. Storage bucket(cammap-media)을 확인해주세요. 이 기기에는 임시 저장됩니다.');
+    showToast('사진 공유 저장에 실패했습니다. Storage bucket(cammap-media)와 정책을 확인해주세요.');
     return '';
   }
 }
@@ -2507,6 +2560,7 @@ async function saveReportsShared() {
   userReports = dedupeReportsArray(userReports).filter(item => !isReportDeleted(item));
   saveLocalOnly('cammapUserReports', userReports);
   saveDeletedReportMarkers();
+  await cloudSaveJson('deletedReports', getDeletedReportsPayload());
   await cloudSaveJson('reports', userReports);
 }
 
@@ -3287,21 +3341,22 @@ async function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, b
   const safeIds = legacyMediaSafeIds(cat, building, floor);
   if (!safeIds.includes(safeId)) safeIds.unshift(safeId);
 
-  // 1차: 이 기기에는 즉시 저장해서 새로고침해도 사라지지 않게 함
+  // 1차: 업로드 직후 현재 기기 미리보기는 유지
   safeIds.forEach(id => {
     uploadedMedia[mediaStorageKey(type, id, num)] = dataUrl;
   });
   saveLocalOnly('cammapUploadedMedia', uploadedMedia);
 
-  // 2차: Supabase Storage에 올릴 수 있으면 URL로 바꿔서 공용 저장
+  // 2차: 모든 기기에서 보이도록 Supabase Storage에 파일을 올리고, 공용 DB에는 URL만 저장
   const publicUrl = await uploadMediaToSupabaseStorage(type, safeId, num, dataUrl);
-  if (publicUrl) {
-    safeIds.forEach(id => {
-      uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
-    });
-    saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+  if (!publicUrl) {
+    return false;
   }
 
+  safeIds.forEach(id => {
+    uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
+  });
+  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
   await saveMediaShared();
   return true;
 }
@@ -5257,9 +5312,9 @@ async function deleteReport(reportId) {
 
   userReports = dedupeReportsArray(userReports).filter(r => String(r.id) !== String(reportId) && !isReportDeleted(r));
   await saveReportsShared();
-  await cloudSaveJson('reports', userReports);
   renderMyPage();
-  showToast('제보를 완전히 삭제했습니다. 새로고침해도 다시 뜨지 않습니다.');
+  renderAdminReports();
+  showToast('제보를 완전히 삭제했습니다. 모든 기기에서 다시 뜨지 않습니다.');
 }
 
 function getRecentViewDescription(v) {
@@ -5465,6 +5520,7 @@ alter table public.cammap_store enable row level security;
 drop policy if exists "cammap_store_select_all" on public.cammap_store;
 drop policy if exists "cammap_store_insert_all" on public.cammap_store;
 drop policy if exists "cammap_store_update_all" on public.cammap_store;
+drop policy if exists "cammap_store_delete_all" on public.cammap_store;
 
 create policy "cammap_store_select_all"
 on public.cammap_store for select
@@ -5478,6 +5534,10 @@ create policy "cammap_store_update_all"
 on public.cammap_store for update
 using (true)
 with check (true);
+
+create policy "cammap_store_delete_all"
+on public.cammap_store for delete
+using (true);
 
 -- 사진 저장용 Supabase Storage 설정
 -- Supabase Dashboard > Storage에서 public bucket 이름을 cammap-media로 직접 만들어 주세요.
