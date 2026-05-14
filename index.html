@@ -3453,41 +3453,73 @@ function readImageAsDataURL(file, callback) {
 
 function previewPlanImage(event, safeId) {
   if (!adminOnlyAction()) return;
+
   const file = event.target.files && event.target.files[0];
+
   readImageAsDataURL(file, async (dataUrl) => {
-    const target = document.getElementById(`plan-box-${safeId}`);
     const previewHtml = `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${dataUrl}" alt="도면 미리보기"><span class="media-edit-badge">저장 중...</span></div>`;
-    if (target) target.outerHTML = previewHtml;
+
+    const target = document.getElementById(`plan-box-${safeId}`);
+
+    if (target) {
+      target.outerHTML = previewHtml;
+    } else {
+      const input = document.getElementById(`plan-input-${safeId}`);
+      if (input && input.parentElement) {
+        const label = input.parentElement.querySelector('.media-label');
+        if (label) label.insertAdjacentHTML('afterend', previewHtml);
+        else input.parentElement.insertAdjacentHTML('afterbegin', previewHtml);
+      }
+    }
 
     const ok = await saveUploadedMedia('plan', safeId, '', dataUrl, currentCat, currentBuilding, currentFloor);
+
     if (!ok) {
-      renderDetail(currentCat, currentBuilding, currentFloor);
+      showToast('저장은 실패했지만 화면에는 유지됩니다. Supabase 설정을 확인하세요.');
       return;
     }
+
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     renderDetail(currentCat, currentBuilding, currentFloor);
     showToast('도면 이미지가 저장되었습니다.');
   });
+
+  event.target.value = '';
 }
 
 
 function previewPhotoImage(event, safeId, num) {
   if (!adminOnlyAction()) return;
+
   const file = event.target.files && event.target.files[0];
+
   readImageAsDataURL(file, async (dataUrl) => {
-    const target = document.getElementById(`photo-box-${safeId}-${num}`);
     const previewHtml = `<div class="media-img-wrap" id="photo-box-${safeId}-${num}"${mediaUploadAttr(`photo-input-${safeId}-${num}`)}><img class="photo-img" src="${dataUrl}" alt="사진 미리보기 ${num}"><span class="photo-edit-badge">저장 중...</span></div>`;
-    if (target) target.outerHTML = previewHtml;
+
+    const target = document.getElementById(`photo-box-${safeId}-${num}`);
+
+    if (target) {
+      target.outerHTML = previewHtml;
+    } else {
+      const input = document.getElementById(`photo-input-${safeId}-${num}`);
+      const mediaBlock = input && input.parentElement;
+      const photoRow = mediaBlock ? mediaBlock.querySelector('.photo-row') : null;
+      if (photoRow) photoRow.insertAdjacentHTML('beforeend', previewHtml);
+    }
 
     const ok = await saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor);
+
     if (!ok) {
-      renderDetail(currentCat, currentBuilding, currentFloor);
+      showToast('저장은 실패했지만 화면에는 유지됩니다. Supabase 설정을 확인하세요.');
       return;
     }
+
     if (currentCat && currentBuilding && currentFloor) setFacilityUpdatedNow(currentCat, currentBuilding, currentFloor);
     renderDetail(currentCat, currentBuilding, currentFloor);
     showToast('사진이 저장되었습니다.');
   });
+
+  event.target.value = '';
 }
 
 
