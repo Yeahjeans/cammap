@@ -5490,6 +5490,7 @@ on conflict (id) do update set public = true;
 drop policy if exists "cammap_media_select_all" on storage.objects;
 drop policy if exists "cammap_media_insert_all" on storage.objects;
 drop policy if exists "cammap_media_update_all" on storage.objects;
+drop policy if exists "cammap_media_delete_all" on storage.objects;
 
 create policy "cammap_media_select_all"
 on storage.objects for select
@@ -5503,6 +5504,10 @@ create policy "cammap_media_update_all"
 on storage.objects for update
 using (bucket_id = 'cammap-media')
 with check (bucket_id = 'cammap-media');
+
+create policy "cammap_media_delete_all"
+on storage.objects for delete
+using (bucket_id = 'cammap-media');
 -->
 
 </html>
