@@ -3670,7 +3670,14 @@ function renderDetail(cat, building, floor) {
 
   const avgStarsHTML = stats.avg ? '⭐'.repeat(Math.round(stats.avg)) : '☆☆☆☆☆';
 
-  const cmtsHTML = allCmts.length ? allCmts.map(c => `
+  const cmtsHTML = allCmts.length ? allCmts.map(c => {
+    const canEdit = isMineByAuthor(c);
+    const actionButtons = [
+      canEdit ? `<button class="comment-action-btn" onclick="editReview('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">수정</button>` : '',
+      isAdmin ? `<button class="comment-action-btn danger" onclick="deleteReviewAsAdmin('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">관리자 삭제</button>` : ''
+    ].filter(Boolean).join('');
+
+    return `
     <div class="comment-card">
       <div class="cc-top">
         <div class="cc-avatar">${escapeHTML((c.name || '익').charAt(0))}</div>
@@ -3679,12 +3686,10 @@ function renderDetail(cat, building, floor) {
       </div>
       <div class="cc-stars">${'⭐'.repeat(Number(c.rating || 0))}${'☆'.repeat(5 - Number(c.rating || 0))}</div>
       <p class="cc-text">${escapeHTML(c.text || '')}</p>
-      <div class="comment-actions">
-        <button class="comment-action-btn" onclick="editReview('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">수정</button>
-        ${isAdmin ? `<button class="comment-action-btn danger" onclick="deleteReviewAsAdmin('${c._key}', ${c._index}, '${cat}', '${building}', '${floor}')">관리자 삭제</button>` : ''}
-      </div>
+      ${actionButtons ? `<div class="comment-actions">${actionButtons}</div>` : ''}
     </div>
-  `).join('') : '<div class="empty-review">아직 등록된 댓글과 평점이 없습니다.<br>첫 리뷰를 남겨주세요.</div>';
+  `;
+  }).join('') : '<div class="empty-review">아직 등록된 댓글과 평점이 없습니다.<br>첫 리뷰를 남겨주세요.</div>';
 
   const safeId = makeMediaSafeId(cat, building, floor);
   const savedPlan = getStoredMedia('plan', safeId, '', cat, building, floor);
@@ -3836,11 +3841,16 @@ function editReview(key, index, cat, building, floor) {
   const list = userComments[key] || [];
   const item = list[index];
   if (!item) { showToast('수정할 댓글을 찾지 못했습니다.'); return; }
+  if (!isMineByAuthor(item)) {
+    showToast('내가 작성한 댓글만 수정할 수 있습니다.');
+    return;
+  }
 
   const nextText = prompt('댓글 내용을 수정하세요.', item.text || '');
   if (nextText === null) return;
   const cleanText = nextText.trim();
   if (!cleanText) { showToast('댓글 내용은 비워둘 수 없습니다.'); return; }
+  if (blockIfBadWord(cleanText, '댓글을 수정')) return;
 
   const nextRatingRaw = prompt('별점을 1~5 사이 숫자로 입력하세요.', String(item.rating || 5));
   if (nextRatingRaw === null) return;
