@@ -3011,8 +3011,8 @@ function getCrowdSummary(cat, building, floor) {
 }
 
 function submitCrowdStatus(cat, building, floor, status) {
-  if (!(cat === 'toilet' || cat === 'store')) {
-    showToast('실시간 혼잡도는 화장실과 편의점에서만 사용할 수 있어요.');
+  if (!(cat === 'toilet' || cat === 'store' || cat === 'smoke')) {
+    showToast('실시간 혼잡도는 화장실·편의점·흡연구역에서 사용할 수 있어요.');
     return;
   }
 
@@ -3036,7 +3036,7 @@ function submitCrowdStatus(cat, building, floor, status) {
 }
 
 function renderCrowdStatusSection(cat, building, floor) {
-  if (!(cat === 'toilet' || cat === 'store')) return '';
+  if (!(cat === 'toilet' || cat === 'store' || cat === 'smoke')) return '';
 
   const summary = getCrowdSummary(cat, building, floor);
   const meta = getCrowdMeta(summary.status);
@@ -3815,7 +3815,7 @@ function renderDetail(cat, building, floor) {
 
   const photoSectionHTML = renderPhotoTabsSection(cat, building, floor, fd, safeId);
 
-  document.getElementById('detail-content').innerHTML = `
+  const mediaBlocksHTML = cat === 'smoke' ? '' : `
     <div class="media-block">
       <div class="media-label">층별 도면</div>
       ${planHTML}
@@ -3826,16 +3826,27 @@ function renderDetail(cat, building, floor) {
       ${photoSectionHTML}
       <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다. 등록된 사진은 일반 사용자에게도 보이고, Supabase 연결 시 모든 기기에 공유됩니다.' : '등록된 도면·실사진은 누구나 볼 수 있고, 등록과 수정만 관리자에게 열려 있습니다.'}</div>
     </div>
-    <div class="loc-box">
+  `;
+
+  const detailInfoSectionHTML = cat === 'smoke' ? `
+    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 흡연구역은 위치 안내와 실시간 혼잡도 중심으로 관리합니다.</div>` : ''}
+  ` : `
+    <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
+    ${infoCardHTML}
+    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
+  `;
+
+  document.getElementById('detail-content').innerHTML = `
+    ${mediaBlocksHTML}
+    <div class="loc-box" style="${cat === 'smoke' ? 'margin-top:16px;' : ''}">
       <span class="loc-icon">📍</span>
       <span class="loc-text">${escapeHTML(mergedInfo.loc)}</span>
     </div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
     ${renderCrowdStatusSection(cat, building, floor)}
-    <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
-    ${infoCardHTML}
-    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
+    ${detailInfoSectionHTML}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
