@@ -571,6 +571,43 @@ html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: 
   .toilet-common-card { margin: 0 40px 16px; }
 }
 
+
+/* PHOTO TABS FOR MULTIPLE TOILETS / GENDER PHOTOS */
+.photo-tab-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.photo-tab-bar::-webkit-scrollbar { display: none; }
+.photo-tab-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.photo-tab-btn.active {
+  background: var(--orange-light);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.photo-tab-panel { display: none; }
+.photo-tab-panel.active { display: block; }
+.photo-tab-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
 /* REVIEWS */
 .review-section { padding: 0 20px 20px; }
 .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -1317,8 +1354,8 @@ window.__naverMapScriptLoaded = false;
   <div class="profile-modal">
     <div class="profile-modal-title">CAMMAP ID 설정</div>
     <div class="profile-modal-sub">
-      댓글은 닉네임으로 익명 표시되고, MY·즐겨찾기·제보 관리는 ID 기준으로 연결됩니다.<br>
-      같은 ID를 다른 기기에서 입력하면 같은 사용자로 인식됩니다.
+      처음에는 자동 익명 ID로 바로 이용할 수 있고, 여기서 직접 ID와 닉네임을 설정하면 다른 기기에서도 같은 사용자로 이어서 사용할 수 있습니다.<br>
+      댓글은 닉네임으로 익명 표시되고, MY·즐겨찾기·제보 관리는 ID 기준으로 연결됩니다.
     </div>
     <div class="form-group">
       <label class="form-label">개인 ID</label>
@@ -1331,7 +1368,7 @@ window.__naverMapScriptLoaded = false;
       <div class="profile-hint">댓글과 제보에는 이 닉네임만 표시됩니다.</div>
     </div>
     <div class="profile-modal-actions">
-      <button type="button" class="profile-modal-btn primary" onclick="saveCammapProfile()">시작하기</button>
+      <button type="button" class="profile-modal-btn primary" onclick="saveCammapProfile()">저장하기</button>
       <button type="button" class="profile-modal-btn secondary" id="profile-modal-cancel" onclick="closeProfileModal()">취소</button>
     </div>
   </div>
@@ -1733,37 +1770,33 @@ const catInfo = {
 
 
 // ============ PROFANITY FILTER / 욕설 차단 ============
-// 댓글·제보에 욕설/비방 표현이 들어가면 저장하지 않습니다.
-// 필요하면 아래 배열에 단어를 추가하면 됩니다.
+// 댓글·제보에는 아래 4개 표현만 차단합니다.
+// 다른 정상 문장이 불필요하게 막히지 않도록 필터 범위를 최소화했습니다.
 const CAMMAP_BAD_WORDS = [
-  '시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', 'ㅅ발', '씨ㅂ', 'ㅆ발',
-  '병신', 'ㅂㅅ', '븅신', '등신',
-  '개새끼', '개세끼', '새끼', 'ㅅㄲ',
-  '미친놈', '미친년', '미친새끼',
-  '좆', '존나', '졸라', 'ㅈㄴ',
-  '꺼져', '죽어', '뒤져',
-  '개같', '개빡', '니애미', '느금마'
+  '존나',
+  'ㅈㄴ',
+  '시발',
+  'ㅅㅂ'
 ];
 
 function normalizeTextForBadWordCheck(text) {
   return String(text || '')
     .toLowerCase()
-    .replace(/[\s​-‍﻿ㄱ-ㅎㅏ-ㅣ.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
+    .replace(/[\s\u200B-\u200D\uFEFF.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
 }
 
 function containsBadWord(text) {
-  const original = String(text || '').toLowerCase();
-  const normalized = normalizeTextForBadWordCheck(original);
+  const normalized = normalizeTextForBadWordCheck(text);
 
   return CAMMAP_BAD_WORDS.some(word => {
     const normalizedWord = normalizeTextForBadWordCheck(word);
-    return original.includes(String(word).toLowerCase()) || normalized.includes(normalizedWord);
+    return normalized.includes(normalizedWord);
   });
 }
 
 function blockIfBadWord(text, targetLabel) {
   if (!containsBadWord(text)) return false;
-  showToast(`부적절한 표현이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
+  showToast(`욕설이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
   return true;
 }
 
@@ -1881,7 +1914,7 @@ const buildingData = {
   toilet: [
     { name: '사회과학관', walk: '도보 2분', floors: ['2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '경영관',     walk: '도보 3분', floors: ['1층','2층','3층','4층','5층'], rating: 0, comments: 0, updated: '2026.05.12' },
-    { name: '신공학관',   walk: '도보 4분', floors: ['9층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
+    { name: '신공학관',   walk: '도보 4분', floors: ['1층 화장실','9층 화장실'], rating: 0, comments: 0, updated: '2026.05.18' },
     { name: '과학관',     walk: '도보 3분', floors: ['1층 남자화장실','2층 여자화장실','3층 남자화장실','4층 여자화장실'], rating: 0, comments: 0, updated: '2026.05.12' },
     { name: '중앙도서관',   walk: '도보 4분', floors: ['2층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
     { name: '법학만해관',   walk: '도보 5분', floors: ['1층 화장실','2층 화장실','3층 화장실'], rating: 0, comments: 0, updated: '2026.05.13' },
@@ -1925,6 +1958,7 @@ const floorData = {
       { floor: '5층', tags: '경영관 5층 화장실', loc: '경영관 5층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'business-5f-map.png', photos: ['business-5f-photo1.jpg', 'business-5f-photo2.jpg'], info: { 구분: ['화장실',''], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '신공학관': [
+      { floor: '1층 화장실', tags: '신공학관 1층 화장실 2개', loc: '신공학관 1층에 있는 화장실 2곳입니다. 사진 탭에서 각 화장실 사진을 따로 등록할 수 있습니다.', planImage: 'engineering-1f-map.png', photos: ['engineering-1f-photo1.jpg', 'engineering-1f-photo2.jpg'], photoTabs: [{ key: 'toilet_a', label: '화장실 1' }, { key: 'toilet_b', label: '화장실 2' }], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
       { floor: '9층 화장실', tags: '신공학관 9층 화장실', loc: '신공학관 9층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'engineering-9f-map.png', photos: ['engineering-9f-photo1.jpg', 'engineering-9f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
     ],
     '과학관': [
@@ -1937,20 +1971,20 @@ const floorData = {
       { floor: '2층 화장실', tags: '중앙도서관 2층 화장실', loc: '중앙도서관 2층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'library-2f-map.png', photos: ['library-2f-photo1.jpg', 'library-2f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
     ],
     '법학만해관': [
-      { floor: '1층 화장실', tags: '법학만해관 1층 화장실', loc: '법학만해관 1층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-1f-map.png', photos: ['law-manhae-1f-photo1.jpg', 'law-manhae-1f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
-      { floor: '2층 화장실', tags: '법학만해관 2층 화장실 / 쿱스켓 인근', loc: '법학만해관 2층 쿱스켓 인근 복도에 위치한 화장실입니다.', planImage: 'law-manhae-2f-map.png', photos: ['law-manhae-2f-photo1.jpg', 'law-manhae-2f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
-      { floor: '3층 화장실', tags: '법학만해관 3층 화장실', loc: '법학만해관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-3f-map.png', photos: ['law-manhae-3f-photo1.jpg', 'law-manhae-3f-photo2.jpg'], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
+      { floor: '1층 화장실', tags: '법학만해관 1층 화장실', loc: '법학만해관 1층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-1f-map.png', photos: ['law-manhae-1f-photo1.jpg', 'law-manhae-1f-photo2.jpg'], photoTabs: [{ key: 'toilet_a', label: '화장실 1' }, { key: 'toilet_b', label: '화장실 2' }], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
+      { floor: '2층 화장실', tags: '법학만해관 2층 화장실 / 쿱스켓 인근', loc: '법학만해관 2층 쿱스켓 인근 복도에 위치한 화장실입니다.', planImage: 'law-manhae-2f-map.png', photos: ['law-manhae-2f-photo1.jpg', 'law-manhae-2f-photo2.jpg'], photoTabs: [{ key: 'toilet_a', label: '화장실 1' }, { key: 'toilet_b', label: '화장실 2' }], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['보통',''], 휴지비치: ['있음','good'], 비데: ['있음','good'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } },
+      { floor: '3층 화장실', tags: '법학만해관 3층 화장실', loc: '법학만해관 3층 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: 'law-manhae-3f-map.png', photos: ['law-manhae-3f-photo1.jpg', 'law-manhae-3f-photo2.jpg'], photoTabs: [{ key: 'toilet_a', label: '화장실 1' }, { key: 'toilet_b', label: '화장실 2' }], info: { 여자화장실: ['있음','good'], 남자화장실: ['있음','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'], '화장실 칸 수': ['정보 업데이트 예정','none'] } }
     ],
     '본관': [
       { floor: '2층 화장실', tags: '본관 2층 화장실', loc: '본관 2층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
       { floor: '3층 화장실', tags: '본관 3층 화장실', loc: '본관 3층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '혜화관': [
-      { floor: '1층 화장실', tags: '혜화관 1층 화장실', loc: '혜화관 1층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
-      { floor: '2층 화장실', tags: '혜화관 2층 화장실', loc: '혜화관 2층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
-      { floor: '3층 화장실', tags: '혜화관 3층 화장실', loc: '혜화관 3층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
-      { floor: '4층 화장실', tags: '혜화관 4층 화장실', loc: '혜화관 4층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
-      { floor: '5층 화장실', tags: '혜화관 5층 화장실', loc: '혜화관 5층 화장실 남녀 화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
+      { floor: '1층 화장실', tags: '혜화관 1층 화장실 / 남녀 사진 탭', loc: '혜화관 1층 화장실 남녀 화장실 위치입니다. 사진 탭에서 여자화장실과 남자화장실 사진을 따로 등록할 수 있습니다.', planImage: '', photos: [], photoTabs: [{ key: 'women', label: '여자화장실' }, { key: 'men', label: '남자화장실' }], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '2층 화장실', tags: '혜화관 2층 화장실 / 남녀 사진 탭', loc: '혜화관 2층 화장실 남녀 화장실 위치입니다. 사진 탭에서 여자화장실과 남자화장실 사진을 따로 등록할 수 있습니다.', planImage: '', photos: [], photoTabs: [{ key: 'women', label: '여자화장실' }, { key: 'men', label: '남자화장실' }], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '3층 화장실', tags: '혜화관 3층 화장실 / 남녀 사진 탭', loc: '혜화관 3층 화장실 남녀 화장실 위치입니다. 사진 탭에서 여자화장실과 남자화장실 사진을 따로 등록할 수 있습니다.', planImage: '', photos: [], photoTabs: [{ key: 'women', label: '여자화장실' }, { key: 'men', label: '남자화장실' }], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '4층 화장실', tags: '혜화관 4층 화장실 / 남녀 사진 탭', loc: '혜화관 4층 화장실 남녀 화장실 위치입니다. 사진 탭에서 여자화장실과 남자화장실 사진을 따로 등록할 수 있습니다.', planImage: '', photos: [], photoTabs: [{ key: 'women', label: '여자화장실' }, { key: 'men', label: '남자화장실' }], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
+      { floor: '5층 화장실', tags: '혜화관 5층 화장실 / 남녀 사진 탭', loc: '혜화관 5층 화장실 남녀 화장실 위치입니다. 사진 탭에서 여자화장실과 남자화장실 사진을 따로 등록할 수 있습니다.', planImage: '', photos: [], photoTabs: [{ key: 'women', label: '여자화장실' }, { key: 'men', label: '남자화장실' }], info: { 구분: ['남녀 화장실','good'], 파우더룸: ['정보 업데이트 예정','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } }
     ],
     '명진관': [
       { floor: 'B1층 남자화장실', tags: '명진관 B1층 남자화장실', loc: '명진관 B1층 남자화장실 위치입니다. 도면과 사진을 추가해 주세요.', planImage: '', photos: [], info: { 구분: ['남자화장실','good'], 파우더룸: ['해당 없음','none'], 청결도: ['정보 업데이트 예정','none'], 휴지비치: ['정보 업데이트 예정','none'], 비데: ['정보 업데이트 예정','none'], 혼잡도: ['정보 업데이트 예정','none'], 장애인화장실: ['정보 업데이트 예정','none'] } },
@@ -2119,7 +2153,7 @@ let favorites = new Set(JSON.parse(localStorage.getItem('cammapFavorites') || '[
 let currentUser = localStorage.getItem('cammapNickname') || localStorage.getItem('cammapUserName') || '익명';
 let currentUserId = localStorage.getItem('cammapUserId') || '';
 let cammapProfileReady = localStorage.getItem('cammapProfileReady') === 'true' && !!currentUserId;
-let previousAutoUserId = (!cammapProfileReady && currentUserId && String(currentUserId).startsWith('user_')) ? currentUserId : '';
+let previousAutoUserId = (!cammapProfileReady && currentUserId && (String(currentUserId).startsWith('user_') || String(currentUserId).startsWith('guest_'))) ? currentUserId : '';
 let myCommentIds = new Set(JSON.parse(localStorage.getItem('cammapMyCommentIds') || '[]'));
 let myReportIds = new Set(JSON.parse(localStorage.getItem('cammapMyReportIds') || '[]'));
 function saveMyOwnership() {
@@ -2973,8 +3007,8 @@ function getCrowdSummary(cat, building, floor) {
 }
 
 function submitCrowdStatus(cat, building, floor, status) {
-  if (!(cat === 'toilet' || cat === 'store')) {
-    showToast('실시간 혼잡도는 화장실과 편의점에서만 사용할 수 있어요.');
+  if (!(cat === 'toilet' || cat === 'store' || cat === 'smoke')) {
+    showToast('실시간 혼잡도는 화장실·편의점·흡연구역에서 사용할 수 있어요.');
     return;
   }
 
@@ -2998,7 +3032,7 @@ function submitCrowdStatus(cat, building, floor, status) {
 }
 
 function renderCrowdStatusSection(cat, building, floor) {
-  if (!(cat === 'toilet' || cat === 'store')) return '';
+  if (!(cat === 'toilet' || cat === 'store' || cat === 'smoke')) return '';
 
   const summary = getCrowdSummary(cat, building, floor);
   const meta = getCrowdMeta(summary.status);
@@ -3287,6 +3321,7 @@ function selectFloor(floor) {
 function normalizeTargetFloor(cat, building, floor) {
   if (cat === 'store') return getCanonicalStoreFloor(building) || floor || '1층';
   if (cat === 'toilet' && building === '신공학관' && floor === '9층') return '9층 화장실';
+  if (cat === 'toilet' && building === '신공학관' && floor === '1층') return '1층 화장실';
   if (floorData[cat]?.[building]?.some(f => f.floor === floor)) return floor;
   const cleaned = String(floor || '').replace(' 화장실', '');
   const found = floorData[cat]?.[building]?.find(f => f.floor === cleaned || String(f.floor || '').includes(cleaned));
@@ -3524,7 +3559,7 @@ function previewPlanImage(event, safeId) {
 }
 
 
-function previewPhotoImage(event, safeId, num) {
+function previewPhotoImage(event, safeId, num, scopeFloor = '') {
   if (!adminOnlyAction()) return;
 
   const file = event.target.files && event.target.files[0];
@@ -3543,7 +3578,7 @@ function previewPhotoImage(event, safeId, num) {
       if (photoRow) photoRow.insertAdjacentHTML('beforeend', previewHtml);
     }
 
-    const ok = await saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, currentFloor);
+    const ok = await saveUploadedMedia('photo', safeId, num, dataUrl, currentCat, currentBuilding, scopeFloor || currentFloor);
 
     if (!ok) {
       showToast('저장은 실패했지만 화면에는 유지됩니다. Supabase 설정을 확인하세요.');
@@ -3571,6 +3606,81 @@ function getPrimaryReviewKey(cat, building, floor) {
     return `${cat}_${canonicalBuilding}_${canonicalFloor}`;
   }
   return `${cat}_${building}_${floor}`;
+}
+
+
+function getPhotoTabsForFacility(cat, building, floor, fd) {
+  if (fd && Array.isArray(fd.photoTabs) && fd.photoTabs.length) return fd.photoTabs;
+  return [{ key: 'main', label: '실사진' }];
+}
+
+function switchPhotoTab(groupId, tabKey) {
+  document.querySelectorAll(`[data-photo-tab-btn="${groupId}"]`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.photoTabKey === tabKey);
+  });
+  document.querySelectorAll(`[data-photo-tab-panel="${groupId}"]`).forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.photoTabKey === tabKey);
+  });
+}
+
+function renderPhotoSlotHTML(cat, building, floor, fd, safeId, slotNum, label) {
+  const photos = fd.photos || [];
+  const savedPhoto = getStoredMedia('photo', safeId, slotNum, cat, building, floor);
+  if (savedPhoto) {
+    return `<div class="media-img-wrap" id="photo-box-${safeId}-${slotNum}"${mediaUploadAttr(`photo-input-${safeId}-${slotNum}`)}><img class="photo-img" src="${savedPhoto}" alt="${building} ${floor} 저장된 사진 ${slotNum}">${photoEditBadgeHTML()}</div>`;
+  }
+
+  const defaultPhoto = photos[slotNum - 1];
+  if (defaultPhoto) {
+    return `<div class="media-img-wrap" id="photo-box-${safeId}-${slotNum}"${mediaUploadAttr(`photo-input-${safeId}-${slotNum}`)}><img class="photo-img" src="${defaultPhoto}" alt="${building} ${floor} 사진 ${slotNum}" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',${slotNum},'${label}')">${photoEditBadgeHTML()}</div>`;
+  }
+
+  return photoPlaceholderHTML(safeId, slotNum, label);
+}
+
+function renderPhotoTabsSection(cat, building, floor, fd, baseSafeId) {
+  const tabs = getPhotoTabsForFacility(cat, building, floor, fd);
+  const groupId = `photo-tabs-${baseSafeId}`;
+
+  if (tabs.length <= 1) {
+    const photo1HTML = renderPhotoSlotHTML(cat, building, floor, fd, baseSafeId, 1, '사진 1');
+    const photo2HTML = renderPhotoSlotHTML(cat, building, floor, fd, baseSafeId, 2, '사진 추가');
+    return `
+      <div class="photo-row">
+        ${photo1HTML}
+        ${photo2HTML}
+      </div>
+      <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${baseSafeId}-1" onchange="previewPhotoImage(event, '${baseSafeId}', 1)">
+      <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${baseSafeId}-2" onchange="previewPhotoImage(event, '${baseSafeId}', 2)">
+    `;
+  }
+
+  const buttons = tabs.map((tab, idx) => `
+    <button type="button" class="photo-tab-btn ${idx === 0 ? 'active' : ''}" data-photo-tab-btn="${groupId}" data-photo-tab-key="${tab.key}" onclick="switchPhotoTab('${groupId}','${tab.key}')">${escapeHTML(tab.label)}</button>
+  `).join('');
+
+  const panels = tabs.map((tab, idx) => {
+    const scopedFloor = `${floor} ${tab.label}`;
+    const tabSafeId = makeMediaSafeId(cat, building, scopedFloor);
+    const photo1HTML = renderPhotoSlotHTML(cat, building, scopedFloor, { ...fd, photos: tab.photos || [] }, tabSafeId, 1, `${tab.label} 사진 1`);
+    const photo2HTML = renderPhotoSlotHTML(cat, building, scopedFloor, { ...fd, photos: tab.photos || [] }, tabSafeId, 2, `${tab.label} 사진 추가`);
+    return `
+      <div class="photo-tab-panel ${idx === 0 ? 'active' : ''}" data-photo-tab-panel="${groupId}" data-photo-tab-key="${tab.key}">
+        <div class="photo-row">
+          ${photo1HTML}
+          ${photo2HTML}
+        </div>
+        <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${tabSafeId}-1" onchange="previewPhotoImage(event, '${tabSafeId}', 1, '${scopedFloor}')">
+        <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${tabSafeId}-2" onchange="previewPhotoImage(event, '${tabSafeId}', 2, '${scopedFloor}')">
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="photo-tab-bar">${buttons}</div>
+    ${panels}
+    <div class="photo-tab-note">이 층에는 구분해서 등록할 사진이 있어 탭별로 사진을 따로 저장합니다.</div>
+  `;
 }
 
 function renderDetail(cat, building, floor) {
@@ -3699,21 +3809,9 @@ function renderDetail(cat, building, floor) {
       ? `<div class="media-img-wrap" id="plan-box-${safeId}"${mediaUploadAttr(`plan-input-${safeId}`)}><img class="detail-img" src="${fd.planImage}" alt="${building} ${floor} 도면" onerror="this.parentElement.outerHTML=planPlaceholderHTML('${safeId}','${building}','${floor}')">${mediaEditBadgeHTML()}</div>`
       : planPlaceholderHTML(safeId, building, floor));
 
-  const photos = fd.photos || [];
-  const savedPhoto1 = getStoredMedia('photo', safeId, 1, cat, building, floor);
-  const savedPhoto2 = getStoredMedia('photo', safeId, 2, cat, building, floor);
-  const photo1HTML = savedPhoto1
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-1"${mediaUploadAttr(`photo-input-${safeId}-1`)}><img class="photo-img" src="${savedPhoto1}" alt="${building} ${floor} 저장된 사진 1">${photoEditBadgeHTML()}</div>`
-    : (photos[0]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-1"${mediaUploadAttr(`photo-input-${safeId}-1`)}><img class="photo-img" src="${photos[0]}" alt="${building} ${floor} 사진 1" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',1,'사진 1')">${photoEditBadgeHTML()}</div>`
-      : photoPlaceholderHTML(safeId, 1, '사진 1'));
-  const photo2HTML = savedPhoto2
-    ? `<div class="media-img-wrap" id="photo-box-${safeId}-2"${mediaUploadAttr(`photo-input-${safeId}-2`)}><img class="photo-img" src="${savedPhoto2}" alt="${building} ${floor} 저장된 사진 2">${photoEditBadgeHTML()}</div>`
-    : (photos[1]
-      ? `<div class="media-img-wrap" id="photo-box-${safeId}-2"${mediaUploadAttr(`photo-input-${safeId}-2`)}><img class="photo-img" src="${photos[1]}" alt="${building} ${floor} 사진 2" onerror="this.parentElement.outerHTML=photoPlaceholderHTML('${safeId}',2,'사진 추가')">${photoEditBadgeHTML()}</div>`
-      : photoPlaceholderHTML(safeId, 2, '사진 추가'));
+  const photoSectionHTML = renderPhotoTabsSection(cat, building, floor, fd, safeId);
 
-  document.getElementById('detail-content').innerHTML = `
+  const mediaBlocksHTML = cat === 'smoke' ? '' : `
     <div class="media-block">
       <div class="media-label">층별 도면</div>
       ${planHTML}
@@ -3721,24 +3819,30 @@ function renderDetail(cat, building, floor) {
     </div>
     <div class="media-block" style="padding-top:0">
       <div class="media-label">실사진</div>
-      <div class="photo-row">
-        ${photo1HTML}
-        ${photo2HTML}
-      </div>
-      <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-1" onchange="previewPhotoImage(event, '${safeId}', 1)">
-      <input class="hidden-file-input" type="file" accept="image/*" id="photo-input-${safeId}-2" onchange="previewPhotoImage(event, '${safeId}', 2)">
+      ${photoSectionHTML}
       <div class="admin-only-hint">${isAdmin ? '관리자 모드: 도면과 실사진을 눌러 등록·수정할 수 있습니다. 등록된 사진은 일반 사용자에게도 보이고, Supabase 연결 시 모든 기기에 공유됩니다.' : '등록된 도면·실사진은 누구나 볼 수 있고, 등록과 수정만 관리자에게 열려 있습니다.'}</div>
     </div>
-    <div class="loc-box">
+  `;
+
+  const detailInfoSectionHTML = cat === 'smoke' ? `
+    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 흡연구역은 위치 안내와 실시간 혼잡도 중심으로 관리합니다.</div>` : ''}
+  ` : `
+    <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
+    ${infoCardHTML}
+    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
+    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
+  `;
+
+  document.getElementById('detail-content').innerHTML = `
+    ${mediaBlocksHTML}
+    <div class="loc-box" style="${cat === 'smoke' ? 'margin-top:16px;' : ''}">
       <span class="loc-icon">📍</span>
       <span class="loc-text">${escapeHTML(mergedInfo.loc)}</span>
     </div>
     ${isAdmin ? `<div style="padding:0 20px 16px"><button class="admin-inline-btn secondary" onclick="editLocationInfo('${cat}','${building}','${floor}')">위치 안내 수정</button></div>` : ''}
     ${renderCrowdStatusSection(cat, building, floor)}
-    <div style="padding:4px 20px 10px;font-size:15px;font-weight:700;color:var(--text-primary)">상세 정보</div>
-    ${infoCardHTML}
-    <div class="info-card toilet-common-card"><div class="info-row"><span class="info-key">최근 업데이트</span><span class="info-val" id="detail-updated-value">${escapeHTML(mergedInfo.updated)}</span></div></div>
-    ${isAdmin ? `<div class="admin-only-hint" style="padding:0 20px 16px">관리자 모드: 각 상세 정보 항목 오른쪽의 수정 버튼으로 항목별 수정이 가능합니다. 혼잡도는 학생 선택형 실시간 혼잡도만 사용합니다.</div>` : ''}
+    ${detailInfoSectionHTML}
     <div class="review-section">
       <div class="review-header">
         <h3>리뷰 (${allCmts.length})</h3>
@@ -4997,6 +5101,39 @@ function isValidCammapId(value) {
   return /^[a-z0-9_-]{3,20}$/.test(normalizeCammapId(value));
 }
 
+function isGuestCammapId(value) {
+  return String(value || '').startsWith('guest_') || String(value || '').startsWith('user_');
+}
+
+function makeGuestCammapId() {
+  return 'guest_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function initGuestProfile() {
+  let storedId = localStorage.getItem('cammapUserId') || '';
+  let storedNickname = localStorage.getItem('cammapNickname') || localStorage.getItem('cammapUserName') || '';
+
+  if (!storedId) {
+    storedId = makeGuestCammapId();
+    previousAutoUserId = storedId;
+  }
+
+  if (!storedNickname) {
+    storedNickname = '익명';
+  }
+
+  currentUserId = storedId;
+  currentUser = storedNickname;
+  cammapProfileReady = true;
+
+  localStorage.setItem('cammapUserId', currentUserId);
+  localStorage.setItem('cammapNickname', currentUser);
+  localStorage.setItem('cammapUserName', currentUser);
+  localStorage.setItem('cammapProfileReady', 'true');
+
+  return true;
+}
+
 function openProfileModal(force = false) {
   const backdrop = document.getElementById('profile-modal-backdrop');
   const idInput = document.getElementById('profile-id-input');
@@ -5004,8 +5141,8 @@ function openProfileModal(force = false) {
   const cancelBtn = document.getElementById('profile-modal-cancel');
   if (!backdrop) return;
 
-  if (idInput) idInput.value = currentUserId && !String(currentUserId).startsWith('user_') ? currentUserId : '';
-  if (nickInput) nickInput.value = currentUser && currentUser !== '동국대학교 학생' ? currentUser : '';
+  if (idInput) idInput.value = currentUserId && !isGuestCammapId(currentUserId) ? currentUserId : '';
+  if (nickInput) nickInput.value = currentUser && currentUser !== '동국대학교 학생' && currentUser !== '익명' ? currentUser : '';
   if (cancelBtn) cancelBtn.style.display = force ? 'none' : 'block';
   backdrop.classList.add('show');
   setTimeout(() => { (idInput || nickInput)?.focus(); }, 50);
@@ -5014,10 +5151,7 @@ function openProfileModal(force = false) {
 function closeProfileModal() {
   const backdrop = document.getElementById('profile-modal-backdrop');
   if (!backdrop) return;
-  if (!cammapProfileReady) {
-    showToast('CAMMAP ID와 닉네임을 먼저 설정해주세요.');
-    return;
-  }
+  if (!cammapProfileReady || !currentUserId) initGuestProfile();
   backdrop.classList.remove('show');
 }
 
@@ -5082,9 +5216,8 @@ function saveCammapProfile() {
 
 function ensureCammapProfile() {
   if (cammapProfileReady && currentUserId) return true;
-  openProfileModal(true);
-  showToast('먼저 CAMMAP ID와 익명 닉네임을 설정해주세요.');
-  return false;
+  initGuestProfile();
+  return true;
 }
 
 // 이전 함수명 호환 유지
@@ -5548,12 +5681,12 @@ function renderMyPage() {
   syncFavoriteButtons();
 }
 
-// 최초 로딩 시 프로필 이름과 개인화 목록을 반영한다.
-setTimeout(() => { renderMyPage(); renderHomeRecentViews(); if (!cammapProfileReady) openProfileModal(true); }, 0);
+// 최초 로딩 시 자동 익명 ID를 만들고 개인화 목록을 반영한다.
+setTimeout(() => { initGuestProfile(); renderMyPage(); renderHomeRecentViews(); }, 0);
 
 // ============ REPORT ============
 let isSubmittingReport = false;
-async function submitReport() {
+async async function submitReport() {
   const building = document.getElementById('report-building').value;
   const floor = document.getElementById('report-floor').value;
   const cat = document.getElementById('report-cat').value;
@@ -5625,9 +5758,12 @@ function showToast(msg) {
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
+  initGuestProfile();
   initCloudStore();
   await loadSharedData();
   startSharedRealtimeSync();
+  renderMyPage();
+  renderHomeRecentViews();
 });
 </script>
 
