@@ -1770,37 +1770,33 @@ const catInfo = {
 
 
 // ============ PROFANITY FILTER / 욕설 차단 ============
-// 댓글·제보에 욕설/비방 표현이 들어가면 저장하지 않습니다.
-// 필요하면 아래 배열에 단어를 추가하면 됩니다.
+// 댓글·제보에는 아래 4개 표현만 차단합니다.
+// 다른 정상 문장이 불필요하게 막히지 않도록 필터 범위를 최소화했습니다.
 const CAMMAP_BAD_WORDS = [
-  '시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', 'ㅅ발', '씨ㅂ', 'ㅆ발',
-  '병신', 'ㅂㅅ', '븅신', '등신',
-  '개새끼', '개세끼', '새끼', 'ㅅㄲ',
-  '미친놈', '미친년', '미친새끼',
-  '좆', '존나', '졸라', 'ㅈㄴ',
-  '꺼져', '죽어', '뒤져',
-  '개같', '개빡', '니애미', '느금마'
+  '존나',
+  'ㅈㄴ',
+  '시발',
+  'ㅅㅂ'
 ];
 
 function normalizeTextForBadWordCheck(text) {
   return String(text || '')
     .toLowerCase()
-    .replace(/[\s​-‍﻿ㄱ-ㅎㅏ-ㅣ.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
+    .replace(/[\s\u200B-\u200D\uFEFF.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
 }
 
 function containsBadWord(text) {
-  const original = String(text || '').toLowerCase();
-  const normalized = normalizeTextForBadWordCheck(original);
+  const normalized = normalizeTextForBadWordCheck(text);
 
   return CAMMAP_BAD_WORDS.some(word => {
     const normalizedWord = normalizeTextForBadWordCheck(word);
-    return original.includes(String(word).toLowerCase()) || normalized.includes(normalizedWord);
+    return normalized.includes(normalizedWord);
   });
 }
 
 function blockIfBadWord(text, targetLabel) {
   if (!containsBadWord(text)) return false;
-  showToast(`부적절한 표현이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
+  showToast(`욕설이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
   return true;
 }
 
@@ -3393,17 +3389,71 @@ function makeMediaSafeId(cat, building, floor) {
   return `${cat}_${normalizedBuilding}_${normalizedFloor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
 }
 
+function getPhotoTabBaseFloor(floor) {
+  let value = String(floor || '').trim();
+
+  // 사진 탭을 만들면서 floor 값이 "1층 화장실 여자화장실",
+  // "1층 화장실 화장실 1"처럼 바뀐 경우가 있습니다.
+  // 예전에 Supabase에 저장된 사진은 탭이 생기기 전의 기본 floor key로 저장되어 있으므로
+  // 뒤에 붙은 탭 라벨만 제거한 기본 층 이름도 함께 찾아야 합니다.
+  const tabLabels = ['여자화장실', '남자화장실', '여성화장실', '남성화장실', '화장실 1', '화장실 2', '실사진'];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const label of tabLabels) {
+      const suffix = ' ' + label;
+      if (value.endsWith(suffix)) {
+        value = value.slice(0, -suffix.length).trim();
+        changed = true;
+      }
+    }
+  }
+  return value;
+}
+
 function legacyMediaSafeIds(cat, building, floor) {
   const ids = new Set();
-  ids.add(makeMediaSafeId(cat, building, floor));
-  ids.add(`${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
+  const addId = (c, b, f) => {
+    if (!c || !b || !f) return;
+    ids.add(makeMediaSafeId(c, b, f));
+    ids.add(`${c}_${b}_${f}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
+  };
+
+  addId(cat, building, floor);
+
+  // 사진 탭 추가 전/후 key가 달라져도 기존 Supabase 사진이 계속 보이게 하는 보정입니다.
+  if (cat === 'toilet') {
+    const baseFloor = getPhotoTabBaseFloor(floor);
+    const buildingAliases = {
+      '법학만해관': ['법학만해관', '법학관', '법학 만해관', '만해관'],
+      '법학관': ['법학만해관', '법학관', '법학 만해관', '만해관'],
+      '혜화관': ['혜화관'],
+      '신공학관': ['신공학관'],
+      '본관': ['본관'],
+      '명진관': ['명진관'],
+      '다향관': ['다향관'],
+      '중앙도서관': ['중앙도서관'],
+      '원흥관': ['원흥관'],
+      '과학관': ['과학관']
+    };
+    const floorAliases = new Set([floor, baseFloor]);
+
+    // 과거에는 탭 없이 저장했고, 최근에는 탭 라벨을 붙여 저장했을 수 있어 양쪽을 모두 찾습니다.
+    ['여자화장실', '남자화장실', '화장실 1', '화장실 2'].forEach(label => {
+      if (baseFloor) floorAliases.add(`${baseFloor} ${label}`);
+    });
+
+    (buildingAliases[building] || [building]).forEach(name => {
+      floorAliases.forEach(f => addId(cat, name, f));
+    });
+  }
 
   // 예전에 편의점을 1층으로 저장했거나, 건물명만 다르게 저장한 사진도 계속 보이게 함
   if (cat === 'store') {
     const canonical = normalizeReviewBuilding(cat, building);
     const canonicalFloor = getCanonicalStoreFloor(canonical);
     const oldNames = {
-      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '만해관'],
+      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '법학관', '만해관'],
       '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
       '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
       '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
@@ -3414,9 +3464,7 @@ function legacyMediaSafeIds(cat, building, floor) {
     };
     const oldFloors = ['1층', canonicalFloor, floor].filter(Boolean);
     (oldNames[canonical] || [building]).forEach(name => {
-      oldFloors.forEach(f => {
-        ids.add(`${cat}_${name}_${f}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
-      });
+      oldFloors.forEach(f => addId(cat, name, f));
     });
   }
 
