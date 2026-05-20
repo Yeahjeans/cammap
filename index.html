@@ -1770,33 +1770,37 @@ const catInfo = {
 
 
 // ============ PROFANITY FILTER / 욕설 차단 ============
-// 댓글·제보에는 아래 4개 표현만 차단합니다.
-// 다른 정상 문장이 불필요하게 막히지 않도록 필터 범위를 최소화했습니다.
+// 댓글·제보에 욕설/비방 표현이 들어가면 저장하지 않습니다.
+// 필요하면 아래 배열에 단어를 추가하면 됩니다.
 const CAMMAP_BAD_WORDS = [
-  '존나',
-  'ㅈㄴ',
-  '시발',
-  'ㅅㅂ'
+  '시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', 'ㅅ발', '씨ㅂ', 'ㅆ발',
+  '병신', 'ㅂㅅ', '븅신', '등신',
+  '개새끼', '개세끼', '새끼', 'ㅅㄲ',
+  '미친놈', '미친년', '미친새끼',
+  '좆', '존나', '졸라', 'ㅈㄴ',
+  '꺼져', '죽어', '뒤져',
+  '개같', '개빡', '니애미', '느금마'
 ];
 
 function normalizeTextForBadWordCheck(text) {
   return String(text || '')
     .toLowerCase()
-    .replace(/[\s\u200B-\u200D\uFEFF.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
+    .replace(/[\s​-‍﻿ㄱ-ㅎㅏ-ㅣ.,!?~`'"\/\|_\-+=*@#$%^&()\[\]{}:;<>]/g, '');
 }
 
 function containsBadWord(text) {
-  const normalized = normalizeTextForBadWordCheck(text);
+  const original = String(text || '').toLowerCase();
+  const normalized = normalizeTextForBadWordCheck(original);
 
   return CAMMAP_BAD_WORDS.some(word => {
     const normalizedWord = normalizeTextForBadWordCheck(word);
-    return normalized.includes(normalizedWord);
+    return original.includes(String(word).toLowerCase()) || normalized.includes(normalizedWord);
   });
 }
 
 function blockIfBadWord(text, targetLabel) {
   if (!containsBadWord(text)) return false;
-  showToast(`욕설이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
+  showToast(`부적절한 표현이 포함되어 있어 ${targetLabel}할 수 없습니다.`);
   return true;
 }
 
