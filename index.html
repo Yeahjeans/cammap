@@ -2495,6 +2495,8 @@ async function loadSharedData() {
   saveLocalOnly('cammapDetailInfoEdits', detailInfoEdits);
   saveLocalOnly('cammapUserReports', userReports);
 
+  await migrateBase64MediaToStorage();
+
   await cloudSaveJson('comments', userComments);
   await cloudSaveJson('media', uploadedMedia);
   await cloudSaveJson('crowd', crowdReports);
@@ -2545,6 +2547,7 @@ function startSharedRealtimeSync() {
       if (row.key === 'media') {
         uploadedMedia = mergeMediaPreferRemote(row.value || {}, uploadedMedia);
         saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+        migrateBase64MediaToStorage();
       }
 
       if (row.key === 'crowd') {
@@ -2632,6 +2635,49 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
     console.warn('Supabase Storage upload exception:', e);
     return '';
   }
+}
+
+
+
+function parseMediaKeyForMigration(key) {
+  const k = String(key || '');
+  if (k.startsWith('plan_')) {
+    return { type: 'plan', safeId: k.slice(5), num: '' };
+  }
+  if (k.startsWith('photo_')) {
+    const rest = k.slice(6);
+    const m = rest.match(/^(.*)_(\d+)$/);
+    if (m) return { type: 'photo', safeId: m[1], num: m[2] };
+    return { type: 'photo', safeId: rest, num: '1' };
+  }
+  return null;
+}
+
+async function migrateBase64MediaToStorage() {
+  if (!cloudReady || !cammapDb || !SUPABASE_MEDIA_BUCKET) return false;
+  const entries = Object.entries(uploadedMedia || {}).filter(([key, value]) => {
+    return String(value || '').startsWith('data:image/') && parseMediaKeyForMigration(key);
+  });
+  if (!entries.length) return false;
+
+  let changed = false;
+  for (const [key, value] of entries) {
+    const parsed = parseMediaKeyForMigration(key);
+    if (!parsed) continue;
+    const publicUrl = await uploadMediaToSupabaseStorage(parsed.type, parsed.safeId, parsed.num, value);
+    if (publicUrl) {
+      uploadedMedia[key] = publicUrl;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+    await cloudSaveJson('media', uploadedMedia);
+    if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
+    showToast('예전 사진을 Supabase Storage URL로 복구했습니다.');
+  }
+  return changed;
 }
 
 async function saveMediaShared() {
