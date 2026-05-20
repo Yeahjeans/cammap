@@ -2495,10 +2495,10 @@ async function loadSharedData() {
   saveLocalOnly('cammapDetailInfoEdits', detailInfoEdits);
   saveLocalOnly('cammapUserReports', userReports);
 
-  await migrateBase64MediaToStorage();
-
   await cloudSaveJson('comments', userComments);
-  await cloudSaveJson('media', uploadedMedia);
+  // media는 자동 로드 직후 다시 저장하지 않습니다.
+  // 이유: 특정 기기/브라우저에 남은 일부 사진만으로 Supabase의 전체 media가 덮어써져
+  // 편의점·화장실 사진이 사라지는 문제를 막기 위해서입니다.
   await cloudSaveJson('crowd', crowdReports);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
   await cloudSaveJson('reports', userReports);
@@ -2519,7 +2519,9 @@ async function manualSyncLocalToCloud() {
   }
 
   await cloudSaveJson('comments', userComments);
-  await cloudSaveJson('media', uploadedMedia);
+  // media는 자동 로드 직후 다시 저장하지 않습니다.
+  // 이유: 특정 기기/브라우저에 남은 일부 사진만으로 Supabase의 전체 media가 덮어써져
+  // 편의점·화장실 사진이 사라지는 문제를 막기 위해서입니다.
   await cloudSaveJson('crowd', crowdReports);
   await cloudSaveJson('detailInfoEdits', detailInfoEdits);
   await cloudSaveJson('reports', userReports);
@@ -2547,7 +2549,6 @@ function startSharedRealtimeSync() {
       if (row.key === 'media') {
         uploadedMedia = mergeMediaPreferRemote(row.value || {}, uploadedMedia);
         saveLocalOnly('cammapUploadedMedia', uploadedMedia);
-        migrateBase64MediaToStorage();
       }
 
       if (row.key === 'crowd') {
@@ -2637,53 +2638,73 @@ async function uploadMediaToSupabaseStorage(type, safeId, num, dataUrl) {
   }
 }
 
+async function cloudLoadJsonForMerge(key, fallbackValue) {
+  if (!cloudReady || !cammapDb) return { ok: false, value: fallbackValue };
 
+  try {
+    const { data, error } = await cammapDb
+      .from('cammap_store')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
 
-function parseMediaKeyForMigration(key) {
-  const k = String(key || '');
-  if (k.startsWith('plan_')) {
-    return { type: 'plan', safeId: k.slice(5), num: '' };
+    if (error) throw error;
+    return { ok: true, value: data && data.value ? data.value : fallbackValue };
+  } catch (e) {
+    console.warn('공유 데이터 병합용 불러오기 실패:', key, e);
+    return { ok: false, value: fallbackValue };
   }
-  if (k.startsWith('photo_')) {
-    const rest = k.slice(6);
-    const m = rest.match(/^(.*)_(\d+)$/);
-    if (m) return { type: 'photo', safeId: m[1], num: m[2] };
-    return { type: 'photo', safeId: rest, num: '1' };
-  }
-  return null;
 }
 
-async function migrateBase64MediaToStorage() {
-  if (!cloudReady || !cammapDb || !SUPABASE_MEDIA_BUCKET) return false;
-  const entries = Object.entries(uploadedMedia || {}).filter(([key, value]) => {
-    return String(value || '').startsWith('data:image/') && parseMediaKeyForMigration(key);
-  });
-  if (!entries.length) return false;
+function mergeMediaForCloudSave(remoteValue, localValue, forceKeys = []) {
+  if (!isPlainObject(remoteValue)) remoteValue = {};
+  if (!isPlainObject(localValue)) localValue = {};
 
-  let changed = false;
-  for (const [key, value] of entries) {
-    const parsed = parseMediaKeyForMigration(key);
-    if (!parsed) continue;
-    const publicUrl = await uploadMediaToSupabaseStorage(parsed.type, parsed.safeId, parsed.num, value);
-    if (publicUrl) {
-      uploadedMedia[key] = publicUrl;
-      changed = true;
+  const forced = new Set((Array.isArray(forceKeys) ? forceKeys : []).filter(Boolean));
+  const merged = { ...remoteValue };
+
+  Object.entries(localValue).forEach(([key, localItem]) => {
+    if (!localItem) return;
+
+    // 방금 업로드한 사진 key는 새 URL로 교체되어야 하므로 local을 우선합니다.
+    if (forced.has(key)) {
+      merged[key] = localItem;
+      return;
     }
-  }
 
-  if (changed) {
-    saveLocalOnly('cammapUploadedMedia', uploadedMedia);
-    await cloudSaveJson('media', uploadedMedia);
-    if (currentBuilding && currentFloor) renderDetail(currentCat, currentBuilding, currentFloor);
-    showToast('예전 사진을 Supabase Storage URL로 복구했습니다.');
-  }
-  return changed;
+    const remoteItem = merged[key];
+
+    // 이미 Supabase에 있던 사진은 절대 지우거나 base64로 덮어쓰지 않습니다.
+    if (remoteItem) {
+      if (isPublicMediaUrl(remoteItem)) return;
+      if (isDataUrl(remoteItem) && isPublicMediaUrl(localItem)) {
+        merged[key] = localItem;
+        return;
+      }
+      return;
+    }
+
+    merged[key] = localItem;
+  });
+
+  return merged;
 }
 
-async function saveMediaShared() {
+async function saveMediaShared(forceKeys = []) {
   const localOk = saveLocalOnly('cammapUploadedMedia', uploadedMedia);
   if (!cloudReady || !cammapDb) return localOk;
-  const cloudOk = await cloudSaveJson('media', uploadedMedia);
+
+  const remote = await cloudLoadJsonForMerge('media', {});
+  if (!remote.ok) {
+    showToast('사진 공유 저장을 멈췄습니다. 기존 사진 덮어쓰기를 방지했습니다.');
+    return false;
+  }
+
+  const mergedMedia = mergeMediaForCloudSave(remote.value || {}, uploadedMedia, forceKeys);
+  uploadedMedia = mergedMedia;
+  saveLocalOnly('cammapUploadedMedia', uploadedMedia);
+
+  const cloudOk = await cloudSaveJson('media', mergedMedia);
   return !!cloudOk;
 }
 
@@ -3435,71 +3456,17 @@ function makeMediaSafeId(cat, building, floor) {
   return `${cat}_${normalizedBuilding}_${normalizedFloor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_');
 }
 
-function getPhotoTabBaseFloor(floor) {
-  let value = String(floor || '').trim();
-
-  // 사진 탭을 만들면서 floor 값이 "1층 화장실 여자화장실",
-  // "1층 화장실 화장실 1"처럼 바뀐 경우가 있습니다.
-  // 예전에 Supabase에 저장된 사진은 탭이 생기기 전의 기본 floor key로 저장되어 있으므로
-  // 뒤에 붙은 탭 라벨만 제거한 기본 층 이름도 함께 찾아야 합니다.
-  const tabLabels = ['여자화장실', '남자화장실', '여성화장실', '남성화장실', '화장실 1', '화장실 2', '실사진'];
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const label of tabLabels) {
-      const suffix = ' ' + label;
-      if (value.endsWith(suffix)) {
-        value = value.slice(0, -suffix.length).trim();
-        changed = true;
-      }
-    }
-  }
-  return value;
-}
-
 function legacyMediaSafeIds(cat, building, floor) {
   const ids = new Set();
-  const addId = (c, b, f) => {
-    if (!c || !b || !f) return;
-    ids.add(makeMediaSafeId(c, b, f));
-    ids.add(`${c}_${b}_${f}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
-  };
-
-  addId(cat, building, floor);
-
-  // 사진 탭 추가 전/후 key가 달라져도 기존 Supabase 사진이 계속 보이게 하는 보정입니다.
-  if (cat === 'toilet') {
-    const baseFloor = getPhotoTabBaseFloor(floor);
-    const buildingAliases = {
-      '법학만해관': ['법학만해관', '법학관', '법학 만해관', '만해관'],
-      '법학관': ['법학만해관', '법학관', '법학 만해관', '만해관'],
-      '혜화관': ['혜화관'],
-      '신공학관': ['신공학관'],
-      '본관': ['본관'],
-      '명진관': ['명진관'],
-      '다향관': ['다향관'],
-      '중앙도서관': ['중앙도서관'],
-      '원흥관': ['원흥관'],
-      '과학관': ['과학관']
-    };
-    const floorAliases = new Set([floor, baseFloor]);
-
-    // 과거에는 탭 없이 저장했고, 최근에는 탭 라벨을 붙여 저장했을 수 있어 양쪽을 모두 찾습니다.
-    ['여자화장실', '남자화장실', '화장실 1', '화장실 2'].forEach(label => {
-      if (baseFloor) floorAliases.add(`${baseFloor} ${label}`);
-    });
-
-    (buildingAliases[building] || [building]).forEach(name => {
-      floorAliases.forEach(f => addId(cat, name, f));
-    });
-  }
+  ids.add(makeMediaSafeId(cat, building, floor));
+  ids.add(`${cat}_${building}_${floor}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
 
   // 예전에 편의점을 1층으로 저장했거나, 건물명만 다르게 저장한 사진도 계속 보이게 함
   if (cat === 'store') {
     const canonical = normalizeReviewBuilding(cat, building);
     const canonicalFloor = getCanonicalStoreFloor(canonical);
     const oldNames = {
-      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '법학관', '만해관'],
+      '법학만해관 쿱스켓 편의점': ['법학만해관 쿱스켓 편의점', '법학만해관', '만해관'],
       '문화관 쿱스켓 편의점': ['문화관 쿱스켓 편의점', '문화관'],
       '학림관 쿱스켓 편의점': ['학림관 쿱스켓 편의점', '학림관'],
       '상록원 쿱스켓 편의점': ['상록원 쿱스켓 편의점', '상록원'],
@@ -3510,7 +3477,9 @@ function legacyMediaSafeIds(cat, building, floor) {
     };
     const oldFloors = ['1층', canonicalFloor, floor].filter(Boolean);
     (oldNames[canonical] || [building]).forEach(name => {
-      oldFloors.forEach(f => addId(cat, name, f));
+      oldFloors.forEach(f => {
+        ids.add(`${cat}_${name}_${f}`.replace(/[^a-zA-Z0-9가-힣_]/g, '_'));
+      });
     });
   }
 
@@ -3546,11 +3515,14 @@ async function saveUploadedMedia(type, safeId, num, dataUrl, cat = currentCat, b
   const publicUrl = await uploadMediaToSupabaseStorage(type, safeId, num, dataUrl);
 
   if (publicUrl) {
+    const changedMediaKeys = [];
     safeIds.forEach(id => {
-      uploadedMedia[mediaStorageKey(type, id, num)] = publicUrl;
+      const key = mediaStorageKey(type, id, num);
+      uploadedMedia[key] = publicUrl;
+      changedMediaKeys.push(key);
     });
     saveLocalOnly('cammapUploadedMedia', uploadedMedia);
-    await saveMediaShared();
+    await saveMediaShared(changedMediaKeys);
     return true;
   }
 
